@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Geospatial Data Viewer</title>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Leaflet.js for mapping -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <!-- Core dependencies for GeoTIFF parsing and display -->
+    <script src="https://unpkg.com/georaster"></script>
+    <script src="https://unpkg.com/georaster-layer-for-leaflet"></script>
+    
+    <!-- Turf.js for geospatial analysis -->
+    <script src='https://unpkg.com/@turf/turf@6/turf.min.js'></script>
+
+    <!-- Leaflet Plugins -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-measure@3.1.0/dist/leaflet-measure.css" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-measure@3.1.0/dist/leaflet-measure.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" crossorigin="anonymous"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    <script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.js"></script>
+    
+    <!-- Quill WYSIWYG Editor -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet" crossorigin="anonymous">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+
+    <!-- Chroma.js for color scales -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chroma-js/2.4.2/chroma.min.js"></script>
+
+    <!-- JSZip for creating zip files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.0/jszip.min.js"></script>
+
+    <!-- PDF Export Dependencies -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js"></script>
+    
+    <!-- Optimized Font Loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" crossorigin="anonymous">
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <!-- Main application content wrapper -->
+    <div class="main-content">
+        <!-- Header Section -->
+        <header class="bg-white p-6 rounded-xl shadow-md mb-4 border border-gray-200 relative">
+            <div class="flex items-center justify-between gap-6 flex-wrap">
+                <div class="flex items-center gap-6">
+                    <img id="logo-img" src="https://placehold.co/80x80/e2e8f0/334155?text=Logo" alt="Logo" class="h-20 w-20 rounded-full object-cover cursor-pointer" title="Edit Report Information">
+                    <input type="file" id="logo-input" class="hidden" accept="image/*">
+                    <div class="flex-1 min-w-[200px]">
+                        <h1 id="main-title" class="text-3xl font-bold text-gray-900 inline-flex items-center">Site Analysis Report
+                            <span id="report-status-badge" class="ml-3 px-3 py-1 rounded-full text-sm font-semibold"></span>
+                        </h1>
+                        <div id="main-description" class="text-gray-600 mt-2 prose max-w-none">An interactive overview of the site features and raster data.</div>
+                    </div>
+                </div>
+                <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+                    <!-- Group 1: Project I/O -->
+                    <div class="flex items-center gap-2">
+                        <label class="bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm cursor-pointer">
+                            Import Project
+                            <input type="file" id="import-project-input" class="hidden" accept=".json,.geojson">
+                        </label>
+                        <button id="export-project-btn" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm">
+                            Export Project
+                        </button>
+                    </div>
+                    <!-- Group 2: Map & Data -->
+                    <div class="flex items-center gap-2 border-l border-r border-gray-200 px-4">
+                        <button id="open-geodata-modal-btn" class="bg-gray-700 hover:bg-gray-800 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm">
+                            GeoData
+                        </button>
+                        <button id="define-boundary-btn" class="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm">Define Boundary</button>
+                        <button id="clear-boundary-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm hidden">Clear Boundary</button>
+                    </div>
+                    <!-- Group 3: Management -->
+                    <div class="flex items-center gap-2">
+                        <button id="manage-categories-btn" class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm">
+                            Manage Categories
+                        </button>
+                        <button id="manage-contributors-btn" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm">
+                            Manage Contributors
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Map Section -->
+        <div id="map-section" class="map-section">
+            <div id="map"></div>
+            <div class="p-4 text-sm text-gray-500 bg-gray-50 rounded-b-xl">
+                <p>Interactive map showing raster layers and vector features. Use the layer control in the top right to toggle visibility. Measurement and drawing tools are on the left.</p>
+            </div>
+        </div>
+
+        <!-- Bottom Panels: Legend and Feature Details -->
+        <div class="bottom-panels">
+            <div id="legend-panel" class="bottom-panel">
+                <h2 class="text-xl font-bold mb-4">Legend</h2>
+                <div class="flex items-center mb-4">
+                    <input type="checkbox" id="show-only-with-observations-toggle" class="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500">
+                    <label for="show-only-with-observations-toggle" class="ml-2 text-sm font-medium text-gray-700">With Observations Only</label>
+                </div>
+                <div id="legend-content" class="space-y-2 flex-1 overflow-y-auto">
+                    <p class="text-gray-500 text-sm">No categories defined. Use the Category Manager to create them.</p>
+                </div>
+            </div>
+            <div id="feature-details-panel" class="bottom-panel">
+                <h2 class="text-xl font-bold mb-4">Feature Details</h2>
+                <div id="snapshot-container" class="text-gray-500 flex-1 overflow-y-auto">
+                    <p>Select a feature from the legend or map to view its details and a visual snapshot.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals and Side Panels Container -->
+    
+    <!-- Generic Modal for Messages/Confirmations -->
+    <div id="modal" class="modal-overlay hidden">
+        <div id="generic-modal-content" class="modal-content">
+            <h3 id="modal-title" class="text-xl font-bold mb-4"></h3>
+            <div id="modal-body" class="mb-6"></div>
+            <div id="modal-footer" class="flex justify-end gap-4"></div>
+        </div>
+    </div>
+    
+    <!-- Loading Spinner Overlay -->
+    <div id="loader" class="modal-overlay hidden">
+        <div class="text-white text-2xl font-bold bg-gray-900 bg-opacity-75 p-8 rounded-lg flex flex-col items-center">
+            <svg class="animate-spin -ml-1 mr-3 h-10 w-10 text-white mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span id="loader-text">Loading...</span>
+        </div>
+    </div>
+
+    <!-- GeoData Management Modal -->
+    <div id="geodata-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 class="text-xl font-bold mb-4">GeoData Management</h3>
+            <div class="modal-grid">
+                <div class="modal-section">
+                    <h4>Raster Data Uploads</h4>
+                    <label for="ortho-input" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm cursor-pointer">
+                        Upload Orthophoto GeoTIFF
+                        <input type="file" id="ortho-input" class="hidden" accept=".tif,.tiff">
+                    </label>
+                    <label for="dsm-input" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm cursor-pointer mt-2">
+                        Upload Digital Surface Model (DSM)
+                        <input type="file" id="dsm-input" class="hidden" accept=".tif,.tiff">
+                    </label>
+                </div>
+            </div>
+            <div class="flex justify-end mt-6">
+                <button id="close-geodata-modal-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Info Editing Modal -->
+    <div id="edit-report-info-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 class="text-xl font-bold mb-4">Edit Report Information</h3>
+            <div id="edit-report-info-modal-body"></div>
+            <div id="edit-report-info-modal-footer" class="flex justify-end gap-4 mt-6"></div>
+        </div>
+    </div>
+
+    <!-- Observation Modal -->
+    <div id="observation-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 id="observation-modal-title" class="text-xl font-bold mb-4">Add Observation</h3>
+            <div id="observation-modal-body"></div>
+            <div id="observation-modal-footer" class="flex justify-end gap-4 mt-6"></div>
+        </div>
+    </div>
+
+    <!-- Annotation Modal -->
+    <div id="annotation-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 class="text-xl font-bold mb-4">Annotate Image</h3>
+            <div class="canvas-container">
+                <canvas id="annotation-canvas"></canvas>
+            </div>
+            <div class="flex justify-between items-center mt-4">
+                <div class="flex items-center gap-4">
+                    <label for="annotation-color" class="text-sm font-medium">Color:</label>
+                    <input type="color" id="annotation-color" value="#ff0000" class="h-8 w-8 p-0 border-none rounded">
+                    <label for="annotation-brush-size" class="text-sm font-medium">Size:</label>
+                    <input type="range" id="annotation-brush-size" min="1" max="20" value="3" class="w-24">
+                </div>
+                <div>
+                    <button id="annotation-clear-btn" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg mr-2">Clear</button>
+                    <button id="annotation-cancel-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg">Cancel</button>
+                    <button id="annotation-save-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg ml-2">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Manager Side Panel -->
+    <div id="category-manager-panel" class="side-panel">
+        <div class="panel-header">
+            <span>Category Manager</span>
+            <button id="close-category-manager-btn" class="p-1 rounded-full text-2xl leading-none hover:bg-gray-200">&times;</button>
+        </div>
+        <div id="category-manager-content" class="panel-content"></div>
+        <div class="panel-footer">
+            <div class="flex gap-2">
+                <button id="export-categories-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg text-sm">Export</button>
+                <label class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg text-sm cursor-pointer">
+                    Import
+                    <input type="file" id="import-categories-input" class="hidden" accept=".json">
+                </label>
+            </div>
+            <button id="add-category-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg">Add New Category</button>
+        </div>
+    </div>
+
+    <!-- Contributor Manager Side Panel -->
+    <div id="contributor-manager-panel" class="side-panel">
+        <div class="panel-header">
+            <span>Manage Contributors</span>
+            <button id="close-contributor-manager-btn" class="p-1 rounded-full text-2xl leading-none hover:bg-gray-200">&times;</button>
+        </div>
+        <div id="contributor-manager-content" class="panel-content">
+            <div id="contributor-list" class="space-y-4 mb-6"></div>
+            <div class="space-y-4 border-t pt-4">
+                <h4 class="font-semibold">Add New Contributor</h4>
+                <div>
+                    <label for="new-contributor-image" class="block text-sm font-medium text-gray-700 mb-1">Image</label>
+                    <input type="file" id="new-contributor-image" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" accept="image/*">
+                </div>
+                <input type="text" id="new-contributor-name" placeholder="Name" class="w-full border-gray-300 rounded-md shadow-sm p-2 border">
+                <input type="text" id="new-contributor-role" placeholder="Role (e.g., Project Manager)" class="w-full border-gray-300 rounded-md shadow-sm p-2 border">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+                    <div id="new-contributor-bio-editor" class="quill-editor-container bg-white"></div>
+                </div>
+                <button id="add-contributor-btn" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Modules -->
+    <script src="js/utils.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/events.js"></script>
+    <script src="js/legend.js"></script>
+    <script src="js/category-manager.js"></script>
+    <script src="js/contributor-manager.js"></script>
+    <script src="js/import-export.js"></script>
+    <script src="js/snapshot.js"></script>
+    <script src="js/image-annotator.js"></script>
+    <script src="js/pdf-export.js"></script>
+
+</body>
+</html>
