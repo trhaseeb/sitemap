@@ -1,0 +1,139 @@
+/* * ==============================================
+ * Base & Root Styles
+ * ==============================================
+ */
+:root {
+    --z-map-controls: 1000;
+    --z-side-panel: 10001; /* Ensure side panel is above map */
+    --z-modal-overlay: 20000; /* High z-index for modals */
+    --z-loader: 20001; /* Loader above modals */
+}
+body { 
+    font-family: 'Inter', sans-serif; 
+    overscroll-behavior: none; 
+    display: flex; 
+    flex-direction: column; 
+    min-height: 100vh;
+}
+
+/* * ==============================================
+ * Leaflet & Map Element Overrides
+ * ==============================================
+ */
+.leaflet-popup-content-wrapper { border-radius: 8px; }
+.leaflet-control-layers { border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+.leaflet-tooltip-label { background: white; border: 1px solid #9ca3af; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-weight: bold; padding: 4px 8px; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+.leaflet-tooltip-icon-only { background: transparent; border: none; box-shadow: none; padding: 2px; }
+.custom-svg-icon, .leaflet-square-icon { background: transparent; border: none; }
+.custom-svg-icon svg { width: 100%; height: 100%; display: block; }
+
+/* * ==============================================
+ * Main Layout & Panels
+ * ==============================================
+ */
+.main-content { flex: 1; display: flex; flex-direction: column; padding: 1rem; }
+.map-section { flex: 1; display: flex; flex-direction: column; background-color: white; border-radius: 0.75rem; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden; margin-bottom: 1rem; }
+#map { flex: 1; min-height: 700px; }
+.bottom-panels { display: grid; grid-template-columns: 1fr 2fr; gap: 1rem; }
+.bottom-panel { background-color: white; padding: 1.5rem; border-radius: 0.75rem; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
+.bottom-panel#legend-panel, .bottom-panel#feature-details-panel { min-height: 250px; }
+
+/* * ==============================================
+ * Modals & Side Panels
+ * ==============================================
+ */
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: var(--z-modal-overlay); transition: opacity 0.3s ease; }
+#loader { z-index: var(--z-loader); }
+.modal-content { background: white; padding: 2rem; border-radius: 0.75rem; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
+.hidden { display: none; }
+#geodata-modal .modal-content, #annotation-modal .modal-content, #observation-modal .modal-content { max-width: 800px; }
+#geodata-modal .modal-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+#geodata-modal .modal-section { padding: 1rem; border: 1px solid #e5e7eb; border-radius: 0.5rem; }
+#geodata-modal .modal-section h4 { font-weight: 600; margin-bottom: 1rem; }
+#geodata-modal .modal-section button, #geodata-modal .modal-section label { width: 100%; margin-bottom: 0.5rem; display: block; text-align: center; }
+#edit-report-info-modal .modal-content { max-width: 700px; }
+
+.side-panel { position: fixed; top: 0; left: 0; bottom: 0; width: 400px; background: white; box-shadow: 5px 0 15px rgba(0,0,0,0.2); z-index: var(--z-side-panel); transform: translateX(-100%); transition: transform 0.3s ease-in-out; display: flex; flex-direction: column; padding-top: 1rem; overflow-y: auto; }
+.side-panel.open { transform: translateX(0); }
+.panel-header { padding: 1rem; border-bottom: 1px solid #e5e7eb; font-size: 1.25rem; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+.panel-content { padding: 1.5rem; overflow-y: auto; flex-grow: 1; }
+.panel-footer { padding: 1rem; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
+
+/* * ==============================================
+ * Category & Contributor Manager Styles
+ * ==============================================
+ */
+.category-item, .contributor-item { border: 1px solid #d1d5db; border-radius: 0.5rem; margin-bottom: 1rem; }
+.category-item-header, .contributor-item-header { padding: 0.75rem; background-color: #f9fafb; border-bottom: 1px solid #d1d5db; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+.category-item-body { padding: 1rem; display: none; }
+.category-item.open .category-item-body { display: block; }
+.category-section h4 { font-weight: 600; margin-top: 1rem; margin-bottom: 0.75rem; border-bottom: 1px solid #f3f4f6; padding-bottom: 0.5rem; }
+.category-section:first-child h4 { margin-top: 0; }
+.category-control { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; align-items: center; margin-bottom: 0.75rem; }
+.category-control label { font-size: 0.875rem; color: #4b5563; }
+.category-control input, .category-control select, .category-control textarea { width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem; }
+.category-control input[type="color"] { padding: 0; height: 2.5rem; cursor: pointer; border: none; background: none; }
+
+.contributor-item-display { display: flex; gap: 1rem; align-items: flex-start; }
+.contributor-item-display img { 
+    width: 64px; height: 64px; 
+    border-radius: 50%; 
+    object-fit: cover; 
+    border: 2px solid #e5e7eb;
+    flex-shrink: 0; /* FIX: Prevents image from being squashed */
+}
+.contributor-item-details { flex-grow: 1; }
+.contributor-item-name { font-weight: 600; }
+.contributor-item-role { font-size: 0.875rem; color: #6b7280; font-style: italic; }
+.contributor-item-bio .ql-editor { padding: 0; font-size: 0.875rem; color: #4b5563; }
+.contributor-item-bio { margin-top: 0.5rem; }
+
+/* * ==============================================
+ * Legend & Feature Details Styles
+ * ==============================================
+ */
+.legend-item.selected { background-color: #e0f2fe !important; }
+.legend-category-header { display: flex; align-items: center; justify-content: space-between; padding: 8px; cursor: pointer; background-color: #f3f4f6; border-radius: 4px; }
+.legend-category-header:hover { background-color: #e5e7eb; }
+.legend-item { display: flex; align-items: center; padding: 6px 8px; cursor: pointer; border-radius: 4px; }
+.legend-item:hover { background-color: #f9fafb; }
+.legend-swatch { width: 32px; height: 32px; margin-right: 10px; border: 1px solid #ccc; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.legend-swatch svg { width: 100%; height: 100%; display: block; }
+.legend-item-list { display: none; margin-left: 10px; }
+.legend-category.open .legend-item-list { display: block; }
+.dsm-legend { background-color: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); line-height: 1.2; }
+.dsm-legend-title { font-weight: bold; margin-bottom: 5px; }
+.dsm-legend-gradient { height: 150px; width: 20px; border: 1px solid #ccc; }
+.dsm-legend-labels { position: relative; height: 150px; width: 40px; }
+.dsm-legend-labels span { position: absolute; right: 0; transform: translateY(-50%); font-size: 10px; }
+
+/* * ==============================================
+ * Observations & Snapshot Styles
+ * ==============================================
+ */
+.observation-icon { display: inline-block; width: 16px; height: 16px; border-radius: 50%; margin-right: 6px; flex-shrink: 0; }
+.legend-item.has-observations .observation-icon { display: inline-block; }
+.category-observation-indicator { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-left: 8px; vertical-align: middle; }
+#snapshot-container { display: flex; flex-direction: column; gap: 1rem; max-height: 60vh; overflow-y: auto; }
+.snapshot-image-container { position: relative; }
+.snapshot-image { max-width: 280px; margin-left: auto; margin-right: auto; }
+.snapshot-caption { font-size: 0.875rem; color: #4b5563; font-style: italic; text-align: center; font-weight: 500; margin-top: 0.5rem; }
+.observation-details { display: none; }
+.observation-header { cursor: pointer; }
+
+/* * ==============================================
+ * Annotation & Project Boundary Styles
+ * ==============================================
+ */
+.quill-editor-container { height: 150px; margin-bottom: 1rem; }
+.canvas-container { position: relative; margin: 0 auto; line-height: 0; max-width: 100%; max-height: 60vh; aspect-ratio: 1 / 1; background-color: #f0f0f0; }
+.canvas-container canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+#annotation-canvas { cursor: crosshair; }
+.project-boundary-style {
+    stroke: #ef4444;
+    stroke-width: 3;
+    stroke-dasharray: 10, 5;
+    fill: #ef4444;
+    fill-opacity: 0.05;
+    pointer-events: none; /* Allows clicks to pass through */
+}
