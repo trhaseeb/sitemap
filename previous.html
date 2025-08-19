@@ -1,0 +1,3029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Geospatial Data Viewer</title>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Leaflet.js for mapping -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <!-- Core dependencies for GeoTIFF parsing and display -->
+    <script src="https://unpkg.com/georaster"></script>
+    <script src="https://unpkg.com/georaster-layer-for-leaflet"></script>
+    
+    <!-- Turf.js for geospatial analysis -->
+    <script src='https://unpkg.com/@turf/turf@6/turf.min.js'></script>
+
+    <!-- Leaflet Plugins -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-measure@3.1.0/dist/leaflet-measure.css" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-measure@3.1.0/dist/leaflet-measure.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" crossorigin="anonymous"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    <script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.js"></script>
+    
+    <!-- Quill WYSIWYG Editor -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet" crossorigin="anonymous">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+
+    <!-- Chroma.js for color scales -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chroma-js/2.4.2/chroma.min.js"></script>
+
+    <!-- JSZip for creating zip files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.0/jszip.min.js"></script>
+
+    <!-- PDF Export Dependencies -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js"></script>
+    
+    <!-- Optimized Font Loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" crossorigin="anonymous">
+    
+    <style>
+        /* * ==============================================
+         * Base & Root Styles
+         * ==============================================
+         */
+        :root {
+            --z-map-controls: 1000;
+            --z-side-panel: 10001; /* Ensure side panel is above map */
+            --z-modal-overlay: 20000; /* High z-index for modals */
+            --z-loader: 20001; /* Loader above modals */
+        }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            overscroll-behavior: none; 
+            display: flex; 
+            flex-direction: column; 
+            min-height: 100vh;
+        }
+
+        /* * ==============================================
+         * Leaflet & Map Element Overrides
+         * ==============================================
+         */
+        .leaflet-popup-content-wrapper { border-radius: 8px; }
+        .leaflet-control-layers { border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .leaflet-tooltip-label { background: white; border: 1px solid #9ca3af; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-weight: bold; padding: 4px 8px; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+        .leaflet-tooltip-icon-only { background: transparent; border: none; box-shadow: none; padding: 2px; }
+        .custom-svg-icon, .leaflet-square-icon { background: transparent; border: none; }
+        .custom-svg-icon svg { width: 100%; height: 100%; display: block; }
+
+        /* * ==============================================
+         * Main Layout & Panels
+         * ==============================================
+         */
+        .main-content { flex: 1; display: flex; flex-direction: column; padding: 1rem; }
+        .map-section { flex: 1; display: flex; flex-direction: column; background-color: white; border-radius: 0.75rem; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden; margin-bottom: 1rem; }
+        #map { flex: 1; min-height: 700px; }
+        .bottom-panels { display: grid; grid-template-columns: 1fr 2fr; gap: 1rem; }
+        .bottom-panel { background-color: white; padding: 1.5rem; border-radius: 0.75rem; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
+        .bottom-panel#legend-panel, .bottom-panel#feature-details-panel { min-height: 250px; }
+
+        /* * ==============================================
+         * Modals & Side Panels
+         * ==============================================
+         */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: var(--z-modal-overlay); transition: opacity 0.3s ease; }
+        #loader { z-index: var(--z-loader); }
+        .modal-content { background: white; padding: 2rem; border-radius: 0.75rem; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
+        .hidden { display: none; }
+        #geodata-modal .modal-content, #annotation-modal .modal-content, #observation-modal .modal-content { max-width: 800px; }
+        #geodata-modal .modal-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+        #geodata-modal .modal-section { padding: 1rem; border: 1px solid #e5e7eb; border-radius: 0.5rem; }
+        #geodata-modal .modal-section h4 { font-weight: 600; margin-bottom: 1rem; }
+        #geodata-modal .modal-section button, #geodata-modal .modal-section label { width: 100%; margin-bottom: 0.5rem; display: block; text-align: center; }
+        #edit-report-info-modal .modal-content { max-width: 700px; }
+        
+        .side-panel { position: fixed; top: 0; left: 0; bottom: 0; width: 400px; background: white; box-shadow: 5px 0 15px rgba(0,0,0,0.2); z-index: var(--z-side-panel); transform: translateX(-100%); transition: transform 0.3s ease-in-out; display: flex; flex-direction: column; padding-top: 1rem; overflow-y: auto; }
+        .side-panel.open { transform: translateX(0); }
+        .panel-header { padding: 1rem; border-bottom: 1px solid #e5e7eb; font-size: 1.25rem; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+        .panel-content { padding: 1.5rem; overflow-y: auto; flex-grow: 1; }
+        .panel-footer { padding: 1rem; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
+
+        /* * ==============================================
+         * Category & Contributor Manager Styles
+         * ==============================================
+         */
+        .category-item, .contributor-item { border: 1px solid #d1d5db; border-radius: 0.5rem; margin-bottom: 1rem; }
+        .category-item-header, .contributor-item-header { padding: 0.75rem; background-color: #f9fafb; border-bottom: 1px solid #d1d5db; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .category-item-body { padding: 1rem; display: none; }
+        .category-item.open .category-item-body { display: block; }
+        .category-section h4 { font-weight: 600; margin-top: 1rem; margin-bottom: 0.75rem; border-bottom: 1px solid #f3f4f6; padding-bottom: 0.5rem; }
+        .category-section:first-child h4 { margin-top: 0; }
+        .category-control { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; align-items: center; margin-bottom: 0.75rem; }
+        .category-control label { font-size: 0.875rem; color: #4b5563; }
+        .category-control input, .category-control select, .category-control textarea { width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem; }
+        .category-control input[type="color"] { padding: 0; height: 2.5rem; cursor: pointer; border: none; background: none; }
+        
+        .contributor-item-display { display: flex; gap: 1rem; align-items: flex-start; }
+        .contributor-item-display img { 
+            width: 64px; height: 64px; 
+            border-radius: 50%; 
+            object-fit: cover; 
+            border: 2px solid #e5e7eb;
+            flex-shrink: 0; /* FIX: Prevents image from being squashed */
+        }
+        .contributor-item-details { flex-grow: 1; }
+        .contributor-item-name { font-weight: 600; }
+        .contributor-item-role { font-size: 0.875rem; color: #6b7280; font-style: italic; }
+        .contributor-item-bio .ql-editor { padding: 0; font-size: 0.875rem; color: #4b5563; }
+        .contributor-item-bio { margin-top: 0.5rem; }
+
+        /* * ==============================================
+         * Legend & Feature Details Styles
+         * ==============================================
+         */
+        .legend-item.selected { background-color: #e0f2fe !important; }
+        .legend-category-header { display: flex; align-items: center; justify-content: space-between; padding: 8px; cursor: pointer; background-color: #f3f4f6; border-radius: 4px; }
+        .legend-category-header:hover { background-color: #e5e7eb; }
+        .legend-item { display: flex; align-items: center; padding: 6px 8px; cursor: pointer; border-radius: 4px; }
+        .legend-item:hover { background-color: #f9fafb; }
+        .legend-swatch { width: 32px; height: 32px; margin-right: 10px; border: 1px solid #ccc; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+        .legend-swatch svg { width: 100%; height: 100%; display: block; }
+        .legend-item-list { display: none; margin-left: 10px; }
+        .legend-category.open .legend-item-list { display: block; }
+        .dsm-legend { background-color: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); line-height: 1.2; }
+        .dsm-legend-title { font-weight: bold; margin-bottom: 5px; }
+        .dsm-legend-gradient { height: 150px; width: 20px; border: 1px solid #ccc; }
+        .dsm-legend-labels { position: relative; height: 150px; width: 40px; }
+        .dsm-legend-labels span { position: absolute; right: 0; transform: translateY(-50%); font-size: 10px; }
+
+        /* * ==============================================
+         * Observations & Snapshot Styles
+         * ==============================================
+         */
+        .observation-icon { display: inline-block; width: 16px; height: 16px; border-radius: 50%; margin-right: 6px; flex-shrink: 0; }
+        .legend-item.has-observations .observation-icon { display: inline-block; }
+        .category-observation-indicator { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-left: 8px; vertical-align: middle; }
+        #snapshot-container { display: flex; flex-direction: column; gap: 1rem; max-height: 60vh; overflow-y: auto; }
+        .snapshot-image-container { position: relative; }
+        .snapshot-image { max-width: 280px; margin-left: auto; margin-right: auto; }
+        .snapshot-caption { font-size: 0.875rem; color: #4b5563; font-style: italic; text-align: center; font-weight: 500; margin-top: 0.5rem; }
+        .observation-details { display: none; }
+        .observation-header { cursor: pointer; }
+
+        /* * ==============================================
+         * Annotation & Project Boundary Styles
+         * ==============================================
+         */
+        .quill-editor-container { height: 150px; margin-bottom: 1rem; }
+        .canvas-container { position: relative; margin: 0 auto; line-height: 0; max-width: 100%; max-height: 60vh; aspect-ratio: 1 / 1; background-color: #f0f0f0; }
+        .canvas-container canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        #annotation-canvas { cursor: crosshair; }
+        .project-boundary-style {
+            stroke: #ef4444;
+            stroke-width: 3;
+            stroke-dasharray: 10, 5;
+            fill: #ef4444;
+            fill-opacity: 0.05;
+            pointer-events: none; /* Allows clicks to pass through */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <!-- Main application content wrapper -->
+    <div class="main-content">
+        <!-- Header Section -->
+        <header class="bg-white p-6 rounded-xl shadow-md mb-4 border border-gray-200 relative">
+            <div class="flex items-center justify-between gap-6 flex-wrap">
+                <div class="flex items-center gap-6">
+                    <img id="logo-img" src="https://placehold.co/80x80/e2e8f0/334155?text=Logo" alt="Logo" class="h-20 w-20 rounded-full object-cover cursor-pointer" title="Edit Report Information">
+                    <input type="file" id="logo-input" class="hidden" accept="image/*">
+                    <div class="flex-1 min-w-[200px]">
+                        <h1 id="main-title" class="text-3xl font-bold text-gray-900 inline-flex items-center">Site Analysis Report
+                            <span id="report-status-badge" class="ml-3 px-3 py-1 rounded-full text-sm font-semibold"></span>
+                        </h1>
+                        <div id="main-description" class="text-gray-600 mt-2 prose max-w-none">An interactive overview of the site features and raster data.</div>
+                    </div>
+                </div>
+                <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+                    <!-- Group 1: Project I/O -->
+                    <div class="flex items-center gap-2">
+                        <label class="bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm cursor-pointer">
+                            Import Project
+                            <input type="file" id="import-project-input" class="hidden" accept=".json,.geojson">
+                        </label>
+                        <button id="export-project-btn" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm">
+                            Export Project
+                        </button>
+                    </div>
+                    <!-- Group 2: Map & Data -->
+                    <div class="flex items-center gap-2 border-l border-r border-gray-200 px-4">
+                        <button id="open-geodata-modal-btn" class="bg-gray-700 hover:bg-gray-800 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm">
+                            GeoData
+                        </button>
+                        <button id="define-boundary-btn" class="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm">Define Boundary</button>
+                        <button id="clear-boundary-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm hidden">Clear Boundary</button>
+                    </div>
+                    <!-- Group 3: Management -->
+                    <div class="flex items-center gap-2">
+                        <button id="manage-categories-btn" class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm">
+                            Manage Categories
+                        </button>
+                        <button id="manage-contributors-btn" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm">
+                            Manage Contributors
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Map Section -->
+        <div id="map-section" class="map-section">
+            <div id="map"></div>
+            <div class="p-4 text-sm text-gray-500 bg-gray-50 rounded-b-xl">
+                <p>Interactive map showing raster layers and vector features. Use the layer control in the top right to toggle visibility. Measurement and drawing tools are on the left.</p>
+            </div>
+        </div>
+
+        <!-- Bottom Panels: Legend and Feature Details -->
+        <div class="bottom-panels">
+            <div id="legend-panel" class="bottom-panel">
+                <h2 class="text-xl font-bold mb-4">Legend</h2>
+                <div class="flex items-center mb-4">
+                    <input type="checkbox" id="show-only-with-observations-toggle" class="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500">
+                    <label for="show-only-with-observations-toggle" class="ml-2 text-sm font-medium text-gray-700">With Observations Only</label>
+                </div>
+                <div id="legend-content" class="space-y-2 flex-1 overflow-y-auto">
+                    <p class="text-gray-500 text-sm">No categories defined. Use the Category Manager to create them.</p>
+                </div>
+            </div>
+            <div id="feature-details-panel" class="bottom-panel">
+                <h2 class="text-xl font-bold mb-4">Feature Details</h2>
+                <div id="snapshot-container" class="text-gray-500 flex-1 overflow-y-auto">
+                    <p>Select a feature from the legend or map to view its details and a visual snapshot.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals and Side Panels Container -->
+    
+    <!-- Generic Modal for Messages/Confirmations -->
+    <div id="modal" class="modal-overlay hidden">
+        <div id="generic-modal-content" class="modal-content">
+            <h3 id="modal-title" class="text-xl font-bold mb-4"></h3>
+            <div id="modal-body" class="mb-6"></div>
+            <div id="modal-footer" class="flex justify-end gap-4"></div>
+        </div>
+    </div>
+    
+    <!-- Loading Spinner Overlay -->
+    <div id="loader" class="modal-overlay hidden">
+        <div class="text-white text-2xl font-bold bg-gray-900 bg-opacity-75 p-8 rounded-lg flex flex-col items-center">
+            <svg class="animate-spin -ml-1 mr-3 h-10 w-10 text-white mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span id="loader-text">Loading...</span>
+        </div>
+    </div>
+
+    <!-- GeoData Management Modal -->
+    <div id="geodata-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 class="text-xl font-bold mb-4">GeoData Management</h3>
+            <div class="modal-grid">
+                <div class="modal-section">
+                    <h4>Raster Data Uploads</h4>
+                    <label for="ortho-input" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm cursor-pointer">
+                        Upload Orthophoto GeoTIFF
+                        <input type="file" id="ortho-input" class="hidden" accept=".tif,.tiff">
+                    </label>
+                    <label for="dsm-input" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm cursor-pointer mt-2">
+                        Upload Digital Surface Model (DSM)
+                        <input type="file" id="dsm-input" class="hidden" accept=".tif,.tiff">
+                    </label>
+                </div>
+            </div>
+            <div class="flex justify-end mt-6">
+                <button id="close-geodata-modal-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Info Editing Modal -->
+    <div id="edit-report-info-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 class="text-xl font-bold mb-4">Edit Report Information</h3>
+            <div id="edit-report-info-modal-body"></div>
+            <div id="edit-report-info-modal-footer" class="flex justify-end gap-4 mt-6"></div>
+        </div>
+    </div>
+
+    <!-- Observation Modal -->
+    <div id="observation-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 id="observation-modal-title" class="text-xl font-bold mb-4">Add Observation</h3>
+            <div id="observation-modal-body"></div>
+            <div id="observation-modal-footer" class="flex justify-end gap-4 mt-6"></div>
+        </div>
+    </div>
+
+    <!-- Annotation Modal -->
+    <div id="annotation-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 class="text-xl font-bold mb-4">Annotate Image</h3>
+            <div class="canvas-container">
+                <canvas id="annotation-canvas"></canvas>
+            </div>
+            <div class="flex justify-between items-center mt-4">
+                <div class="flex items-center gap-4">
+                    <label for="annotation-color" class="text-sm font-medium">Color:</label>
+                    <input type="color" id="annotation-color" value="#ff0000" class="h-8 w-8 p-0 border-none rounded">
+                    <label for="annotation-brush-size" class="text-sm font-medium">Size:</label>
+                    <input type="range" id="annotation-brush-size" min="1" max="20" value="3" class="w-24">
+                </div>
+                <div>
+                    <button id="annotation-clear-btn" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg mr-2">Clear</button>
+                    <button id="annotation-cancel-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg">Cancel</button>
+                    <button id="annotation-save-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg ml-2">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Manager Side Panel -->
+    <div id="category-manager-panel" class="side-panel">
+        <div class="panel-header">
+            <span>Category Manager</span>
+            <button id="close-category-manager-btn" class="p-1 rounded-full text-2xl leading-none hover:bg-gray-200">&times;</button>
+        </div>
+        <div id="category-manager-content" class="panel-content"></div>
+        <div class="panel-footer">
+            <div class="flex gap-2">
+                <button id="export-categories-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg text-sm">Export</button>
+                <label class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg text-sm cursor-pointer">
+                    Import
+                    <input type="file" id="import-categories-input" class="hidden" accept=".json">
+                </label>
+            </div>
+            <button id="add-category-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg">Add New Category</button>
+        </div>
+    </div>
+
+    <!-- Contributor Manager Side Panel -->
+    <div id="contributor-manager-panel" class="side-panel">
+        <div class="panel-header">
+            <span>Manage Contributors</span>
+            <button id="close-contributor-manager-btn" class="p-1 rounded-full text-2xl leading-none hover:bg-gray-200">&times;</button>
+        </div>
+        <div id="contributor-manager-content" class="panel-content">
+            <div id="contributor-list" class="space-y-4 mb-6"></div>
+            <div class="space-y-4 border-t pt-4">
+                <h4 class="font-semibold">Add New Contributor</h4>
+                <div>
+                    <label for="new-contributor-image" class="block text-sm font-medium text-gray-700 mb-1">Image</label>
+                    <input type="file" id="new-contributor-image" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" accept="image/*">
+                </div>
+                <input type="text" id="new-contributor-name" placeholder="Name" class="w-full border-gray-300 rounded-md shadow-sm p-2 border">
+                <input type="text" id="new-contributor-role" placeholder="Role (e.g., Project Manager)" class="w-full border-gray-300 rounded-md shadow-sm p-2 border">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+                    <div id="new-contributor-bio-editor" class="quill-editor-container bg-white"></div>
+                </div>
+                <button id="add-contributor-btn" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Main Application Namespace
+    const App = {
+        state: {
+            map: null, snapshotMap: null, layersControl: null, geojsonLayer: null,
+            decoratorLayers: [], dsmLegendControl: null, svgPatternDefs: null,
+            projectBoundary: { layer: null, geojson: null },
+            boundaryDrawer: null,
+            data: {
+                ortho: { georaster: null, fileBuffer: null, layer: null },
+                dsm: { georaster: null, fileBuffer: null, layer: null },
+                geojson: { data: { type: 'FeatureCollection', features: [] }, fileContent: null }, 
+                logo: null, 
+                categories: {}, 
+                contributors: [{ name: 'Default User', role: 'Project Lead', bio: '<p>Initial user for this project.</p>', image: null }],
+                reportInfo: { 
+                    clientName: '', clientContact: '', clientAddress: '',
+                    projectId: '', reportDate: '', reportStatus: 'Draft'
+                },
+            },
+            featureIdToLayerMap: new Map(),
+            categoryVisibility: {},
+            showOnlyWithObservations: false, 
+            quillInstances: {
+                contributorBio: null
+            }
+        },
+        init() {
+            this.UI.init(); 
+            this.Map.init(); 
+            this.Events.init();
+            this.CategoryManager.render(); 
+            this.Legend.render(); 
+            this.ContributorManager.init();
+            this.UI.updateReportStatusDisplay();
+        },
+    };
+
+    // Utility functions
+    App.Utils = {
+        debounce(func, delay = 250) {
+            let timeoutId;
+            return (...args) => {
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => { func.apply(this, args); }, delay);
+            };
+        },
+        readFile: (file, readAs) => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(reader.error);
+            if (readAs === 'arrayBuffer') reader.readAsArrayBuffer(file);
+            else if (readAs === 'text') reader.readAsText(file);
+            else if (readAs === 'dataURL') reader.readAsDataURL(file);
+        }),
+        calculateGeoData(feature) {
+            const data = [];
+            try {
+                if (!feature || !feature.geometry || !feature.geometry.coordinates || feature.geometry.coordinates.length === 0) return null;
+                const center = turf.centroid(feature);
+                const [lon, lat] = center.geometry.coordinates;
+                data.push({ label: 'Latitude', value: lat.toFixed(6) });
+                data.push({ label: 'Longitude', value: lon.toFixed(6) });
+                if (feature.geometry.type.includes('LineString') || feature.geometry.type.includes('Polygon')) {
+                    const lengthMeters = turf.length(feature, { units: 'meters' });
+                    data.push({ label: feature.geometry.type.includes('Polygon') ? 'Perimeter' : 'Length', value: `${(lengthMeters * 3.28084).toLocaleString(undefined, {maximumFractionDigits: 2})} ft` });
+                }
+                if (feature.geometry.type.includes('Polygon')) {
+                    const areaMeters = turf.area(feature);
+                    const areaAcres = areaMeters / 4046.86;
+                    data.push({ label: 'Area (sq ft)', value: (areaMeters * 10.7639).toLocaleString(undefined, {maximumFractionDigits: 2}) });
+                    data.push({ label: 'Area (acres)', value: areaAcres.toLocaleString(undefined, {maximumFractionDigits: 4}) });
+                }
+                return data;
+            } catch(e) { console.error("GeoData Error:", e); return null; }
+        },
+        stripHtml(html) {
+            try {
+                // Handle non-string inputs safely
+                if (html === null || html === undefined) return "";
+                
+                // Special handling for Event objects
+                if (html instanceof Event) {
+                    console.warn("Event object detected in stripHtml");
+                    return "[Event]";
+                }
+                
+                // Handle objects that might contain Events
+                if (typeof html === 'object') {
+                    // Try to get a meaningful string representation
+                    if (html.toString && html.toString() !== '[object Object]') {
+                        html = html.toString();
+                    } else {
+                        return "[Object]";
+                    }
+                }
+                
+                // Convert to string and check for [object Event]
+                const str = String(html);
+                if (str.includes('[object Event]')) {
+                    return str.replace(/\[object Event\]/g, '[Event]');
+                }
+                
+                const doc = new DOMParser().parseFromString(str, 'text/html');
+                return doc.body.textContent || "";
+            } catch (e) {
+                console.error("Error in stripHtml:", e);
+                return "";
+            }
+        },
+        formatDate(date) {
+            if (!date) return '';
+            if (typeof date === 'string' && date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                return date;
+            }
+            const d = new Date(date);
+            if (isNaN(d.getTime())) return '';
+            return d.toISOString().split('T')[0];
+        },
+        /**
+         * MODIFICATION: This function now crops images to a 1:1 square aspect ratio.
+         * It finds the largest possible square in the center of the original image.
+         */
+        cropAndResizeImage: (imageUrl) => new Promise((resolve) => {
+            const originalImage = new Image();
+            originalImage.crossOrigin = "Anonymous";
+            originalImage.onload = () => {
+                let sourceX = 0, sourceY = 0;
+                let sourceSize = Math.min(originalImage.width, originalImage.height);
+
+                if (originalImage.width > originalImage.height) {
+                    // Landscape image
+                    sourceX = (originalImage.width - sourceSize) / 2;
+                } else if (originalImage.height > originalImage.width) {
+                    // Portrait image
+                    sourceY = (originalImage.height - sourceSize) / 2;
+                }
+
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                // Using a fixed size for consistency in the report
+                const finalSize = 800; 
+                tempCanvas.width = finalSize;
+                tempCanvas.height = finalSize;
+
+                tempCtx.drawImage(
+                    originalImage,
+                    sourceX, sourceY,
+                    sourceSize, sourceSize, // Crop to the centered square
+                    0, 0, finalSize, finalSize // Draw that square onto the final canvas
+                );
+                resolve(tempCanvas.toDataURL('image/jpeg', 0.9));
+            };
+            originalImage.src = imageUrl;
+        }),
+        getHighestSeverity(observations) {
+            if (!observations || observations.length === 0) return null;
+            const severityOrder = { 'Low': 1, 'Medium': 2, 'High': 3, 'Critical': 4 };
+            return observations.reduce((max, obs) => {
+                const currentSeverity = severityOrder[obs.severity] || 0;
+                const maxSeverity = severityOrder[max] || 0;
+                return currentSeverity > maxSeverity ? obs.severity : max;
+            }, 'Low');
+        },
+        getColorForSeverity(severity) {
+            switch (severity) {
+                case 'Critical': return '#ef4444'; // red-500
+                case 'High': return '#f97316';     // orange-500
+                case 'Medium': return '#eab308';   // yellow-500
+                case 'Low': return '#3b82f6';      // blue-500
+                default: return '#6b7280';         // gray-500
+            }
+        }
+    };
+
+    // UI management
+    App.UI = {
+        elements: {}, 
+        init() {
+            this.elements.modal = document.getElementById('modal'); 
+            this.elements.loader = document.getElementById('loader');
+            this.elements.loaderText = document.getElementById('loader-text');
+            this.elements.categoryManagerPanel = document.getElementById('category-manager-panel');
+            this.elements.contributorManagerPanel = document.getElementById('contributor-manager-panel');
+            this.elements.geodataModal = document.getElementById('geodata-modal');
+            this.elements.editReportInfoModal = document.getElementById('edit-report-info-modal'); 
+            this.elements.reportStatusBadge = document.getElementById('report-status-badge');
+            this.elements.annotationModal = document.getElementById('annotation-modal');
+            this.elements.observationModal = document.getElementById('observation-modal');
+            this.elements.defineBoundaryBtn = document.getElementById('define-boundary-btn');
+            this.elements.clearBoundaryBtn = document.getElementById('clear-boundary-btn');
+        },
+        showLoader(text = 'Loading...') { this.elements.loaderText.innerText = text; this.elements.loader.classList.remove('hidden'); },
+        hideLoader() { this.elements.loader.classList.add('hidden'); },
+        showMessage(title, message) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-body').innerHTML = `<p>${message.replace(/\n/g, '<br>')}</p>`;
+            document.getElementById('modal-footer').innerHTML = `<button id="modal-ok-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">OK</button>`;
+            this.elements.modal.classList.remove('hidden');
+            document.getElementById('modal-ok-btn').onclick = () => this.elements.modal.classList.add('hidden');
+        },
+        showConfirm(title, message, callback) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-body').innerHTML = `<p>${message.replace(/\n/g, '<br>')}</p>`; 
+            document.getElementById('modal-footer').innerHTML = `
+                <button id="modal-cancel-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg">Cancel</button>
+                <button id="modal-confirm-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">Confirm</button>`;
+            this.elements.modal.classList.remove('hidden');
+            document.getElementById('modal-cancel-btn').onclick = () => this.elements.modal.classList.add('hidden');
+            document.getElementById('modal-confirm-btn').onclick = () => { callback(); this.elements.modal.classList.add('hidden'); };
+        },
+        showPrompt(title, fields, callback, targetModalId = 'modal') { 
+            let currentModal, currentModalBody, currentModalFooter;
+            const quillInstances = new Map();
+
+            if (targetModalId === 'edit-report-info-modal') {
+                currentModal = this.elements.editReportInfoModal;
+                currentModalBody = currentModal.querySelector('#edit-report-info-modal-body');
+                currentModalFooter = currentModal.querySelector('#edit-report-info-modal-footer');
+            } else if (targetModalId === 'observation-modal') {
+                currentModal = this.elements.observationModal;
+                currentModalBody = currentModal.querySelector('#observation-modal-body');
+                currentModalFooter = currentModal.querySelector('#observation-modal-footer');
+            } else {
+                currentModal = this.elements.modal;
+                currentModalBody = currentModal.querySelector('#modal-body');
+                currentModalFooter = currentModal.querySelector('#modal-footer');
+            }
+            
+            const titleEl = currentModal.querySelector('h3');
+            if(titleEl) titleEl.innerText = title;
+            
+            currentModalBody.innerHTML = '';
+            
+            fields.forEach(field => {
+                let html = '';
+                const fieldWrapperDiv = document.createElement('div');
+                if (field.className) fieldWrapperDiv.className = field.className;
+
+                if (field.type === 'quill') {
+                    html = `<label class="block text-sm font-medium text-gray-700 mb-1">${field.label}</label><div id="quill-editor-${field.id}" class="quill-editor-container"></div>`;
+                } else if (field.type === 'select') {
+                    const optionsHtml = field.options?.map(opt => `<option value="${opt.value}" ${opt.value == field.value ? 'selected' : ''}>${opt.label}</option>`).join('') || '';
+                    html = `<label for="${field.id}" class="block text-sm font-medium text-gray-700 mb-1">${field.label}</label><select id="${field.id}" class="block w-full border-gray-300 rounded-md shadow-sm mb-4 p-2 border">${optionsHtml}</select>`;
+                } else if (field.type === 'images') {
+                    html = `<div id="images-section" class="mt-4 border-t pt-4"><h4 class="text-md font-semibold mb-2">Attached Images</h4><div id="image-list" class="space-y-2 mb-2"></div><label class="bg-green-500 hover:bg-green-600 text-white text-sm py-1 px-2 rounded cursor-pointer">Add Image<input type="file" id="image-upload-input" class="hidden" accept="image/*"></label></div>`;
+                } else if (field.type === 'checkbox') {
+                    html = `<div class="flex items-center my-4"><input type="checkbox" id="${field.id}" ${field.value ? 'checked' : ''} class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"><label for="${field.id}" class="ml-2 block text-sm text-gray-900">${field.label}</label></div>`;
+                } else if (field.type === 'date') { 
+                    html = `<label for="${field.id}" class="block text-sm font-medium text-gray-700 mb-1">${field.label}</label><input type="date" id="${field.id}" value="${field.value}" class="block w-full border-gray-300 rounded-md shadow-sm mb-4 p-2 border">`;
+                } else if (field.type === 'file') { 
+                    html = `<label for="${field.id}" class="block text-sm font-medium text-gray-700 mb-1">${field.label}</label><input type="file" id="${field.id}" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" accept="${field.accept || '*/*'}">`;
+                } else {
+                    html = `<label for="${field.id}" class="block text-sm font-medium text-gray-700 mb-1">${field.label}</label><input type="text" id="${field.id}" value="${field.value || ''}" class="block w-full border-gray-300 rounded-md shadow-sm mb-4 p-2 border">`;
+                }
+                fieldWrapperDiv.innerHTML = html;
+                currentModalBody.appendChild(fieldWrapperDiv); 
+            });
+
+            currentModalFooter.innerHTML = `<button id="modal-cancel-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg">Cancel</button><button id="modal-save-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">Save</button>`;
+            currentModal.classList.remove('hidden'); 
+
+            fields.filter(f => f.type === 'quill').forEach(field => {
+                const editorEl = currentModalBody.querySelector(`#quill-editor-${field.id}`);
+                if (editorEl) {
+                    const quillInstance = new Quill(editorEl, { theme: 'snow', modules: { toolbar: [['bold', 'italic', 'underline'], ['link'], [{ 'list': 'ordered'}, { 'list': 'bullet' }]] } });
+                    if (field.value) quillInstance.root.innerHTML = field.value;
+                    quillInstances.set(field.id, quillInstance);
+                }
+            });
+
+            const imageField = fields.find(f => f.type === 'images');
+            if (imageField) {
+                let currentImages = JSON.parse(JSON.stringify(imageField.value || []));
+                const imageList = currentModalBody.querySelector('#image-list');
+                const renderImages = () => {
+                    imageList.innerHTML = '';
+                    currentImages.forEach((img, index) => {
+                        const div = document.createElement('div');
+                        div.className = 'flex items-center gap-2';
+                        div.innerHTML = `<img src="${img.src}" onerror="this.src='https://placehold.co/40x40/f87171/ffffff?text=Error'" class="w-10 h-10 object-cover rounded"><input type="text" value="${img.caption || ''}" data-index="${index}" class="image-caption-input flex-grow border-gray-300 rounded-md shadow-sm p-2 border text-sm" placeholder="Caption..."><button data-index="${index}" class="remove-image-btn text-red-500 hover:text-red-700 text-lg font-bold">&times;</button>`;
+                        imageList.appendChild(div);
+                    });
+                };
+                imageList.addEventListener('click', e => { if (e.target.classList.contains('remove-image-btn')) { currentImages.splice(e.target.dataset.index, 1); renderImages(); } });
+                imageList.addEventListener('input', e => { if (e.target.classList.contains('image-caption-input')) { currentImages[e.target.dataset.index].caption = e.target.value; } });
+                
+                currentModalBody.querySelector('#image-upload-input').onchange = async e => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    App.UI.showLoader('Processing Image...');
+                    const originalSrc = await App.Utils.readFile(file, 'dataURL');
+                    e.target.value = '';
+                    
+                    const croppedSrc = await App.Utils.cropAndResizeImage(originalSrc);
+                    App.UI.hideLoader();
+
+                    App.ImageAnnotator.init(croppedSrc, (annotatedSrc) => {
+                        currentImages.push({ src: annotatedSrc, caption: '' });
+                        renderImages();
+                    });
+                };
+
+                renderImages();
+                imageField.getImages = () => currentImages;
+            }
+            const closeModal = () => currentModal.classList.add('hidden');
+            currentModalFooter.querySelector('#modal-cancel-btn').onclick = closeModal;
+            currentModalFooter.querySelector('#modal-save-btn').onclick = () => {
+                const results = {};
+                fields.forEach(field => {
+                    if (field.type === 'quill') results[field.id] = quillInstances.get(field.id)?.root.innerHTML || '';
+                    else if (field.type === 'images') results[field.id] = field.getImages();
+                    else if (field.type === 'checkbox') results[field.id] = document.getElementById(field.id).checked;
+                    else if (field.type === 'file') { 
+                        const fileInput = document.getElementById(field.id);
+                        results[field.id] = (fileInput.files && fileInput.files[0]) ? fileInput.files[0] : null; 
+                    }
+                    else results[field.id] = document.getElementById(field.id)?.value;
+                });
+                callback(results);
+                closeModal();
+            };
+        },
+        updateReportStatusDisplay() {
+            // Ensure reportInfo and its status property exist before trying to access them
+            const status = App.state.data.reportInfo?.reportStatus || 'Draft';
+            const badge = this.elements.reportStatusBadge;
+            badge.innerText = status;
+            badge.className = 'ml-3 px-3 py-1 rounded-full text-sm font-semibold';
+            switch (status) {
+                case 'Draft': badge.classList.add('bg-yellow-100', 'text-yellow-800'); break;
+                case 'Under Review': badge.classList.add('bg-blue-100', 'text-blue-800'); break;
+                case 'Final': badge.classList.add('bg-green-100', 'text-green-800'); break;
+                case 'Archived': badge.classList.add('bg-gray-100', 'text-gray-800'); break;
+                default: badge.classList.add('bg-gray-100', 'text-gray-800'); break;
+            }
+        }
+    };
+
+    // Map management
+    App.Map = {
+        init() {
+            const map = L.map('map', { 
+                maxZoom: 22, 
+                renderer: L.svg(),
+                // Standard zoom controls for smoother interaction
+                fadeAnimation: false,
+                zoomAnimation: false
+            });
+            
+            map.setView([29.7604, -95.3698], 13);
+            
+            const googleSatHybrid = L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', { maxZoom: 22, subdomains:['mt0','mt1','mt2','mt3'], attribution: '&copy; Google Maps', crossOrigin: 'anonymous' });
+            const plainWhite = L.tileLayer('', { attribution: 'Plain White', maxZoom: 22, minZoom: 0,
+                createTile: function(coords, done) {
+                    const tile = document.createElement('canvas');
+                    tile.width = tile.height = 256;
+                    const ctx = tile.getContext('2d');
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, 256, 256);
+                    setTimeout(() => { done(null, tile); }, 0);
+                    return tile;
+                }
+            });
+
+            const baseLayers = { "Satellite Hybrid": googleSatHybrid, "Plain White": plainWhite };
+            googleSatHybrid.addTo(map); 
+            App.state.map = map;
+            
+            const svg = map.getRenderer(map)._container;
+            App.state.svgPatternDefs = L.SVG.create('defs');
+            svg.appendChild(App.state.svgPatternDefs);
+            
+            new L.Control.Measure({ position: 'topleft', primaryLengthUnit: 'feet', secondaryLengthUnit: 'meters', primaryAreaUnit: 'acres', secondaryAreaUnit: 'sqmeters' }).addTo(map);
+            
+            App.state.projectBoundary.layer = new L.FeatureGroup().addTo(map); // Initialize boundary layer group
+            App.state.geojsonLayer = new L.FeatureGroup().addTo(map);
+            
+            const overlayMaps = {
+                "Features": App.state.geojsonLayer,
+            };
+            App.state.layersControl = L.control.layers(baseLayers, overlayMaps, { collapsed: false }).addTo(map); 
+
+            App.state.drawControl = new L.Control.Draw({ 
+                edit: { 
+                    featureGroup: App.state.geojsonLayer,
+                    edit: false,
+                    remove: true 
+                }, 
+                draw: { polygon: true, polyline: true, rectangle: true, circle: false, marker: true, circlemarker: false } 
+            });
+            App.state.map.addControl(App.state.drawControl);
+
+            map.on(L.Draw.Event.CREATED, App.Events.handleDrawNewFeature);
+            map.on(L.Draw.Event.EDITED, App.Events.handleFeaturesEdited);
+            map.on('overlayadd overlayremove', App.Events.handleOverlayToggle);
+            map.on('popupopen', App.Events.handlePopupOpen);
+        },
+        renderGeoJSONLayer() {
+            App.state.geojsonLayer.clearLayers();
+            App.state.decoratorLayers.forEach(d => d.remove());
+            App.state.decoratorLayers = [];
+            App.state.featureIdToLayerMap.clear();
+            const geojson = App.state.data.geojson.data;
+            if (!geojson || !geojson.features) { App.Legend.render(); return; }
+
+            const featuresToRender = geojson.features.filter(f => {
+                const isVisibleByCategory = App.state.categoryVisibility[f.properties.category] !== false;
+                const matchesObservationFilter = !App.state.showOnlyWithObservations || (f.properties.observations && f.properties.observations.length > 0);
+                return isVisibleByCategory && matchesObservationFilter;
+            });
+
+            const newGeoJsonLayer = L.geoJSON(featuresToRender, { 
+                style: f => App.CategoryManager.getCategoryStyleForFeature(f),
+                onEachFeature: (f, l) => {
+                    l.feature_internal_id = f.properties._internalId;
+                    App.state.featureIdToLayerMap.set(f.properties._internalId, l);
+                    this.bindFeatureInteractions(f, l);
+                    this.updateFeatureDecorator(l);
+                },
+                pointToLayer: (f, latlng) => App.CategoryManager.createPointMarker(f, latlng)
+            });
+            newGeoJsonLayer.eachLayer(l => App.state.geojsonLayer.addLayer(l));
+            App.state.decoratorLayers.forEach(d => d.addTo(App.state.map));
+            
+            if (App.state.projectBoundary.layer) {
+                App.state.projectBoundary.layer.bringToBack();
+            }
+
+            App.Legend.render(); 
+        },
+        updateFeatureDecorator(layer) {
+            const oldDecoratorIndex = App.state.decoratorLayers.findIndex(d => d.layer === layer);
+            if (oldDecoratorIndex > -1) { App.state.decoratorLayers[oldDecoratorIndex].remove(); App.state.decoratorLayers.splice(oldDecoratorIndex, 1); }
+            const feature = layer.feature;
+            if (feature.geometry.type.includes('LineString')) {
+                const style = App.CategoryManager.getCategoryStyleForFeature(feature);
+                if (style.linePattern === 'arrows') {
+                    const decorator = L.polylineDecorator(layer, {
+                        patterns: [{ offset: '15%', repeat: style.lineSpacing * 2, symbol: L.Symbol.arrowHead({ pixelSize: 12, polygon: false, pathOptions: { stroke: true, color: style.color, weight: style.weight, opacity: style.opacity }}) }]
+                    }).addTo(App.state.map);
+                    decorator.layer = layer;
+                    App.state.decoratorLayers.push(decorator);
+                }
+            }
+        },
+        bindFeatureInteractions(feature, layer) {
+            const container = L.DomUtil.create('div', 'font-sans max-w-xs');
+            const hasObservations = feature.properties.observations && feature.properties.observations.length > 0;
+            let observationBadge = hasObservations ? `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 mr-2">Observation</span>` : '';
+            container.innerHTML = `<strong class="text-base">${observationBadge}${feature.properties.Name || 'Unnamed Feature'}</strong><div class="text-sm mt-1 prose max-w-none">${feature.properties.Description || ''}</div>`;
+            
+            if (hasObservations) {
+                const obsSummary = feature.properties.observations.map(obs => `<li>${obs.observationType || 'General'} (${obs.severity})</li>`).join('');
+                container.innerHTML += `<div class="text-sm mt-2"><strong class="font-medium">Observations:</strong><ul class="list-disc list-inside">${obsSummary}</ul></div>`;
+            }
+
+            const buttons = L.DomUtil.create('div', 'mt-2 flex gap-2', container);
+            const editBtn = L.DomUtil.create('button', 'bg-blue-500 hover:bg-blue-600 text-white text-xs py-1 px-2 rounded', buttons);
+            editBtn.innerText = 'Edit Props';
+            const editShapeBtn = L.DomUtil.create('button', 'bg-green-500 hover:bg-green-600 text-white text-xs py-1 px-2 rounded', buttons);
+            editShapeBtn.innerText = 'Edit Shape';
+            const delBtn = L.DomUtil.create('button', 'bg-red-500 hover:red-600 text-white text-xs py-1 px-2 rounded', buttons);
+            delBtn.innerText = 'Delete';
+
+            L.DomEvent.on(editBtn, 'click', e => { L.DomEvent.stop(e); App.Events.editFeatureProperties(feature); });
+            L.DomEvent.on(editShapeBtn, 'click', e => { L.DomEvent.stop(e); App.Events.editFeatureShape(layer); });
+            L.DomEvent.on(delBtn, 'click', e => { L.DomEvent.stop(e); App.Events.deleteFeature(feature); });
+
+            layer.bindPopup(container);
+            layer.on('click', e => { L.DomEvent.stopPropagation(e); App.Events.selectFeature(feature.properties._internalId); });
+
+            // Logic for the label with observation icon
+            const showLabel = feature.properties.showLabel || (hasObservations && feature.properties.Name);
+            if (feature.properties.Name && showLabel) {
+                let labelContent = '';
+                let tooltipClass = 'leaflet-tooltip-label';
+
+                if (feature.properties.showLabel) {
+                    labelContent += `<span>${feature.properties.Name}</span>`;
+                }
+
+                if (hasObservations) {
+                    const highestSeverity = App.Utils.getHighestSeverity(feature.properties.observations);
+                    const color = App.Utils.getColorForSeverity(highestSeverity);
+                    const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="${color}" style="filter: drop-shadow(0 1px 1px rgba(0,0,0,0.5));"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2V7h2v7z"/></svg>`;
+                    labelContent += iconSvg;
+                    
+                    if (!feature.properties.showLabel) {
+                        tooltipClass += ' leaflet-tooltip-icon-only';
+                    }
+                }
+                
+                layer.bindTooltip(labelContent, { permanent: true, direction: 'top', offset: [0, -10], className: tooltipClass });
+            }
+        },
+        setBoundary(boundaryGeoJSON, fitView = false) {
+            this.clearBoundary();
+            if (!boundaryGeoJSON) return;
+
+            const boundaryLayer = L.geoJSON(boundaryGeoJSON, {
+                style: { className: 'project-boundary-style' }
+            });
+            
+            App.state.projectBoundary.layer.addLayer(boundaryLayer);
+            App.state.projectBoundary.layer.bringToBack();
+            App.state.projectBoundary.geojson = boundaryGeoJSON;
+
+            const bounds = boundaryLayer.getBounds();
+            if (bounds.isValid()) {
+                const paddedBounds = bounds.pad(0.30); // Add 30% padding for better popup visibility
+                App.state.map.setMaxBounds(paddedBounds);
+                App.state.map.setMinZoom(App.state.map.getBoundsZoom(bounds)); // Keep min zoom tight
+                if (fitView) {
+                    App.state.map.fitBounds(bounds.pad(0.1));
+                }
+            }
+            
+            App.UI.elements.defineBoundaryBtn.classList.add('hidden');
+            App.UI.elements.clearBoundaryBtn.classList.remove('hidden');
+        },
+        clearBoundary() {
+            if (App.state.projectBoundary.layer) {
+                App.state.projectBoundary.layer.clearLayers();
+            }
+            App.state.projectBoundary.geojson = null;
+            App.state.map.setMaxBounds(null);
+            App.state.map.setMinZoom(0);
+
+            App.UI.elements.defineBoundaryBtn.classList.remove('hidden');
+            App.UI.elements.clearBoundaryBtn.classList.add('hidden');
+        },
+    };
+
+    // Data handling
+    App.Data = {
+        getFeatureById: id => App.state.data.geojson.data?.features.find(f => f.properties._internalId === id),
+        async handleRasterUpload(event, type) {
+            const file = event.target.files[0];
+            if (!file) return;
+            App.UI.showLoader(`Loading ${type.toUpperCase()}...`);
+            try {
+                const fileBuffer = await App.Utils.readFile(file, 'arrayBuffer');
+                const georaster = await parseGeoraster(fileBuffer);
+                App.state.data[type] = { georaster, fileBuffer, layer: App.state.data[type].layer };
+                this.addOrUpdateRasterLayer(type);
+            } catch (error) {
+                console.error(`Raster Error (${type}):`, error);
+                App.UI.showMessage('File Error', `Failed to load ${file.name}. Please ensure it's a valid GeoTIFF.`);
+            } finally { App.UI.hideLoader(); }
+        },
+        processAndInitializeFeatures(geojson) {
+            if (!geojson?.features) return;
+            if (geojson.properties?.categories) Object.assign(App.state.data.categories, geojson.properties.categories);
+            if (geojson.properties?.contributors) App.state.data.contributors = geojson.properties.contributors; 
+            
+            let defaultCategoryName = Object.keys(App.state.data.categories)[0];
+            let assignedDefaultCount = 0;
+            if (!defaultCategoryName) {
+                defaultCategoryName = "Imported";
+                App.state.data.categories[defaultCategoryName] = App.CategoryManager.getDefaultCategory();
+            }
+            geojson.features.forEach((feature) => {
+                if (!feature.properties) feature.properties = {};
+                feature.properties._internalId = feature.properties._internalId || crypto.randomUUID(); 
+                if (!feature.properties.images) feature.properties.images = [];
+                if (!feature.properties.observations) feature.properties.observations = [];
+
+                if (!feature.properties.category || !App.state.data.categories[feature.properties.category]) {
+                    feature.properties.category = defaultCategoryName;
+                    assignedDefaultCount++;
+                }
+                if (typeof App.state.categoryVisibility[feature.properties.category] === 'undefined') {
+                    App.state.categoryVisibility[feature.properties.category] = true;
+                }
+                if (typeof feature.properties.showLabel === 'undefined') feature.properties.showLabel = true;
+            });
+            if (assignedDefaultCount > 0) {
+                App.UI.showMessage('Import Note', `${assignedDefaultCount} feature(s) had missing or invalid categories and were assigned to the "${defaultCategoryName}" category.`);
+            }
+        },
+        addOrUpdateRasterLayer(type) {
+            const data = App.state.data[type];
+            if (!data.georaster) return;
+            if (data.layer) { App.state.layersControl.removeLayer(data.layer); App.state.map.removeLayer(data.layer); }
+            const layerOptions = { georaster: data.georaster, opacity: 1.0, resolution: 256 };
+            if (type === 'dsm') {
+                const { mins, maxs, noDataValue } = data.georaster;
+                if (isFinite(mins?.[0]) && isFinite(maxs?.[0])) {
+                    const colorScale = chroma.scale(['#3b82f6', '#6ee7b7', '#fde047', '#f97316', '#ef4444']).domain([mins[0], maxs[0]]);
+                    layerOptions.pixelValuesToColorFn = values => (values[0] === noDataValue) ? null : colorScale(values[0]).hex();
+                    this.createDSMLegend(mins[0], maxs[0]);
+                } else App.UI.showMessage('DSM Info', 'Could not determine elevation range for DSM styling.');
+            }
+            data.layer = new GeoRasterLayer(layerOptions).addTo(App.state.map);
+            App.state.layersControl.addOverlay(data.layer, type === 'ortho' ? 'Orthophoto' : 'Digital Surface Model');
+            App.state.map.fitBounds(data.layer.getBounds());
+        },
+        createDSMLegend(min, max) {
+            if (App.state.dsmLegendControl) App.state.map.removeControl(App.state.dsmLegendControl);
+            App.state.dsmLegendControl = L.control({ position: 'bottomright' });
+            App.state.dsmLegendControl.onAdd = () => {
+                const div = L.DomUtil.create('div', 'dsm-legend');
+                const colorScale = chroma.scale(['#3b82f6', '#6ee7b7', '#fde047', '#f97316', '#ef4444']).domain([min, max]);
+                const gradientStyle = `linear-gradient(to top, ${colorScale.colors(10).join(',')})`;
+                div.innerHTML = `<div class="dsm-legend-title">DSM Elevation (m)</div><div class="flex"><div class="dsm-legend-gradient" style="background: ${gradientStyle};"></div><div class="dsm-legend-labels ml-1">${[...Array(6)].map((_, i) => { const value = min + (i / 5) * (max - min); return `<span style="top: ${100 - (i/5)*100}%;">${value.toFixed(1)}</span>`; }).join('')}</div></div>`;
+                return div;
+            };
+            if (App.state.data.dsm.layer && App.state.map.hasLayer(App.state.data.dsm.layer)) {
+                 App.state.dsmLegendControl.addTo(App.state.map);
+            }
+        },
+        /**
+         * This function resets the application to a clean state, ready for a new project import.
+         * It surgically removes only the application-specific overlay layers and data,
+         * preserving the base map and main controls for a smoother user experience.
+        */
+        resetAppState() {
+            // 1. Remove overlay layers from map and control
+            if (App.state.layersControl) {
+                if (App.state.data.ortho.layer) App.state.layersControl.removeLayer(App.state.data.ortho.layer);
+                if (App.state.data.dsm.layer) App.state.layersControl.removeLayer(App.state.data.dsm.layer);
+            }
+            if (App.state.data.ortho.layer) App.state.map.removeLayer(App.state.data.ortho.layer);
+            if (App.state.data.dsm.layer) App.state.map.removeLayer(App.state.data.dsm.layer);
+
+            // 2. Clear dynamic layer groups
+            if (App.state.geojsonLayer) App.state.geojsonLayer.clearLayers();
+            App.state.decoratorLayers.forEach(d => d.remove());
+            
+            // 3. Reset project boundary and associated map constraints
+            App.Map.clearBoundary();
+
+            // 4. Remove DSM legend if it exists
+            if (App.state.dsmLegendControl) {
+                App.state.map.removeControl(App.state.dsmLegendControl);
+                App.state.dsmLegendControl = null;
+            }
+
+            // 5. Reset state data object to its default using a deep copy
+            const defaultStateData = {
+                ortho: { georaster: null, fileBuffer: null, layer: null },
+                dsm: { georaster: null, fileBuffer: null, layer: null },
+                geojson: { data: { type: 'FeatureCollection', features: [] }, fileContent: null },
+                logo: null,
+                categories: {},
+                contributors: [{ name: 'Default User', role: 'Project Lead', bio: '<p>Initial user for this project.</p>', image: null }],
+                reportInfo: { clientName: '', clientContact: '', clientAddress: '', projectId: '', reportDate: '', reportStatus: 'Draft' }
+            };
+            App.state.data = JSON.parse(JSON.stringify(defaultStateData));
+
+            // 6. Clear helper maps and flags
+            App.state.featureIdToLayerMap.clear();
+            App.state.decoratorLayers = [];
+            App.state.showOnlyWithObservations = false;
+            App.state.categoryVisibility = {};
+
+            // 7. Reset UI elements to their default state
+            document.getElementById('show-only-with-observations-toggle').checked = false;
+            document.getElementById('main-title').childNodes[0].nodeValue = 'Site Analysis Report ';
+            document.getElementById('main-description').innerHTML = 'An interactive overview of the site features and raster data.';
+            document.getElementById('logo-img').src = 'https://placehold.co/80x80/e2e8f0/334155?text=Logo';
+            document.getElementById('snapshot-container').innerHTML = '<p>Select a feature from the legend or map to view its details and a visual snapshot.</p>';
+
+            // 8. Clear file input values
+            ['ortho-input', 'dsm-input', 'import-project-input', 'import-categories-input'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+
+            // 9. Re-render UI components that depend on the cleared state
+            App.Legend.render();
+            App.CategoryManager.render();
+            App.ContributorManager.render();
+            App.UI.updateReportStatusDisplay();
+        }
+    };
+    
+    // Event handling
+    App.Events = {
+        activeEditor: null,
+        activeLayer: null,
+        finishControlInstance: null,
+        init() {
+            document.getElementById('logo-input').addEventListener('change', async e => { 
+                if (e.target.files[0]) { 
+                    App.state.data.logo = await App.Utils.readFile(e.target.files[0], 'dataURL'); 
+                    document.getElementById('logo-img').src = App.state.data.logo; 
+                } 
+            });
+            document.getElementById('logo-img').onclick = () => App.Events.showEditReportInfoModal();
+            document.getElementById('open-geodata-modal-btn').onclick = () => App.UI.elements.geodataModal.classList.remove('hidden');
+            document.getElementById('close-geodata-modal-btn').onclick = () => App.UI.elements.geodataModal.classList.add('hidden');
+            document.getElementById('ortho-input').addEventListener('change', e => App.Data.handleRasterUpload(e, 'ortho'));
+            document.getElementById('dsm-input').addEventListener('change', e => App.Data.handleRasterUpload(e, 'dsm'));
+            document.getElementById('import-project-input').addEventListener('change', e => App.ImportExport.importProjectOrFeatures(e));
+            document.getElementById('export-project-btn').addEventListener('click', () => App.ImportExport.showExportDataModal()); 
+            document.getElementById('manage-categories-btn').onclick = () => App.UI.elements.categoryManagerPanel.classList.add('open');
+            document.getElementById('close-category-manager-btn').onclick = () => App.UI.elements.categoryManagerPanel.classList.remove('open');
+            document.getElementById('add-category-btn').onclick = () => App.CategoryManager.addCategory();
+            document.getElementById('export-categories-btn').onclick = () => App.ImportExport.exportCategories();
+            document.getElementById('import-categories-input').addEventListener('change', e => App.ImportExport.importCategories(e));
+            document.getElementById('manage-contributors-btn').onclick = () => App.UI.elements.contributorManagerPanel.classList.add('open');
+            document.getElementById('close-contributor-manager-btn').onclick = () => App.UI.elements.contributorManagerPanel.classList.remove('open');
+            document.getElementById('add-contributor-btn').onclick = () => App.ContributorManager.addContributor();
+            document.getElementById('show-only-with-observations-toggle').addEventListener('change', e => {
+                App.state.showOnlyWithObservations = e.target.checked;
+                App.Map.renderGeoJSONLayer(); 
+            });
+            App.UI.elements.defineBoundaryBtn.onclick = () => this.startBoundaryDraw();
+            App.UI.elements.clearBoundaryBtn.onclick = () => App.Map.clearBoundary();
+        },
+        startBoundaryDraw() {
+            App.UI.showMessage('Define Boundary', 'Draw a polygon on the map to define the project boundary. Click the first point to finish.');
+            App.state.boundaryDrawer = new L.Draw.Polygon(App.state.map, {
+                allowIntersection: false,
+                showArea: true,
+                shapeOptions: {
+                    color: '#0ea5e9',
+                    weight: 3,
+                }
+            });
+            App.state.boundaryDrawer.enable();
+
+            App.state.map.once(L.Draw.Event.CREATED, (e) => {
+                const layer = e.layer;
+                // When user draws a boundary, zoom to it
+                App.Map.setBoundary(layer.toGeoJSON(), true);
+                if (App.state.boundaryDrawer) {
+                    App.state.boundaryDrawer.disable();
+                    App.state.boundaryDrawer = null;
+                }
+            });
+        },
+        showEditReportInfoModal() {
+            const info = App.state.data.reportInfo;
+            const titleElement = document.getElementById('main-title');
+            const descriptionElement = document.getElementById('main-description');
+            const reportTitle = titleElement.childNodes[0].nodeValue.trim();
+
+            App.UI.showPrompt('Edit Report Information', [
+                { id: 'logoFile', label: 'Change Report Logo', type: 'file', accept: 'image/*' },
+                { id: 'newTitle', label: 'Report Title', value: reportTitle, type: 'text' },
+                { id: 'Description', label: 'Report Description', value: descriptionElement.innerHTML, type: 'quill' },
+                { id: 'clientName', label: 'Client Name', value: info.clientName, type: 'text' },
+                { id: 'clientContact', label: 'Client Contact', value: info.clientContact, type: 'text' },
+                { id: 'clientAddress', label: 'Client Address', value: info.clientAddress, type: 'text' },
+                { id: 'projectId', label: 'Project ID', value: info.projectId, type: 'text' },
+                { id: 'reportDate', label: 'Report Date', value: App.Utils.formatDate(info.reportDate || new Date()), type: 'date' },
+                { id: 'reportStatus', label: 'Report Status', value: info.reportStatus, type: 'select', 
+                    options: [{label:'Draft',value:'Draft'},{label:'Under Review',value:'Under Review'},{label:'Final',value:'Final'},{label:'Archived',value:'Archived'}] }
+            ], async (results) => { 
+                if (results.newTitle) {
+                    titleElement.childNodes[0].nodeValue = results.newTitle + ' ';
+                }
+                if (results.Description) descriptionElement.innerHTML = results.Description;
+                
+                if (results.logoFile) { 
+                    App.state.data.logo = await App.Utils.readFile(results.logoFile, 'dataURL');
+                    document.getElementById('logo-img').src = App.state.data.logo;
+                }
+
+                App.state.data.reportInfo = {
+                    clientName: results.clientName, clientContact: results.clientContact, clientAddress: results.clientAddress,
+                    projectId: results.projectId, reportDate: results.reportDate, reportStatus: results.reportStatus
+                };
+                App.UI.updateReportStatusDisplay();
+            }, 'edit-report-info-modal'); 
+        },
+        handleDrawNewFeature(e) {
+            // Ignore if this was a boundary draw
+            if (App.state.boundaryDrawer) return;
+
+            const categoryOptions = Object.keys(App.state.data.categories).map(name => ({ label: name, value: name }));
+            if (categoryOptions.length === 0) { 
+                App.UI.showMessage('No Categories', 'Please create a category first using the "Manage Categories" button.'); 
+                App.state.map.removeLayer(e.layer);
+                return; 
+            }
+            
+            const newFeature = e.layer.toGeoJSON();
+            App.UI.showPrompt('New Feature Details', [
+                { id: 'Name', label: 'Name', value: 'New Feature', type: 'text' },
+                { id: 'Description', label: 'Description', value: '', type: 'quill' },
+                { id: 'category', label: 'Category', value: categoryOptions[0].value, type: 'select', options: categoryOptions },
+                { id: 'showLabel', label: 'Show Label on Map', value: true, type: 'checkbox' },
+            ], (results) => {
+                newFeature.properties = results;
+                newFeature.properties._internalId = crypto.randomUUID(); 
+                newFeature.properties.observations = [];
+                if (!App.state.data.geojson.data) App.state.data.geojson.data = { type: 'FeatureCollection', features: [] };
+                App.state.data.geojson.data.features.push(newFeature);
+                App.Map.renderGeoJSONLayer(); 
+                App.Events.selectFeature(newFeature.properties._internalId);
+            });
+        },
+        handleFeaturesEdited(e) {
+            e.layers.eachLayer(layer => {
+                const feature = App.Data.getFeatureById(layer.feature_internal_id);
+                if (feature) { 
+                    feature.geometry = layer.toGeoJSON().geometry; 
+                    App.Map.updateFeatureDecorator(layer); 
+                }
+            });
+            const selected = document.querySelector('.legend-item.selected');
+            if (selected) { App.Snapshot.render(App.Data.getFeatureById(selected.dataset.featureId)); }
+            App.Map.renderGeoJSONLayer(); 
+        },
+        selectFeature(featureId) {
+            const feature = App.Data.getFeatureById(featureId);
+            if (!feature) return;
+            const layer = App.state.featureIdToLayerMap.get(featureId);
+            if (layer) {
+                if (layer.getBounds) App.state.map.fitBounds(layer.getBounds(), { paddingTopLeft: [350, 20], paddingBottomRight: [20, 20], maxZoom: 19 });
+                else if (layer.getLatLng) App.state.map.setView(layer.getLatLng(), Math.max(App.state.map.getZoom(), 18));
+                if (layer.openPopup) layer.openPopup();
+            }
+            document.querySelectorAll('.legend-item.selected').forEach(item => item.classList.remove('selected'));
+            const listItem = document.querySelector(`.legend-item[data-feature-id="${featureId}"]`);
+            if (listItem) { listItem.classList.add('selected'); listItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+            App.Snapshot.render(feature);
+        },
+        editFeatureProperties(feature) {
+            App.state.map.closePopup();
+            
+            const fields = [
+                { id: 'Name', label: 'Name', value: feature.properties.Name || '', type: 'text' },
+                { id: 'Description', label: 'Description', value: feature.properties.Description || '', type: 'quill' },
+                { id: 'category', label: 'Category', value: feature.properties.category, type: 'select', options: Object.keys(App.state.data.categories).map(name => ({ label: name, value: name })) },
+                { id: 'showLabel', label: 'Show Label on Map', value: !!feature.properties.showLabel, type: 'checkbox' },
+            ];
+
+            App.UI.showPrompt('Edit Feature', fields, (results) => {
+                Object.assign(feature.properties, results);
+                App.Map.renderGeoJSONLayer(); 
+                this.selectFeature(feature.properties._internalId);
+            });
+
+            // After showing the main prompt, inject the observations section
+            const modalBody = document.getElementById('modal-body');
+            const obsContainer = document.createElement('div');
+            obsContainer.className = 'mt-6 border-t pt-4';
+            obsContainer.innerHTML = `<h4 class="text-lg font-semibold mb-2">Observations</h4><div id="observation-list" class="space-y-3"></div><button id="add-observation-btn" class="mt-4 bg-green-500 hover:bg-green-600 text-white text-sm py-1 px-3 rounded">Add Observation</button>`;
+            modalBody.appendChild(obsContainer);
+
+            this.renderObservationsList(feature, obsContainer.querySelector('#observation-list'));
+            
+            obsContainer.querySelector('#add-observation-btn').onclick = () => {
+                this.showObservationModal(feature);
+            };
+        },
+        editFeatureShape(layer) {
+            if (this.activeEditor) {
+                this.finishEditing(); // Finish any previous edit before starting a new one
+            }
+            App.state.map.closePopup();
+            layer.editing.enable();
+            this.activeEditor = layer.editing;
+            this.activeLayer = layer;
+            this.showFinishEditingControl();
+        },
+        showFinishEditingControl() {
+            if (this.finishControlInstance) return; // Already showing
+
+            const FinishControl = L.Control.extend({
+                onAdd: map => {
+                    const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                    container.style.background = 'white';
+                    container.style.padding = '5px';
+                    container.innerHTML = '<button id="finish-edit-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-2 rounded-md text-sm">Finish Editing</button>';
+                    L.DomEvent.disableClickPropagation(container);
+                    L.DomEvent.on(container.querySelector('#finish-edit-btn'), 'click', () => {
+                        App.Events.finishEditing();
+                    });
+                    return container;
+                }
+            });
+            this.finishControlInstance = new FinishControl({ position: 'topright' }).addTo(App.state.map);
+        },
+        finishEditing() {
+            if (!this.activeEditor) return;
+
+            this.activeEditor.disable();
+            const layer = this.activeLayer;
+
+            if (this.finishControlInstance) {
+                App.state.map.removeControl(this.finishControlInstance);
+                this.finishControlInstance = null;
+            }
+
+            const feature = App.Data.getFeatureById(layer.feature_internal_id);
+            if (feature) {
+                if (layer instanceof L.Marker) {
+                    const newLatLng = layer.getLatLng();
+                    feature.geometry.coordinates = [newLatLng.lng, newLatLng.lat];
+                } else {
+                    feature.geometry = layer.toGeoJSON().geometry;
+                }
+            }
+            
+            this.activeEditor = null;
+            this.activeLayer = null;
+
+            App.Map.renderGeoJSONLayer();
+            if (feature) {
+                App.Events.selectFeature(feature.properties._internalId);
+            }
+        },
+        renderObservationsList(feature, container) {
+            container.innerHTML = '';
+            if (!feature.properties.observations || feature.properties.observations.length === 0) {
+                container.innerHTML = '<p class="text-sm text-gray-500">No observations for this feature.</p>';
+                return;
+            }
+
+            feature.properties.observations.forEach((obs, index) => {
+                const obsDiv = document.createElement('div');
+                obsDiv.className = 'p-3 border rounded-lg bg-gray-50';
+                const contributor = App.state.data.contributors.find(c => c.name === obs.contributor);
+                obsDiv.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="font-bold">${obs.observationType || 'General Observation'}</p>
+                            <p class="text-sm text-gray-600">Severity: ${obs.severity}</p>
+                            ${contributor ? `<p class="text-sm text-gray-600">By: ${contributor.name}</p>` : ''}
+                        </div>
+                        <div>
+                            <button class="edit-obs-btn text-sm text-blue-600 hover:underline mr-2" data-index="${index}">Edit</button>
+                            <button class="delete-obs-btn text-sm text-red-600 hover:underline" data-index="${index}">Delete</button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(obsDiv);
+            });
+
+            container.querySelectorAll('.edit-obs-btn').forEach(btn => {
+                btn.onclick = () => this.showObservationModal(feature, parseInt(btn.dataset.index));
+            });
+            container.querySelectorAll('.delete-obs-btn').forEach(btn => {
+                btn.onclick = () => {
+                    const index = parseInt(btn.dataset.index);
+                    App.UI.showConfirm('Delete Observation?', 'Are you sure you want to delete this observation?', () => {
+                        feature.properties.observations.splice(index, 1);
+                        this.renderObservationsList(feature, container);
+                        App.Map.renderGeoJSONLayer();
+                        App.Snapshot.render(feature);
+                    });
+                };
+            });
+        },
+        showObservationModal(feature, obsIndex = -1) {
+            const isEditing = obsIndex > -1;
+            const observation = isEditing ? feature.properties.observations[obsIndex] : {};
+            const title = isEditing ? 'Edit Observation' : 'Add Observation';
+
+            const contributorOptions = App.state.data.contributors.map(c => ({ label: `${c.name} (${c.role || 'N/A'})`, value: c.name }));
+            contributorOptions.unshift({ label: 'None', value: '' });
+
+            const fields = [
+                { id: 'observationType', label: 'Observation Type (e.g., Stormwater, Waste)', value: observation.observationType || '', type: 'text' },
+                { id: 'severity', label: 'Severity', value: observation.severity || 'Low', type: 'select', options: [{label:'Low',value:'Low'},{label:'Medium',value:'Medium'},{label:'High',value:'High'},{label:'Critical',value:'Critical'}] },
+                { id: 'contributor', label: 'Observed By', value: observation.contributor || '', type: 'select', options: contributorOptions },
+                { id: 'recommendation', label: 'Recommendation', value: observation.recommendation || '', type: 'quill' },
+                { id: 'images', label: 'Images', value: observation.images || [], type: 'images' }
+            ];
+
+            App.UI.showPrompt(title, fields, (results) => {
+                const newObservation = {
+                    id: observation.id || crypto.randomUUID(),
+                    ...results
+                };
+                if (isEditing) {
+                    feature.properties.observations[obsIndex] = newObservation;
+                } else {
+                    feature.properties.observations.push(newObservation);
+                }
+                // Re-render the list in the main edit modal
+                this.renderObservationsList(feature, document.getElementById('observation-list'));
+                App.Map.renderGeoJSONLayer();
+                App.Snapshot.render(feature);
+            }, 'observation-modal');
+        },
+        deleteFeature(featureToDelete) {
+            App.state.map.closePopup();
+            App.UI.showConfirm('Delete Feature', `Are you sure you want to delete "${featureToDelete.properties.Name || 'this feature'}"?`, () => {
+                App.state.data.geojson.data.features = App.state.data.geojson.data.features.filter(f => f.properties._internalId !== featureToDelete.properties._internalId);
+                document.getElementById('snapshot-container').innerHTML = '<p>Select a feature from the legend or map to view its details and a visual snapshot.</p>';
+                App.Map.renderGeoJSONLayer(); 
+            });
+        },
+        handleOverlayToggle(e) {
+            if (e.name === 'Digital Surface Model' && App.state.dsmLegendControl) {
+                if (e.type === 'overlayadd') App.state.dsmLegendControl.addTo(App.state.map);
+                else App.state.map.removeControl(App.state.dsmLegendControl);
+            }
+        },
+        handlePopupOpen(e) {
+            const popup = e.popup;
+            setTimeout(() => {
+                const map = App.state.map;
+                const popupSize = L.point(popup._container.offsetWidth, popup._container.offsetHeight);
+                const popupAnchor = map.latLngToContainerPoint(popup.getLatLng());
+                const mapSize = map.getSize();
+                
+                let panOffset = L.point(0, 0);
+
+                if (popupAnchor.x < 0) {
+                    panOffset.x = popupAnchor.x - 10; // Pan right
+                }
+                if (popupAnchor.x + popupSize.x > mapSize.x) {
+                    panOffset.x = popupAnchor.x + popupSize.x - mapSize.x + 10; // Pan left
+                }
+                if (popupAnchor.y < 0) {
+                    panOffset.y = popupAnchor.y - 10; // Pan down
+                }
+                if (popupAnchor.y + popupSize.y > mapSize.y) {
+                    panOffset.y = popupAnchor.y + popupSize.y - mapSize.y + 10; // Pan up
+                }
+
+                if (panOffset.x !== 0 || panOffset.y !== 0) {
+                    map.panBy(panOffset, { animate: true });
+                }
+            }, 10); // Short delay to allow popup to render
+        }
+    };
+
+    // Legend Module
+    App.Legend = {
+        render() {
+            const container = document.getElementById('legend-content');
+            container.innerHTML = '';
+            const { categories, geojson } = App.state.data;
+            const allFeatures = geojson?.data?.features || []; 
+            if (Object.keys(categories).length === 0) { 
+                container.innerHTML = `<div class="text-center text-gray-500 p-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 16.382V5.618a1 1 0 00-1.447-.894L15 7m-6 3l6-3m0 0l-6 3m6-3v10" /></svg>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900">No Categories</h3>
+                    <p class="mt-1 text-sm text-gray-500">Use the Category Manager to create categories for your features.</p>
+                </div>`;
+                return; 
+            }
+            
+            for (const categoryName in categories) {
+                const allFeaturesInCategory = allFeatures.filter(f => f.properties.category === categoryName);
+                if (allFeaturesInCategory.length === 0) continue;
+
+                const visibleFeaturesInCategory = allFeaturesInCategory.filter(f => !App.state.showOnlyWithObservations || (f.properties.observations && f.properties.observations.length > 0));
+                
+                if (visibleFeaturesInCategory.length === 0 && App.state.showOnlyWithObservations) {
+                    continue;
+                }
+                
+                const categoryObservations = allFeaturesInCategory.flatMap(f => f.properties.observations || []);
+                const hasObservation = categoryObservations.length > 0;
+                
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'legend-category';
+                const header = document.createElement('div');
+                header.className = 'legend-category-header';
+                
+                const innerFlexDiv = document.createElement('div');
+                innerFlexDiv.className = 'flex items-center';
+
+                const categoryVisibilityToggle = document.createElement('input');
+                categoryVisibilityToggle.type = 'checkbox';
+                categoryVisibilityToggle.className = 'h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mr-2 category-visibility-toggle';
+                categoryVisibilityToggle.checked = App.state.categoryVisibility[categoryName] !== false;
+                
+                const categoryNameSpan = document.createElement('span');
+                categoryNameSpan.className = 'font-semibold';
+                categoryNameSpan.innerText = categoryName;
+
+                innerFlexDiv.appendChild(categoryVisibilityToggle);
+                innerFlexDiv.appendChild(categoryNameSpan);
+                
+                if (hasObservation) {
+                    const indicator = document.createElement('span');
+                    indicator.className = 'category-observation-indicator';
+                    const highestSeverity = App.Utils.getHighestSeverity(categoryObservations);
+                    indicator.style.backgroundColor = App.Utils.getColorForSeverity(highestSeverity);
+                    indicator.title = `This category's highest observation severity is ${highestSeverity}.`;
+                    innerFlexDiv.appendChild(indicator);
+                }
+                header.appendChild(innerFlexDiv);
+
+                const featureCountSpan = document.createElement('span');
+                featureCountSpan.className = 'text-sm text-gray-500';
+                featureCountSpan.innerText = `(${visibleFeaturesInCategory.length})`;
+                header.appendChild(featureCountSpan);
+
+                const itemList = document.createElement('div');
+                itemList.className = 'legend-item-list space-y-1 mt-1';
+                
+                visibleFeaturesInCategory.forEach(feature => {
+                    const item = document.createElement('div');
+                    const hasObservations = feature.properties.observations && feature.properties.observations.length > 0;
+                    item.className = 'legend-item';
+                    if (hasObservations) item.classList.add('has-observations');
+                    item.dataset.featureId = feature.properties._internalId;
+                    
+                    let observationIcon = '';
+                    if (hasObservations) {
+                        const highestSeverity = App.Utils.getHighestSeverity(feature.properties.observations);
+                        const color = App.Utils.getColorForSeverity(highestSeverity);
+                        observationIcon = `<span class="observation-icon" title="Highest severity: ${highestSeverity}" style="background-color: ${color};"></span>`;
+                    }
+                    
+                    item.innerHTML = `${observationIcon}<span class="truncate">${feature.properties.Name || 'Unnamed'}</span>`;
+                    item.prepend(this.createSwatch(feature));
+                    item.onclick = () => App.Events.selectFeature(feature.properties._internalId);
+                    itemList.appendChild(item);
+                });
+
+                categoryDiv.append(header, itemList);
+                container.appendChild(categoryDiv);
+
+                header.onclick = e => { if (e.target.type !== 'checkbox') { categoryDiv.classList.toggle('open'); itemList.style.display = categoryDiv.classList.contains('open') ? 'block' : 'none'; }};
+                
+                categoryVisibilityToggle.onchange = e => {
+                    App.state.categoryVisibility[categoryName] = e.target.checked;
+                    App.Map.renderGeoJSONLayer();
+                };
+            }
+        },
+        createSwatch(feature) {
+            const swatch = document.createElement('div');
+            swatch.className = 'legend-swatch';
+            const style = App.CategoryManager.getCategoryStyleForFeature(feature);
+            if (!style) { swatch.style.backgroundColor = '#808080'; return swatch; }
+            
+            const geomType = feature.geometry.type;
+            let svgContent = '';
+            const svgSize = 32; 
+
+            if (geomType.includes('Polygon')) {
+                const safeCategoryName = (feature.properties.category || '').replace(/[^a-zA-Z0-9]/g, '-');
+                const patternId = `${style.fillPattern}-${safeCategoryName}`;
+                const fill = (style.fillPattern === 'solid') ? chroma(style.fillColor).hex() : `url(#${patternId})`;
+                const sw = Math.min(4, style.weight); 
+                svgContent = `<rect x="0" y="0" width="${svgSize}" height="${svgSize}" fill="${fill}" fill-opacity="${style.fillOpacity}" stroke="${style.color}" stroke-opacity="${style.opacity}" stroke-width="${sw}" stroke-dasharray="${style.dashArray === 'solid' ? '' : style.dashArray}"/>`;
+            } else if (geomType.includes('LineString')) {
+                const sw = Math.min(svgSize / 2, style.weight); 
+                svgContent = `<line x1="0" y1="${svgSize/2}" x2="${svgSize}" y2="${svgSize/2}" stroke="${style.color}" stroke-opacity="${style.opacity}" stroke-width="${sw}" stroke-dasharray="${style.dashArray || ''}" stroke-linecap="${style.lineCap}"/>`;
+                if (style.linePattern === 'arrows') {
+                    svgContent += `<path d="M ${svgSize - 8} ${svgSize/2 - 5} L ${svgSize - 2} ${svgSize/2} L ${svgSize - 8} ${svgSize/2 + 5}" fill="none" stroke="${style.color}" stroke-opacity="${style.opacity}" stroke-width="${Math.min(sw, 2)}"/>`;
+                }
+            } else if (geomType.includes('Point')) {
+                if (style.shape === 'svg' && style.svg) {
+                    swatch.innerHTML = style.svg.replace(/currentColor/g, style.fillColor);
+                    swatch.style.width = `${style.svgSize}px`;
+                    swatch.style.height = `${style.svgSize}px`;
+                    swatch.style.opacity = style.fillOpacity;
+                    return swatch;
+                }
+                const r = (style.size || 16) / 2 * (svgSize / 16); 
+                const sw = Math.min(r / 2, style.weight); 
+                const cx = svgSize / 2;
+                const cy = svgSize / 2;
+                const commonAttrs = `fill="${style.fillColor}" fill-opacity="${style.fillOpacity}" stroke="${style.color}" stroke-opacity="${style.opacity}" stroke-width="${sw}"`;
+                if (style.shape === 'square') svgContent = `<rect x="${cx-r}" y="${cy-r}" width="${r*2}" height="${r*2}" ${commonAttrs}/>`;
+                else if (style.shape === 'triangle') svgContent = `<path d="M${cx} ${cy-r} L${cx+r*0.866} ${cy+r*0.5} L${cx-r*0.866} ${cy+r*0.5} Z" ${commonAttrs}/>`;
+                else svgContent = `<circle cx="${cx}" cy="${cy}" r="${r}" ${commonAttrs}/>`;
+            }
+            
+            if (svgContent) {
+                const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                svg.setAttribute('viewBox', `0 0 ${svgSize} ${svgSize}`);
+                svg.innerHTML = svgContent;
+                swatch.appendChild(svg);
+            } else {
+                swatch.style.backgroundColor = '#808080';
+            }
+            return swatch;
+        }
+    };
+
+    // Snapshot rendering
+    App.Snapshot = {
+        render(feature) {
+            const container = document.getElementById('snapshot-container');
+            if (!feature || !feature.properties) {
+                container.innerHTML = `<div class="text-center text-gray-500 p-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900">No Feature Selected</h3>
+                    <p class="mt-1 text-sm text-gray-500">Click a feature on the map or in the legend to see its details.</p>
+                </div>`;
+                return;
+            }
+            container.innerHTML = ''; 
+            
+            const wrapper = document.createElement('div');
+            const detailsDiv = document.createElement('div');
+            const hasObservations = feature.properties.observations && feature.properties.observations.length > 0;
+            const obsCount = hasObservations ? feature.properties.observations.length : 0;
+            let observationBadge = hasObservations ? `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 mr-2">${obsCount} Observation${obsCount > 1 ? 's' : ''}</span>` : '';
+            detailsDiv.innerHTML = `<h3 class="text-lg font-bold text-gray-900">${observationBadge}${feature.properties.Name || 'Unnamed Feature'}</h3><div class="text-gray-600 prose max-w-none mt-2">${feature.properties.Description || '<p>No description.</p>'}</div>`;
+            wrapper.appendChild(detailsDiv);
+
+            if (hasObservations) {
+                const obsContainer = document.createElement('div');
+                obsContainer.className = 'mt-4 border-t pt-4 space-y-2';
+                obsContainer.innerHTML = `<h4 class="text-md font-bold text-gray-800 mb-2">Observations</h4>`;
+                
+                feature.properties.observations.forEach(obs => {
+                    const obsDiv = document.createElement('div');
+                    obsDiv.className = 'border rounded-lg bg-gray-50';
+                    const contributor = App.state.data.contributors.find(c => c.name === obs.contributor);
+                    
+                    const header = document.createElement('div');
+                    header.className = 'observation-header p-3 flex justify-between items-center';
+                    header.innerHTML = `
+                        <p class="font-bold">${obs.observationType || 'General Observation'}</p>
+                        <span class="text-xs text-gray-400">Click to expand</span>
+                    `;
+
+                    const details = document.createElement('div');
+                    details.className = 'observation-details p-3 border-t border-gray-200';
+                    let obsHTML = `
+                        <p><strong class="font-medium">Severity:</strong> ${obs.severity || 'N/A'}</p>
+                        ${contributor ? `<p><strong class="font-medium">By:</strong> ${contributor.name}</p>` : ''}
+                        <div class="prose max-w-none text-sm mt-2"><strong class="font-medium">Recommendation:</strong> ${obs.recommendation || 'N/A'}</div>
+                    `;
+                    details.innerHTML = obsHTML;
+
+                    if (obs.images && obs.images.length > 0) {
+                        const imagesDiv = document.createElement('div');
+                        imagesDiv.className = 'mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2';
+                        obs.images.forEach(img => {
+                            const imgContainer = document.createElement('div');
+                            imgContainer.innerHTML = `
+                                <div class="snapshot-image-container">
+                                    <img src="${img.src}" onerror="this.src='https://placehold.co/120x120/f87171/ffffff?text=Error'" class="rounded-md w-full h-auto shadow">
+                                </div>
+                                <p class="text-xs text-gray-500 italic text-center mt-1">${img.caption || ''}</p>
+                            `;
+                            imagesDiv.appendChild(imgContainer);
+                        });
+                        details.appendChild(imagesDiv);
+                    }
+                    
+                    obsDiv.appendChild(header);
+                    obsDiv.appendChild(details);
+                    obsContainer.appendChild(obsDiv);
+
+                    header.onclick = () => {
+                        details.style.display = details.style.display === 'block' ? 'none' : 'block';
+                    };
+                });
+                wrapper.appendChild(obsContainer);
+            }
+
+            const geoData = App.Utils.calculateGeoData(feature);
+            if (geoData) {
+                const geoDataDiv = document.createElement('div');
+                geoDataDiv.innerHTML = `<hr class="my-4"><h4 class="text-md font-bold text-gray-800 mb-2">Geospatial Data</h4><div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">${geoData.map(item => `<div><strong class="font-medium text-gray-600">${item.label}:</strong></div><div class="text-right">${item.value}</div>`).join('')}</div>`;
+                wrapper.appendChild(geoDataDiv);
+            }
+
+            const mapDiv = document.createElement('div');
+            mapDiv.id = 'snapshot-map';
+            mapDiv.style.height = '300px';
+            mapDiv.className = 'rounded-lg border border-gray-300 mt-4 bg-gray-50';
+            wrapper.appendChild(mapDiv);
+
+            container.appendChild(wrapper);
+
+            if (App.state.snapshotMap) App.state.snapshotMap.remove();
+            if (!feature.geometry) { 
+                mapDiv.innerHTML = '<div class="flex items-center justify-center h-full text-gray-500">No geometry</div>'; 
+                return; 
+            }
+            try {
+                const featureLayer = L.geoJSON(feature, { 
+                    style: App.CategoryManager.getCategoryStyleForFeature(feature),
+                    pointToLayer: (f, latlng) => App.CategoryManager.createPointMarker(f, latlng) 
+                });
+
+                App.state.snapshotMap = L.map('snapshot-map', { zoomControl: false, attributionControl: false, scrollWheelZoom: false, doubleClickZoom: false, dragging: false, renderer: L.svg() }).fitBounds(featureLayer.getBounds(), { padding: [20, 20], maxZoom: 19 });
+                
+                const svg = App.state.snapshotMap.getRenderer(App.state.snapshotMap)._container;
+                if(svg) svg.appendChild(App.state.svgPatternDefs.cloneNode(true));
+
+                L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', { maxZoom: 22, subdomains:['mt0','mt1','mt2','mt3'], crossOrigin: 'anonymous' }).addTo(App.state.snapshotMap);
+                if (App.state.data.ortho.layer) { new GeoRasterLayer({ georaster: App.state.data.ortho.georaster, opacity: 1, resolution: 128 }).addTo(App.state.snapshotMap); }
+                
+                featureLayer.addTo(App.state.snapshotMap);
+
+                featureLayer.eachLayer(layer => {
+                    if (layer instanceof L.Polyline && feature.geometry.type.includes('LineString')) {
+                        const style = App.CategoryManager.getCategoryStyleForFeature(feature);
+                        if (style.linePattern === 'arrows') {
+                            L.polylineDecorator(layer, {
+                                patterns: [{
+                                    offset: '15%', repeat: style.lineSpacing * 2,
+                                    symbol: L.Symbol.arrowHead({ pixelSize: 12, polygon: false, pathOptions: { stroke: true, color: style.color, weight: style.weight, opacity: style.opacity }})
+                                }]
+                            }).addTo(App.state.snapshotMap);
+                        }
+                    }
+                });
+            } catch (e) { 
+                console.error("Snapshot map error:", e); 
+                mapDiv.innerHTML = '<div class="flex items-center justify-center h-full text-gray-500">Error rendering map</div>'; 
+            }
+        }
+    };
+
+    App.CategoryManager = {
+        debouncedCategoryUpdate: App.Utils.debounce((categoryName, styleType, prop, value) => {
+            if (!App.state.data.categories[categoryName]) return;
+            App.state.data.categories[categoryName].styles[styleType][prop] = value;
+            App.CategoryManager.updateSvgPatternDefs();
+            App.Map.renderGeoJSONLayer();
+        }, 250),
+        handleCategoryInputChange(e) {
+            const target = e.target;
+            const categoryName = target.closest('.category-item').querySelector('.category-item-header span').innerText;
+            const styleType = target.closest('.category-section').dataset.type;
+            const prop = target.id.split('-').pop();
+            let value = (target.type === 'number' || target.type === 'range') ? parseFloat(target.value) : target.value;
+            if (prop === 'shape') {
+                const section = target.closest('.category-section');
+                section.querySelector('.svg-controls-container').classList.toggle('hidden', value !== 'svg');
+                section.querySelector('.point-size-container').classList.toggle('hidden', value === 'svg');
+            } else if (prop === 'fillPattern') {
+                target.closest('.category-section').querySelector('.pattern-density-control').classList.toggle('hidden', value === 'solid');
+            }
+            this.debouncedCategoryUpdate(categoryName, styleType, prop, value);
+        },
+        render() {
+            const container = document.getElementById('category-manager-content');
+            container.innerHTML = '';
+            Object.keys(App.state.data.categories).forEach((categoryName, catIndex) => {
+                const category = App.state.data.categories[categoryName];
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'category-item';
+                itemDiv.id = `cat-item-${catIndex}`;
+                itemDiv.innerHTML = `
+                    <div class="category-item-header"><span class="font-bold">${categoryName}</span><div><button class="rename-cat-btn text-sm text-blue-600 hover:underline mr-2">Rename</button><button class="delete-cat-btn text-sm text-red-600 hover:underline">&times; Delete</button></div></div>
+                    <div class="category-item-body">
+                        ${this.createCategorySectionHTML(catIndex, 'point', 'Point Style', category.styles.point)}
+                        ${this.createCategorySectionHTML(catIndex, 'line', 'Line Style', category.styles.line)}
+                        ${this.createCategorySectionHTML(catIndex, 'polygon', 'Polygon Style', category.styles.polygon)}
+                    </div>`;
+                container.appendChild(itemDiv);
+            });
+            this.addEventListeners();
+        },
+        createCategorySectionHTML(catIndex, type, title, style) {
+            const idPrefix = `cat${catIndex}-${type}`;
+            let controls = '';
+            if (type === 'point') {
+                controls = `
+                    <div class="flex items-center gap-4 mb-2"><label for="${idPrefix}-fillColor" class="w-1/2 text-sm">Fill Color</label><input type="color" id="${idPrefix}-fillColor" value="${style.fillColor || '#ff8c00'}" class="w-1/2 h-8"></div>
+                    <div class="flex items-center gap-4 mb-2"><label for="${idPrefix}-fillOpacity" class="w-1/2 text-sm">Fill Opacity</label><input type="range" id="${idPrefix}-fillOpacity" value="${style.fillOpacity||0.8}" min="0" max="1" step="0.1" class="w-1/2"></div>
+                    <div class="flex items-center gap-4 mb-2"><label for="${idPrefix}-shape" class="w-1/2 text-sm">Symbol</label><select id="${idPrefix}-shape" class="w-1/2 p-1 border rounded text-sm">${['circle','square','triangle','svg'].map(s=>`<option value="${s}" ${style.shape===s?'selected':''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`).join('')}</select></div>
+                    <div class="point-size-container ${style.shape==='svg'?'hidden':''} flex items-center gap-4 mb-2"><label for="${idPrefix}-size" class="w-1/2 text-sm">Size (px)</label><input type="number" id="${idPrefix}-size" value="${style.size||16}" min="1" class="w-1/2 p-1 border rounded text-sm"></div>
+                    <div class="svg-controls-container ${style.shape!=='svg'?'hidden':''}">
+                        <div class="flex items-center gap-4 mb-2"><label for="${idPrefix}-svgSize" class="w-1/2 text-sm">SVG Size (px)</label><input type="number" id="${idPrefix}-svgSize" value="${style.svgSize||24}" min="1" class="w-1/2 p-1 border rounded text-sm"></div>
+                        <div class="mb-2"><label for="${idPrefix}-svg" class="block text-sm font-medium text-gray-700 mb-1">SVG Code</label><textarea id="${idPrefix}-svg" rows="3" class="block w-full border-gray-300 rounded-md shadow-sm p-2 text-sm">${style.svg||''}</textarea></div>
+                    </div>
+                    <h4 class="text-sm font-semibold mt-4 pt-2 border-t">Outline</h4>
+                    <div class="flex items-center gap-4 mb-2"><label for="${idPrefix}-color" class="w-1/2 text-sm">Outline Color</label><input type="color" id="${idPrefix}-color" value="${style.color||'#000000'}" class="w-1/2 h-8"></div>
+                    <div class="flex items-center gap-4 mb-2"><label for="${idPrefix}-weight" class="w-1/2 text-sm">Outline Width</label><input type="number" id="${idPrefix}-weight" value="${style.weight||1}" min="0" class="w-1/2 p-1 border rounded text-sm"></div>
+                    <div class="flex items-center gap-4 mb-2"><label for="${idPrefix}-opacity" class="w-1/2 text-sm">Outline Opacity</label><input type="range" id="${idPrefix}-opacity" value="${style.opacity||1}" min="0" max="1" step="0.1" class="w-1/2"></div>`;
+            } else if (type === 'line') {
+                controls = `
+                    <div class="flex items-center gap-4 mb-2"><label for="${idPrefix}-color" class="w-1/2 text-sm">Line Color</label><input type="color" id="${idPrefix}-color" value="${style.color||'#ff4500'}" class="w-1/2 h-8"></div>
+                    <div class="flex items-center gap-4 mb-2"><label for="${idPrefix}-opacity" class="w-1/2 text-sm">Line Opacity</label><input type="range" id="${idPrefix}-opacity" value="${style.opacity||1}" min="0" max="1" step="0.1" class="w-1/2"></div>
+                    <div class="flex items-center gap-4 mb-2"><label for="${idPrefix}-weight" class="w-1/2 text-sm">Line Width</label><input type="number" id="${idPrefix}-weight" value="${style.weight||3}" min="0" class="w-1/2 p-1 border rounded text-sm"></div>
+                    <div class="flex items-center gap-4 mb-2"><label for="${idPrefix}-linePattern" class="w-1/2 text-sm">Line Style</label><select id="${idPrefix}-linePattern" class="w-1/2 p-1 border rounded text-sm">${['solid','dashed','dotted','dash-dot','arrows'].map(s=>`<option value="${s}" ${style.linePattern===s?'selected':''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`).join('')}</select></div>
+                    <div class="flex items-center gap-4 mb-2 line-spacing-control"><label for="${idPrefix}-lineSpacing" class="w-1/2 text-sm">Spacing</label><input type="range" id="${idPrefix}-lineSpacing" value="${style.lineSpacing||10}" min="2" max="50" step="1" class="w-1/2"></div>
+                    <div class="flex items-center gap-4 mb-2"><label for="${idPrefix}-lineCap" class="w-1/2 text-sm">Line Ends</label><select id="${idPrefix}-lineCap" class="w-1/2 p-1 border rounded text-sm">${['round','butt','square'].map(s=>`<option value="${s}" ${style.lineCap===s?'selected':''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`).join('')}</select></div>
+                    <div class="flex items-center gap-4 mb-2"><label for="${idPrefix}-lineJoin" class="w-1/2 text-sm">Line Corners</label><select id="${idPrefix}-lineJoin" class="w-1/2 p-1 border rounded text-sm">${['round','miter','bevel'].map(s=>`<option value="${s}" ${style.lineJoin===s?'selected':''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`).join('')}</select></div>`;
+            } else if (type === 'polygon') {
+                controls = `
+                    <h4 class="text-sm font-semibold">Fill</h4>
+                    <div class="flex items-center gap-4 mb-2"><label for="${idPrefix}-fillPattern" class="w-1/2 text-sm">Fill Style</label><select id="${idPrefix}-fillPattern" class="w-1/2 p-1 border rounded text-sm">${['solid','h-lines','v-lines','diag-lines','crosshatch','dots','squares','triangles','hexagons','wave'].map(p=>`<option value="${p}" ${style.fillPattern===p?'selected':''}>${p.charAt(0).toUpperCase()+p.slice(1).replace('-',' ')}</option>`).join('')}</select></div>
+                    <div class="flex items-center gap-4 mb-2"><label for="${idPrefix}-fillColor" class="w-1/2 text-sm">${style.fillPattern==='solid'?'Fill Color':'Pattern Color'}</label><input type="color" id="${idPrefix}-fillColor" value="${style.fillColor||'#ff6347'}" class="w-1/2 h-8"></div>
+                    <div class="flex items-center gap-4 mb-2 pattern-density-control ${style.fillPattern==='solid'?'hidden':''}"><label for="${idPrefix}-patternDensity" class="w-1/2 text-sm">Pattern Density</label><input type="range" id="${idPrefix}-patternDensity" value="${style.patternDensity||10}" min="4" max="24" step="1" class="w-1/2"></div>
+                    <div class="flex items-center gap-4 mb-2"><label for="${idPrefix}-patternRotation" class="w-1/2 text-sm">Pattern Rotation</label><input type="range" id="${idPrefix}-patternRotation" value="${style.patternRotation||0}" min="0" max="360" step="1" class="w-1/2"></div>
+                    <div class="flex items-center gap-4 mb-2"><label for="${idPrefix}-fillOpacity" class="w-1/2 text-sm">Fill Opacity</label><input type="range" id="${idPrefix}-fillOpacity" value="${style.fillOpacity||0.2}" min="0" max="1" step="0.1" class="w-1/2"></div>
+                    <h4 class="text-sm font-semibold mt-4 pt-2 border-t">Outline</h4>
+                    <div class="flex items-center gap-4 mb-2"><label for="${idPrefix}-color" class="w-1/2 text-sm">Outline Color</label><input type="color" id="${idPrefix}-color" value="${style.color||'#ff6347'}" class="w-1/2 h-8"></div>
+                    <div class="flex items-center gap-4 mb-2"><label for="${idPrefix}-opacity" class="w-1/2 text-sm">Outline Opacity</label><input type="range" id="${idPrefix}-opacity" value="${style.opacity||1}" min="0" max="1" step="0.1" class="w-1/2"></div>
+                    <div class="flex items-center gap-4 mb-2"><label for="${idPrefix}-weight" class="w-1/2 text-sm">Outline Width</label><input type="number" id="${idPrefix}-weight" value="${style.weight||3}" min="0" class="w-1/2 p-1 border rounded text-sm"></div>
+                    <div class="flex items-center gap-4 mb-2"><label for="${idPrefix}-dashArray" class="w-1/2 text-sm">Outline Style</label><select id="${idPrefix}-dashArray" class="w-1/2 p-1 border rounded text-sm"><option value="solid" ${style.dashArray==='solid'?'selected':''}>Solid</option><option value="10 5" ${style.dashArray==='10 5'?'selected':''}>Dashed</option><option value="2 5" ${style.dashArray==='2 5'?'selected':''}>Dotted</option></select></div>`;
+            }
+            return `<div class="category-section" data-type="${type}"><h4>${title}</h4>${controls}</div>`;
+        },
+        addEventListeners() {
+            document.querySelectorAll('#category-manager-content .category-item-header').forEach(h => h.onclick = e => { if (e.target.tagName !== 'BUTTON') h.parentElement.classList.toggle('open'); });
+            document.querySelectorAll('#category-manager-content .delete-cat-btn').forEach(btn => btn.onclick = e => {
+                const name = e.target.closest('.category-item-header').querySelector('span').innerText;
+                App.UI.showConfirm('Delete Category?', `This will delete the "${name}" category and all its features. This cannot be undone.`, () => {
+                    App.state.data.geojson.data.features = App.state.data.geojson.data.features.filter(f => f.properties.category !== name);
+                    delete App.state.data.categories[name];
+                    delete App.state.categoryVisibility[name];
+                    this.updateSvgPatternDefs(); this.render(); App.Map.renderGeoJSONLayer();
+                });
+            });
+            document.querySelectorAll('#category-manager-content .rename-cat-btn').forEach(btn => btn.onclick = e => {
+                const oldName = e.target.closest('.category-item-header').querySelector('span').innerText;
+                App.UI.showPrompt('Rename Category', [{ id: 'newName', label: 'New Name', value: oldName, type: 'text' }], r => {
+                    const newName = r.newName.trim();
+                    if (newName && newName !== oldName && !App.state.data.categories[newName]) {
+                        App.state.data.categories[newName] = App.state.data.categories[oldName];
+                        delete App.state.data.categories[oldName];
+                        App.state.categoryVisibility[newName] = App.state.categoryVisibility[oldName];
+                        delete App.state.categoryVisibility[oldName];
+                        App.state.data.geojson.data?.features.forEach(f => { if (f.properties.category === oldName) f.properties.category = newName; });
+                        this.updateSvgPatternDefs(); this.render(); App.Map.renderGeoJSONLayer();
+                    } else if (App.state.data.categories[newName]) App.UI.showMessage('Error', 'A category with that name already exists.');
+                });
+            });
+            document.querySelectorAll('#category-manager-content .category-section input, #category-manager-content .category-section select, #category-manager-content .category-section textarea').forEach(input => {
+                input.oninput = this.handleCategoryInputChange.bind(this);
+            });
+        },
+        addCategory() {
+            App.UI.showPrompt('Add New Category', [{ id: 'name', label: 'Category Name', value: '', type: 'text' }], r => {
+                const name = r.name.trim();
+                if (name && !App.state.data.categories[name]) {
+                    App.state.data.categories[name] = this.getDefaultCategory();
+                    App.state.categoryVisibility[name] = true;
+                    this.updateSvgPatternDefs(); this.render(); App.Legend.render();
+                } else if (App.state.data.categories[name]) App.UI.showMessage('Error', 'A category with that name already exists.');
+                else if (!name) App.UI.showMessage('Error', 'Category name cannot be empty.');
+            });
+        },
+        getCategoryStyleForFeature: (feature) => {
+            const category = App.state.data.categories[feature.properties.category];
+            const defaultStyles = App.CategoryManager.getDefaultCategory().styles; 
+
+            if (!category) {
+                return { color: '#808080', weight: 2, opacity: 1, fillOpacity: 0.2 };
+            }
+            
+            const geomType = feature.geometry.type;
+            let style;
+
+            if (geomType.includes('Polygon')) {
+                style = { ...defaultStyles.polygon, ...category.styles.polygon };
+                if (style.fillPattern !== 'solid') {
+                    const safeCategoryName = (feature.properties.category || '').replace(/[^a-zA-Z0-9]/g, '-');
+                    style.fillColor = `url(#${style.fillPattern}-${safeCategoryName})`;
+                }
+            } else if (geomType.includes('LineString')) {
+                style = { ...defaultStyles.line, ...category.styles.line };
+                const weight = style.weight || 1;
+                switch(style.linePattern) {
+                    case 'dashed': style.dashArray = `${weight * 2} ${weight * 1.5}`; break;
+                    case 'dotted': style.dashArray = `1 ${weight * 1.5}`; break;
+                    case 'dash-dot': style.dashArray = `${weight * 2} ${weight * 1.5} 1 ${weight * 1.5}`; break;
+                    default: style.dashArray = null;
+                }
+            } else { // Point
+                style = { ...defaultStyles.point, ...category.styles.point };
+            }
+            return style;
+        },
+        createPointMarker(feature, latlng) {
+            const style = this.getCategoryStyleForFeature(feature);
+            if (style.shape === 'svg' && style.svg) {
+                try {
+                    const size = style.svgSize || 32;
+                    const iconHtml = `<div style="opacity: ${style.fillOpacity};">${style.svg.replace(/currentColor/g, style.fillColor)}</div>`;
+                    // Basic validation
+                    if (!iconHtml.includes('<svg')) throw new Error("Invalid SVG content");
+                    return L.marker(latlng, { icon: L.divIcon({ html: iconHtml, className: 'custom-svg-icon', iconSize: [size, size], iconAnchor: [size/2, size/2] }) });
+                } catch (e) {
+                    console.error("Failed to render custom SVG icon, falling back to default.", e);
+                    // Fallback to a default circle marker if SVG rendering fails
+                    return L.circleMarker(latlng, { ...style, radius: (style.size || 16)/2 });
+                }
+            }
+            const size = style.size || 16; 
+            if (style.shape === 'square') {
+                const iconHtml = `<div style="background-color:${style.fillColor}; opacity: ${style.fillOpacity}; border: ${style.weight}px solid ${style.color}; width:${size}px;height:${size}px;border-radius:2px;"></div>`;
+                return L.marker(latlng, { icon: L.divIcon({ html: iconHtml, className: 'leaflet-square-icon', iconSize: [size, size], iconAnchor: [size/2, size/2] }) });
+            }
+            if (style.shape === 'triangle') {
+                const iconHtml = `<svg viewbox="0 0 24 24" width="${size}" height="${size}" style="opacity: ${style.fillOpacity};"><path d="M12 2 L2 22 L22 22 Z" fill="${style.fillColor}" stroke="${style.color}" stroke-width="${style.weight*24/size}"></path></svg>`;
+                return L.marker(latlng, { icon: L.divIcon({ html: iconHtml, className: 'custom-svg-icon', iconSize: [size, size], iconAnchor: [size/2, size*0.9] }) });
+            }
+            return L.circleMarker(latlng, { ...style, radius: size/2 });
+        },
+        updateSvgPatternDefs() {
+            const defsEl = App.state.svgPatternDefs;
+            if (!defsEl) return;
+            defsEl.innerHTML = '';
+            for (const categoryName in App.state.data.categories) {
+                const style = App.state.data.categories[categoryName].styles.polygon;
+                const pattern = style.fillPattern;
+                if (pattern !== 'solid') {
+                    const safeCategoryName = categoryName.replace(/[^a-zA-Z0-9]/g, '-');
+                    const p = L.SVG.create('pattern');
+                    p.setAttribute('id', `${pattern}-${safeCategoryName}`);
+                    p.setAttribute('patternUnits', 'userSpaceOnUse');
+                    const size = style.patternDensity || 10;
+                    p.setAttribute('width', size); p.setAttribute('height', size);
+                    
+                    const rotation = style.patternRotation || 0;
+                    if (rotation !== 0) p.setAttribute('patternTransform', `rotate(${rotation} 0 0)`);
+
+                    let shape;
+                    const strokeWidth = Math.max(1, size / 8);
+                    const color = style.fillColor;
+                    switch (pattern) {
+                        case 'h-lines': shape = L.SVG.create('path'); shape.setAttribute('d', `M 0 ${size/2} L ${size} ${size/2}`); break;
+                        case 'v-lines': shape = L.SVG.create('path'); shape.setAttribute('d', `M ${size/2} 0 L ${size/2} ${size}`); break;
+                        case 'diag-lines': shape = L.SVG.create('path'); shape.setAttribute('d', `M 0 ${size} L ${size} 0`); break;
+                        case 'crosshatch': shape = L.SVG.create('path'); shape.setAttribute('d', `M 0 ${size/2} L ${size} ${size/2} M ${size/2} 0 L ${size/2} ${size}`); break;
+                        case 'dots': shape = L.SVG.create('circle'); shape.setAttribute('cx', size/2); shape.setAttribute('cy', size/2); shape.setAttribute('r', Math.max(1, size/5)); break;
+                        case 'squares': const sqSize = Math.max(2, size/2); shape = L.SVG.create('rect'); shape.setAttribute('x', (size-sqSize)/2); shape.setAttribute('y', (size-sqSize)/2); shape.setAttribute('width', sqSize); shape.setAttribute('height', sqSize); break;
+                        case 'triangles': shape = L.SVG.create('path'); shape.setAttribute('d', `M${size/2} 0 L${size} ${size} L0 ${size} Z`); break;
+                        case 'hexagons': const h = size * 0.866; shape = L.SVG.create('path'); shape.setAttribute('d', `M${size/2} 0 L${size} ${h/4} L${size} ${h*3/4} L${size/2} ${h} L0 ${h*3/4} L0 ${h/4} Z`); p.setAttribute('height', h); break;
+                        case 'wave': shape = L.SVG.create('path'); shape.setAttribute('d', `M 0 ${size/2} C ${size/4} 0, ${size*3/4} ${size}, ${size} ${size/2}`); shape.setAttribute('fill', 'transparent'); break;
+                    }
+                    if (shape) {
+                        if (pattern.includes('lines') || pattern === 'crosshatch' || pattern === 'wave') { 
+                            shape.setAttribute('stroke', color); 
+                            shape.setAttribute('stroke-width', strokeWidth); 
+                        }
+                        else { shape.setAttribute('fill', color); }
+                        p.appendChild(shape); defsEl.appendChild(p);
+                    }
+                }
+            }
+        },
+        getDefaultCategory: () => ({ 
+            styles: { 
+                point: { fillColor: '#ff8c00', fillOpacity: 0.8, color: '#000000', weight: 1, opacity: 1, size: 16, shape: 'circle', svg: '', svgSize: 24 },
+                line: { color: '#ff4500', weight: 3, opacity: 1, linePattern: 'solid', lineSpacing: 10, lineCap: 'round', lineJoin: 'round' },
+                polygon: { fillColor: '#ff6347', fillOpacity: 0.2, color: '#ff6347', weight: 3, opacity: 1, dashArray: 'solid', fillPattern: 'solid', patternDensity: 10, patternRotation: 0 }
+            } 
+        }),
+    };
+
+    // Contributor Manager
+    App.ContributorManager = {
+        init() {
+            // Initialize Quill editor for the 'add new' form
+            App.state.quillInstances.contributorBio = new Quill('#new-contributor-bio-editor', {
+                theme: 'snow',
+                modules: {
+                    toolbar: [['bold', 'italic'], [{ 'list': 'bullet' }]]
+                },
+                placeholder: 'Enter a short bio for the contributor...'
+            });
+            this.render();
+        },
+        render() {
+            const container = document.getElementById('contributor-list');
+            container.innerHTML = '';
+            if (App.state.data.contributors.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-sm">No contributors added yet.</p>';
+                return;
+            }
+            App.state.data.contributors.forEach((contributor, index) => {
+                const div = document.createElement('div');
+                div.className = 'p-3 bg-gray-50 rounded-md border border-gray-200';
+                const placeholderImg = 'https://placehold.co/64x64/e2e8f0/334155?text=...';
+                div.innerHTML = `
+                    <div class="contributor-item-display">
+                        <img src="${contributor.image || placeholderImg}" alt="Contributor Image">
+                        <div class="contributor-item-details">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <span class="contributor-item-name">${contributor.name}</span>
+                                    ${contributor.role ? `<div class="contributor-item-role">${contributor.role}</div>` : ''}
+                                </div>
+                                <button data-index="${index}" class="remove-contributor-btn text-red-500 hover:text-red-700 text-xl font-bold leading-none" title="Remove Contributor">&times;</button>
+                            </div>
+                            ${contributor.bio ? `<div class="contributor-item-bio ql-snow"><div class="ql-editor">${contributor.bio}</div></div>` : ''}
+                        </div>
+                    </div>`;
+                container.appendChild(div);
+            });
+            this.addEventListeners();
+        },
+        addEventListeners() {
+            document.querySelectorAll('#contributor-manager-content .remove-contributor-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    const index = parseInt(e.target.dataset.index);
+                    App.UI.showConfirm('Remove Contributor?', `Are you sure you want to remove "${App.state.data.contributors[index].name}"?`, () => {
+                        App.state.data.contributors.splice(index, 1);
+                        this.render();
+                    });
+                };
+            });
+        },
+        async addContributor() {
+            const nameInput = document.getElementById('new-contributor-name');
+            const roleInput = document.getElementById('new-contributor-role');
+            const imageInput = document.getElementById('new-contributor-image');
+            
+            const name = nameInput.value.trim();
+            const role = roleInput.value.trim();
+            const bio = App.state.quillInstances.contributorBio.root.innerHTML;
+            const imageFile = imageInput.files[0];
+
+            if (!name) {
+                App.UI.showMessage('Error', 'Contributor name cannot be empty.');
+                return;
+            }
+
+            if (App.state.data.contributors.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+                App.UI.showMessage('Error', 'A contributor with that name already exists.');
+                return;
+            }
+
+            let imageDataUrl = null;
+            if (imageFile) {
+                imageDataUrl = await App.Utils.readFile(imageFile, 'dataURL');
+            }
+
+            App.state.data.contributors.push({
+                name,
+                role,
+                bio: (bio === '<p><br></p>') ? '' : bio, // Don't save empty quill content
+                image: imageDataUrl
+            });
+
+            // Clear inputs
+            nameInput.value = '';
+            roleInput.value = '';
+            imageInput.value = '';
+            App.state.quillInstances.contributorBio.root.innerHTML = '';
+            
+            this.render();
+        }
+    };
+    
+    // Import and Export
+    App.ImportExport = {
+        exportCategories() {
+            try {
+                const dataStr = JSON.stringify(App.state.data.categories, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'categories.json';
+                document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
+            } catch (e) { App.UI.showMessage("Export Error", `Could not export categories: ${e.message}`); }
+        },
+        async importCategories(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            try {
+                const imported = JSON.parse(await App.Utils.readFile(file, 'text'));
+                if (typeof imported === 'object' && imported !== null && imported[Object.keys(imported)[0]]?.styles) {
+                    Object.assign(App.state.data.categories, imported);
+                    Object.keys(imported).forEach(catName => {
+                        if (typeof App.state.categoryVisibility[catName] === 'undefined') {
+                             App.state.categoryVisibility[catName] = true;
+                        }
+                    });
+                    App.CategoryManager.updateSvgPatternDefs(); App.CategoryManager.render(); App.Map.renderGeoJSONLayer();
+                    App.UI.showMessage('Success', 'Categories imported successfully.');
+                } else throw new Error("File does not appear to be a valid category JSON.");
+            } catch (e) { App.UI.showMessage("Import Error", `Could not import categories: ${e.message}`); }
+            e.target.value = '';
+        },
+        exportProject() {
+            try {
+                const geojsonToSave = App.state.data.geojson.data ? JSON.parse(JSON.stringify(App.state.data.geojson.data)) : { type: 'FeatureCollection', features: [] };
+                if (geojsonToSave.features) {
+                    geojsonToSave.features.forEach(f => { if (f.properties) delete f.properties._internalId; });
+                }
+                const center = App.state.map.getCenter();
+                const projectData = {
+                    version: "1.9.2", // Updated version
+                    title: document.getElementById('main-title').childNodes[0].nodeValue.trim(),
+                    description: document.getElementById('main-description').innerHTML,
+                    logo: App.state.data.logo,
+                    categories: App.state.data.categories,
+                    contributors: App.state.data.contributors, 
+                    reportInfo: App.state.data.reportInfo, 
+                    geojson: geojsonToSave,
+                    projectBoundary: App.state.projectBoundary.geojson,
+                    mapView: { center: { lat: center.lat, lng: center.lng }, zoom: App.state.map.getZoom() },
+                    categoryVisibility: App.state.categoryVisibility,
+                    showOnlyWithObservations: App.state.showOnlyWithObservations,
+                    exportTimestamp: new Date().toISOString() 
+                };
+
+                const dataStr = JSON.stringify(projectData, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `map_project_${App.Utils.formatDate(new Date())}.json`; 
+                document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
+
+            } catch (e) { App.UI.showMessage("Export Error", `Could not export project: ${e.message}`); }
+        },
+        exportGeoJSON() {
+            if (!App.state.data.geojson.data?.features?.length) { App.UI.showMessage('Export Error', 'No features to export.'); return; }
+            try {
+                const geojsonToSave = JSON.parse(JSON.stringify(App.state.data.geojson.data));
+                geojsonToSave.features.forEach(f => { if (f.properties) delete f.properties._internalId; });
+                geojsonToSave.properties = { 
+                    ...geojsonToSave.properties, 
+                    categories: App.state.data.categories, 
+                    contributors: App.state.data.contributors,
+                    reportInfo: App.state.data.reportInfo 
+                }; 
+                const dataStr = JSON.stringify(geojsonToSave, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'features_with_categories.geojson';
+                document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
+            } catch (e) { App.UI.showMessage("Export Error", `Could not export GeoJSON: ${e.message}`); }
+        },
+        showExportDataModal() {
+            const modalTitle = 'Export Data';
+            const modalBody = `
+                <div class="border rounded-lg p-4 mb-4">
+                    <h4 class="font-bold text-lg">Project File (.json)</h4>
+                    <p class="text-sm text-gray-600 mt-1">Best for saving your work and reopening it in this application later. Includes all categories, features, and report settings.</p>
+                    <button id="modal-export-project" class="mt-3 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg w-full">Download Project File</button>
+                </div>
+                <div class="border rounded-lg p-4 mb-4">
+                    <h4 class="font-bold text-lg">PDF Report (.pdf)</h4>
+                    <p class="text-sm text-gray-600 mt-1">Generate a professionally formatted report with maps, legend, and feature details. Perfect for sharing with clients and stakeholders.</p>
+                    <button id="modal-export-pdf" class="mt-3 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg w-full">Generate PDF Report</button>
+                </div>
+                <div class="border rounded-lg p-4">
+                    <h4 class="font-bold text-lg">Standard GeoJSON (.geojson)</h4>
+                    <p class="text-sm text-gray-600 mt-1">Best for using your feature data in other GIS software like QGIS or ArcGIS. Categories are included but may not be compatible.</p>
+                    <button id="modal-export-geojson" class="mt-3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg w-full">Download GeoJSON</button>
+                </div>
+            `;
+            const modalFooter = `
+                <button id="modal-cancel-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg">Close</button>
+            `;
+            
+            document.getElementById('modal-title').innerText = modalTitle;
+            document.getElementById('modal-body').innerHTML = modalBody;
+            document.getElementById('modal-footer').innerHTML = modalFooter;
+            document.getElementById('modal').classList.remove('hidden');
+
+            const closeModal = () => document.getElementById('modal').classList.add('hidden');
+            document.getElementById('modal-cancel-btn').onclick = closeModal;
+            document.getElementById('modal-export-project').onclick = () => { 
+                try { this.exportProject(); } catch(e) { console.error(e); }
+                closeModal(); 
+            };
+            document.getElementById('modal-export-geojson').onclick = () => { 
+                try { this.exportGeoJSON(); } catch(e) { console.error(e); }
+                closeModal(); 
+            };
+            document.getElementById('modal-export-pdf').onclick = () => { 
+                try { App.PDFExport.generatePDF(); } catch(e) { console.error(e); }
+                closeModal(); 
+            };
+        },
+        async importProjectOrFeatures(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            App.UI.showLoader('Reading file...');
+            try {
+                const content = await App.Utils.readFile(file, 'text');
+                const data = JSON.parse(content);
+                App.UI.hideLoader();
+
+                const isProjectFile = data.version && data.categories && data.geojson;
+                const isGeoJSONFile = data.type === 'FeatureCollection' && Array.isArray(data.features);
+
+                if (isProjectFile) {
+                    let confirmMessage = 'This will overwrite all current data. Continue?';
+                    if (data.exportTimestamp) {
+                        confirmMessage += `\n\nProject exported on: ${new Date(data.exportTimestamp).toLocaleString()}`;
+                    }
+                    App.UI.showConfirm('Import Project', confirmMessage, () => this.loadProject(data));
+                } else if (isGeoJSONFile) {
+                    App.UI.showConfirm('Import GeoJSON Features', 'This will REPLACE current vector features. Continue?', () => this.loadGeoJSON(data, content));
+                } else {
+                    throw new Error('The file is not a valid Project or GeoJSON file.');
+                }
+            } catch (err) { App.UI.showMessage("Import Error", `Could not import file: ${err.message}`); } 
+            finally { e.target.value = ''; App.UI.hideLoader(); }
+        },
+        loadProject(data) {
+            App.UI.showLoader('Importing Project...');
+            try {
+                App.Data.resetAppState();
+                
+                document.getElementById('main-title').childNodes[0].nodeValue = (data.title || 'Site Analysis Report') + ' ';
+                document.getElementById('main-description').innerHTML = data.description || '';
+                if (data.logo) { App.state.data.logo = data.logo; document.getElementById('logo-img').src = data.logo; }
+                App.state.data.categories = data.categories || {};
+                App.state.categoryVisibility = data.categoryVisibility || {};
+                App.state.showOnlyWithObservations = data.showOnlyWithObservations || false;
+                document.getElementById('show-only-with-observations-toggle').checked = App.state.showOnlyWithObservations;
+                if (data.contributors && Array.isArray(data.contributors)) {
+                    App.state.data.contributors = data.contributors;
+                }
+                if (data.reportInfo) {
+                    Object.assign(App.state.data.reportInfo, data.reportInfo);
+                }
+                
+                App.Data.processAndInitializeFeatures(data.geojson); 
+                App.state.data.geojson.data = data.geojson || { type: 'FeatureCollection', features: [] };
+                
+                // Render everything
+                App.CategoryManager.updateSvgPatternDefs(); 
+                App.CategoryManager.render(); 
+                App.Map.renderGeoJSONLayer();
+                App.ContributorManager.render(); 
+                App.UI.updateReportStatusDisplay();
+
+                // Set map view last, after layers are on the map
+                if (data.projectBoundary) {
+                    App.Map.setBoundary(data.projectBoundary, true); // This will fit the view
+                } else if (App.state.geojsonLayer.getLayers().length > 0) {
+                    const bounds = App.state.geojsonLayer.getBounds();
+                    if (bounds.isValid()) App.state.map.fitBounds(bounds.pad(0.1));
+                } else if (data.mapView?.center) {
+                    App.state.map.setView(data.mapView.center, data.mapView.zoom);
+                }
+
+                App.UI.showMessage('Import Complete', 'Project loaded successfully. Re-select raster files if they were part of the original project.');
+            } catch (err) { App.UI.showMessage("Import Error", `Could not import project: ${err.message}`); } 
+            finally { App.UI.hideLoader(); }
+        },
+        loadGeoJSON(data, content) {
+            App.UI.showLoader('Importing GeoJSON...');
+            try {
+                // Only reset the features, not the whole project
+                App.state.data.geojson = { data: data, fileContent: content };
+                App.Data.processAndInitializeFeatures(data); 
+                
+                // Re-render map and legend
+                App.CategoryManager.updateSvgPatternDefs(); 
+                App.CategoryManager.render(); 
+                App.Map.renderGeoJSONLayer();
+                
+                // Zoom to new features
+                if (App.state.geojsonLayer.getLayers().length > 0) {
+                    const bounds = App.state.geojsonLayer.getBounds();
+                    if (bounds.isValid()) {
+                        App.state.map.fitBounds(bounds.pad(0.1));
+                    }
+                }
+
+                App.UI.showMessage('Import Complete', 'GeoJSON features loaded.');
+            } catch (err) { App.UI.showMessage('File Error', `Failed to process GeoJSON: ${err.message}`); } 
+            finally { App.UI.hideLoader(); }
+        }
+    };
+    
+    // Image Annotation Module
+    App.ImageAnnotator = {
+        init(imageUrl, saveCallback) {
+            const modal = App.UI.elements.annotationModal;
+            const canvas = document.getElementById('annotation-canvas');
+            const ctx = canvas.getContext('2d');
+            let isDrawing = false, lastX = 0, lastY = 0;
+            const originalImage = new Image();
+            originalImage.crossOrigin = "Anonymous";
+            
+            originalImage.onload = () => {
+                const container = document.querySelector('#annotation-modal .canvas-container');
+                const containerWidth = container.clientWidth;
+                // Since the canvas container is now a square, we can use its width for both dimensions
+                canvas.width = originalImage.width;
+                canvas.height = originalImage.height;
+                ctx.drawImage(originalImage, 0, 0);
+                modal.classList.remove('hidden');
+            };
+            originalImage.src = imageUrl;
+
+            const getMousePos = (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const clientX = e.clientX || e.touches[0].clientX;
+                const clientY = e.clientY || e.touches[0].clientY;
+                return {
+                    x: (clientX - rect.left) * scaleX,
+                    y: (clientY - rect.top) * scaleY
+                };
+            };
+
+            const draw = (e) => {
+                if (!isDrawing) return;
+                e.preventDefault();
+                const { x, y } = getMousePos(e);
+                ctx.strokeStyle = document.getElementById('annotation-color').value;
+                ctx.lineWidth = document.getElementById('annotation-brush-size').value;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+                [lastX, lastY] = [x, y];
+            };
+
+            const startDrawing = (e) => {
+                isDrawing = true;
+                const { x, y } = getMousePos(e);
+                [lastX, lastY] = [x, y];
+            };
+
+            const stopDrawing = () => isDrawing = false;
+
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+            canvas.addEventListener('touchstart', startDrawing, { passive: false });
+            canvas.addEventListener('touchmove', draw, { passive: false });
+            canvas.addEventListener('touchend', stopDrawing);
+
+            document.getElementById('annotation-clear-btn').onclick = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(originalImage, 0, 0);
+            };
+            document.getElementById('annotation-cancel-btn').onclick = () => modal.classList.add('hidden');
+            document.getElementById('annotation-save-btn').onclick = () => {
+                saveCallback(canvas.toDataURL('image/png'));
+                modal.classList.add('hidden');
+            };
+        }
+    };
+
+    // PDF Export Functionality
+    App.PDFExport = {
+        // Configuration constants
+        cfg: {
+            a4: { w: 210, h: 297 },
+            ledgerLandscape: { w: 431.8, h: 279.4 },
+            captureScale: 3, 
+            mapScale: 3,
+            paddingMM: 15,
+            // MODIFICATION: New configuration property for map zoom level
+            mapFitPadding: 0.05, // Lower value means more zoomed in. 0.1 is default leaflet behavior.
+        },
+
+        // Utility helpers
+        mmToPx(mm, dpi = 96) { return Math.round(mm * dpi / 25.4); },
+        updateProgress(msg) { 
+            try { 
+                App.UI.elements.loaderText.innerText = msg; 
+                console.log("PDF Export Progress:", msg);
+            } catch(e){
+                console.warn("Could not update progress:", e);
+            } 
+        },
+        safeText(text) {
+            if (text === null || typeof text === 'undefined') return '';
+            if (text instanceof Event || (typeof text === 'string' && text.includes('[object Event]'))) {
+                console.warn("Event object detected in text - replacing with safe value");
+                return '[Event]';
+            }
+            let safeString = '';
+            try {
+                safeString = String(text);
+            } catch (e) {
+                console.warn("Error converting value to safe string:", e);
+                return '';
+            }
+            return App.Utils.stripHtml(safeString);
+        },
+        getSvgDefs() { return App.state.svgPatternDefs ? App.state.svgPatternDefs.innerHTML : ''; },
+
+        async ensureLibraries() {
+            if (!window.jspdf || !window.jspdf.jsPDF) throw new Error('jsPDF not loaded');
+            if (typeof domtoimage === 'undefined') throw new Error('dom-to-image not loaded');
+        },
+
+        // DOM page builder & capture
+        buildPage(html, wMM, hMM, opts = {}) {
+            const dpi = 96;
+            const w = this.mmToPx(wMM, dpi);
+            const h = this.mmToPx(hMM, dpi);
+            const el = document.createElement('div');
+            el.className = 'pdf-page';
+            const padding = opts.paddingPx === 0 ? 0 : (opts.paddingPx || this.mmToPx(this.cfg.paddingMM));
+            
+            el.style.cssText = `
+                width:${w}px; 
+                height:${h}px; 
+                box-sizing:border-box; 
+                font-family:Inter,Arial,sans-serif; 
+                background:${opts.bg||'#fff'}; 
+                color:#111;
+                position:relative;
+                display: flex;
+                flex-direction: column;
+                border:1px solid transparent;
+            `;
+            
+            const svgDefs = opts.svgDefs ? `<svg width="0" height="0" style="position:absolute;left:-1000px;"><defs>${opts.svgDefs}</defs></svg>` : '';
+            
+            el.innerHTML = `
+            <style>
+                *{box-sizing:border-box}
+                body,html{margin:0;padding:0;font-family:Inter,sans-serif;font-size:10px;color:#333}
+                h1,h2,h3,h4{margin:0 0 10px 0;font-weight:700;line-height:1.2;color:#1a202c}
+                h1{font-size:28px;border-bottom:2px solid #e2e8f0;padding-bottom:8px;margin-bottom:16px}
+                h2{font-size:16px;margin-top:0;color:#2d3748;border-bottom:1px solid #e2e8f0;padding-bottom:6px}
+                h3{font-size:14px; margin:0 0 8px 0}
+                p{margin:0 0 12px 0;line-height:1.6}
+                table{border-collapse:collapse;width:100%;font-size:9px;margin-bottom:12px}
+                th,td{border:1px solid #e2e8f0;padding:6px 8px;text-align:left;vertical-align:top}
+                th{background:#f8fafc;font-weight:600;color:#4a5568}
+                .small{font-size:9px;color:#718096}
+                
+                /* MODIFICATION: Removed fixed height, relying on flexbox */
+                .content-wrapper {
+                    flex-grow: 1;
+                    padding: ${padding}px;
+                    overflow: hidden; 
+                }
+                .footer-placeholder {
+                    flex-shrink: 0;
+                    height: 20px; 
+                }
+                
+                .category-block{break-inside:avoid;margin-bottom:12px}
+                .legend-features{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;font-size:10px}
+                .legend-item{display:flex;align-items:center;gap:6px;padding:4px;border-radius:3px;background:#fff}
+                .legend-swatch{width:20px;height:20px;border:1px solid #ccc;border-radius:3px;flex:0 0 auto}
+                .map-title{position:absolute;top:12px;left:50%;transform:translateX(-50%);font-size:18px;background:rgba(255,255,255,0.9);padding:8px 16px;border:1px solid #718096;border-radius:4px;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,0.1);z-index:1000}
+                
+                .feature-map{width:100%;height:150px;border:1px solid #000;margin-top:8px;border-radius:4px;overflow:hidden;position:relative}
+                .feature-info-section{border:1px solid #e2e8f0;border-radius:4px;padding:8px;background:#f8fafc;margin-bottom:8px}
+                .observation-list{margin:8px 0;padding-left:12px;border-left:3px solid #cbd5e0}
+                .observation-item{margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #edf2f7}
+                .observation-item:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+                .observation-images{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:8px;margin-top:8px}
+                .observation-images img{width:100%;height:auto;border-radius:3px;border:1px solid #cbd5e0}
+                .severity-tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:9px;font-weight:600;margin-left:8px;vertical-align:middle}
+                .severity-low{background-color:#dbeafe;color:#1e40af}
+                .severity-medium{background-color:#fef9c3;color:#854d0e}
+                .severity-high{background-color:#fee2e2;color:#991b1b}
+                .severity-critical{background-color:#fca5a5;color:#7f1d1d}
+                
+                /* MODIFICATION: New layout for feature details page */
+                .feature-blocks-container { 
+                    display: flex; 
+                    flex-direction: column; 
+                    gap: 15px; 
+                }
+                .feature-block { 
+                    page-break-inside: avoid; 
+                    border-bottom: 1px dashed #e2e8f0; 
+                    padding-bottom: 10px; 
+                }
+                .feature-block:last-child { 
+                    border-bottom: none; 
+                    padding-bottom: 0; 
+                }
+                .feature-block-top {
+                    display: flex;
+                    gap: 15px;
+                    align-items: flex-start;
+                }
+                .feature-block-top > div {
+                    flex: 1 1 50%;
+                }
+                .feature-block-top .feature-map {
+                    height: 250px;
+                }
+                .feature-block-observations {
+                    margin-top: 15px;
+                }
+                .feature-block-images {
+                    margin-top: 15px;
+                }
+                .feature-block-images .observation-images {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 8px;
+                }
+                /* FIX: Added new CSS to ensure tables fill their containers */
+                .feature-info-section table {
+                    width: 100%;
+                }
+
+            </style>
+            ${svgDefs}
+            <div class="content-wrapper">${html}</div>
+            <div class="footer-placeholder"></div>
+            `;
+            document.body.appendChild(el);
+            return el;
+        },
+
+        async captureElement(el, wMM, hMM, scale) {
+            const widthPx = this.mmToPx(wMM, 96 * scale);
+            const heightPx = this.mmToPx(hMM, 96 * scale);
+            
+            try {
+                this.updateProgress("Preparing page elements for capture...");
+                const images = el.querySelectorAll('img');
+                const imagePromises = Array.from(images).map(img => {
+                    if (img.complete) return Promise.resolve();
+                    return new Promise(resolve => {
+                        img.onload = resolve;
+                        img.onerror = () => { console.warn('Image failed to load:', img.src); resolve(); };
+                        setTimeout(resolve, 1500); // Timeout
+                    });
+                });
+                
+                await new Promise(r => setTimeout(r, 500)); // Wait for maps to render
+                await Promise.all(imagePromises);
+                
+                const options = {
+                    width: widthPx, height: heightPx, 
+                    style: { 
+                        transform: `scale(${scale})`, 
+                        transformOrigin: 'top left',
+                        width: `${widthPx/scale}px`,
+                        height: `${heightPx/scale}px`
+                    }, 
+                    cacheBust: true, quality: 1, bgcolor: '#ffffff',
+                };
+                
+                const dataUrl = await domtoimage.toPng(el, options);
+                if (document.body.contains(el)) document.body.removeChild(el);
+                return dataUrl;
+            } catch(error) {
+                console.error("Capture error:", error);
+                this.updateProgress(`Capture error: ${error.message}`);
+                if (document.body.contains(el)) document.body.removeChild(el);
+                throw error;
+            }
+        },
+
+        buildLegendContent() {
+            const categories = App.state.data.categories || {};
+            const feats = App.state.data.geojson?.data?.features || [];
+            const catNames = Object.keys(categories);
+            const blocks = catNames.map(cat => {
+                const catFeatures = feats.filter(f => f.properties.category === cat);
+                if (catFeatures.length === 0) return '';
+
+                const inner = catFeatures.map(f => {
+                    let swatchHtml = '<div class="legend-swatch" style="background:#ccc"></div>';
+                    try {
+                        const sw = App.Legend.createSwatch(f);
+                        const wrap = document.createElement('div'); wrap.appendChild(sw); swatchHtml = wrap.innerHTML;
+                    } catch(_){}
+                    
+                    const hasObservations = f.properties.observations && f.properties.observations.length > 0;
+                    const obsIndicator = hasObservations ? 
+                        `<span class="severity-tag severity-${(App.Utils.getHighestSeverity(f.properties.observations) || 'low').toLowerCase()}">!</span>` : '';
+                    
+                    return `<div class="legend-item">${swatchHtml}<span>${(f.properties.Name||'Unnamed').slice(0,35)}</span>${obsIndicator}</div>`;
+                }).join('');
+                
+                return `<div class="category-block">
+                    <h3>${cat}</h3>
+                    <div class="legend-features">${inner}</div>
+                </div>`;
+            }).filter(Boolean);
+            
+            return `
+                <h1>Legend</h1>
+                <p>The following categories and features are included in this site analysis report:</p>
+                <div>${blocks.join('')}</div>
+            `;
+        },
+
+        async buildAndCaptureMapPage(doc, title, mode) {
+            const { w, h } = this.cfg.ledgerLandscape;
+            const pageEl = this.buildPage(`<div id="map-wrapper" style="position:relative;width:100%;height:100%;padding:0;margin:0; border: 1px solid #000;">
+                <div class="map-title">${title}</div>
+                <div id="pdf-map" style="position:absolute;inset:0"></div>
+            </div>`, w, h, { paddingPx: 0, svgDefs: this.getSvgDefs() });
+
+            const mapDiv = pageEl.querySelector('#pdf-map');
+            const map = L.map(mapDiv, {
+                zoomControl: false, attributionControl: false, zoomAnimation: false,
+                fadeAnimation: false, markerZoomAnimation: false, inertia: false,
+                renderer: L.svg()
+            });
+
+            if (mode === 'default') {
+                mapDiv.style.backgroundColor = 'white';
+            } else if (mode === 'ortho' && App.state.data.ortho?.georaster) {
+                new GeoRasterLayer({ georaster: App.state.data.ortho.georaster, opacity: 1, resolution: 256 }).addTo(map);
+            } else if (mode === 'dsm' && App.state.data.dsm?.georaster) {
+                const { georaster } = App.state.data.dsm;
+                const { mins, maxs, noDataValue } = georaster;
+                const colorScale = chroma.scale(['#3b82f6', '#6ee7b7', '#fde047', '#f97316', '#ef4444']).domain([mins[0], maxs[0]]);
+                new GeoRasterLayer({ georaster, opacity: 0.9, resolution: 256, pixelValuesToColorFn: values => (values[0] === noDataValue) ? null : colorScale(values[0]).hex() }).addTo(map);
+            } else {
+                L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', { maxZoom: 22, subdomains:['mt0','mt1','mt2','mt3'], crossOrigin: 'anonymous' }).addTo(map);
+            }
+
+            const allGeo = App.state.data.geojson?.data;
+            if (allGeo && allGeo.features.length > 0) {
+                const vecLayer = L.geoJSON(allGeo, {
+                    style: f => App.CategoryManager.getCategoryStyleForFeature(f),
+                    pointToLayer: (f, latlng) => App.CategoryManager.createPointMarker(f, latlng),
+                    onEachFeature: (f, l) => {
+                        const hasObservations = f.properties.observations && f.properties.observations.length > 0;
+                        const showLabel = f.properties.showLabel || (hasObservations && f.properties.Name);
+                        if (f.properties.Name && showLabel) {
+                            let labelContent = '';
+                            let tooltipClass = 'leaflet-tooltip-label';
+                            if (f.properties.showLabel) {
+                                labelContent += `<span>${f.properties.Name}</span>`;
+                            }
+                            if (hasObservations) {
+                                const highestSeverity = App.Utils.getHighestSeverity(f.properties.observations);
+                                const color = App.Utils.getColorForSeverity(highestSeverity);
+                                const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="${color}" style="filter: drop-shadow(0 1px 1px rgba(0,0,0,0.5));"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2V7h2v7z"/></svg>`;
+                                labelContent += iconSvg;
+                                if (!f.properties.showLabel) {
+                                    tooltipClass += ' leaflet-tooltip-icon-only';
+                                }
+                            }
+                            l.bindTooltip(labelContent, { permanent: true, direction: 'top', offset: [0, -10], className: tooltipClass });
+                        }
+                        const style = App.CategoryManager.getCategoryStyleForFeature(f);
+                        if (f.geometry.type.includes('LineString') && style.linePattern === 'arrows') {
+                            L.polylineDecorator(l, {
+                                patterns: [{ offset: '15%', repeat: style.lineSpacing * 2, symbol: L.Symbol.arrowHead({ pixelSize: 12, polygon: false, pathOptions: { stroke: true, color: style.color, weight: style.weight, opacity: style.opacity }}) }]
+                            }).addTo(map);
+                        }
+                    }
+                }).addTo(map);
+                
+                const bounds = App.state.projectBoundary.geojson ? L.geoJSON(App.state.projectBoundary.geojson).getBounds() : vecLayer.getBounds();
+                if (bounds.isValid()) {
+                    try { 
+                        // MODIFICATION: Use the new configurable map padding for more zoom
+                        map.fitBounds(bounds.pad(this.cfg.mapFitPadding)); 
+                    } catch (e) {
+                       console.warn("Could not fit bounds for PDF map", e);
+                       if (App.state.map) map.setView(App.state.map.getCenter(), App.state.map.getZoom());
+                    }
+                }
+            } else if (App.state.map) {
+                map.setView(App.state.map.getCenter(), App.state.map.getZoom());
+            }
+
+            await new Promise(r => setTimeout(r, 2500)); // Wait for tiles
+            const img = await this.captureElement(pageEl, w, h, this.cfg.mapScale);
+            doc.addPage([w, h], 'landscape');
+            doc.addImage(img, 'PNG', 0, 0, w, h, undefined, 'FAST');
+        },
+        
+        // MODIFICATION: Rewriting this function to combine all images into a single grid at the bottom.
+        buildFeatureDetailBlockHTML(feature) {
+            try {
+                if (!feature || !feature.properties) {
+                    return `<div class="feature-block"><h3>Invalid Feature Data</h3><p>Missing feature properties</p></div>`;
+                }
+                
+                let rows = '<tr><td colspan="2" class="small">No geometry stats</td></tr>';
+                try {
+                    const geoData = App.Utils.calculateGeoData(feature) || [];
+                    if (geoData.length > 0) {
+                        rows = geoData.map(g => `<tr><th>${this.safeText(g.label)}</th><td>${this.safeText(g.value)}</td></tr>`).join('');
+                    }
+                } catch (geoError) { console.error("Error calculating geometry data:", geoError); }
+                
+                const obs = Array.isArray(feature.properties.observations) ? feature.properties.observations : [];
+                let observationsHtml = '';
+                // MODIFICATION: Flatten all images from all observations into a single array
+                let allImages = [];
+                
+                if (obs.length > 0) {
+                    try {
+                        const obsItems = obs.map(o => {
+                            // Collect images to be rendered separately
+                            if (Array.isArray(o.images) && o.images.length > 0) {
+                                allImages.push(...o.images);
+                            }
+                            const safeType = this.safeText(o.observationType || 'Observation');
+                            const safeSeverity = this.safeText(String(o.severity || 'low').toLowerCase());
+                            const safeSeverityLabel = this.safeText(o.severity || 'Low');
+                            const safeRecommendation = this.safeText(o.recommendation || 'N/A');
+                            
+                            return `<div class="observation-item">
+                                <div><strong>${safeType}</strong><span class="severity-tag severity-${safeSeverity}">${safeSeverityLabel}</span></div>
+                                <div class="small" style="margin:4px 0;"><strong>Recommendation:</strong> ${safeRecommendation}</div>
+                            </div>`;
+                        }).join('');
+                        observationsHtml = `<div class="observation-list">${obsItems}</div>`;
+                    } catch (obsErr) { console.error("Error processing observations:", obsErr); }
+                }
+
+                // MODIFICATION: Generate a single image grid after the observations section
+                let imagesHtml = '';
+                if (allImages.length > 0) {
+                    imagesHtml = `<div class="feature-block-images">
+                        <h4>Annotated Images</h4>
+                        <div class="observation-images">
+                            ${allImages.map(img => `<div><img src="${this.safeText(img.src)}" alt="${this.safeText(img.caption)}"><p class="small">${this.safeText(img.caption)}</p></div>`).join('')}
+                        </div>
+                    </div>`;
+                }
+
+                const featureId = feature.properties._internalId || (typeof feature.id !== 'undefined' ? feature.id : Math.random().toString(36).substring(2, 9));
+                const snapshotId = `feature-snapshot-${String(featureId).replace(/[^a-zA-Z0-9-_]/g, '')}`;
+                const safeName = this.safeText(feature.properties.Name || 'Unnamed Feature');
+                const safeCategory = this.safeText(feature.properties.category || 'Uncategorized');
+                const safeDescription = this.safeText(feature.properties.Description || 'N/A');
+
+                const hasObservations = obs.length > 0;
+                const observationTitle = hasObservations ? 'Observations' : 'No Observations';
+                
+                return `
+                    <div class="feature-block">
+                        <div class="feature-block-top">
+                            <div>
+                                <h3>${safeName}</h3>
+                                <h4>Feature Details & Geodata</h4>
+                                <div class="feature-info-section">
+                                    <table>
+                                        <tr><th>Category</th><td>${safeCategory}</td></tr>
+                                        <tr><th>Description</th><td>${safeDescription}</td></tr>
+                                        ${rows}
+                                    </table>
+                                </div>
+                            </div>
+                            <div>
+                                <h4>Feature Snapshot</h4>
+                                <div class="feature-map" id="${snapshotId}"></div>
+                            </div>
+                        </div>
+                        <div class="feature-block-observations">
+                            <h4>${observationTitle}</h4>
+                            ${observationsHtml || '<div class="small" style="font-style:italic">No observations were recorded for this feature.</div>'}
+                        </div>
+                        ${imagesHtml}
+                    </div>
+                `;
+            } catch (error) {
+                console.error("Error building feature detail block:", error);
+                return `<div class="feature-block"><h3>Error Rendering Feature</h3><p>${this.safeText(feature?.properties?.Name || 'Unknown feature')}</p></div>`;
+            }
+        },
+
+        renderMiniMap(container, feature) {
+            return new Promise((resolve) => {
+                try {
+                    if (!container || !feature || !feature.geometry) {
+                        this.fallbackMapDisplay(container, "Missing required elements");
+                        return resolve();
+                    }
+                    if (!feature.geometry.type || !Array.isArray(feature.geometry.coordinates)) {
+                        console.error("Malformed geometry for feature:", feature.properties.Name, feature.geometry);
+                        this.fallbackMapDisplay(container, "Malformed geometry");
+                        return resolve();
+                    }
+                    if (feature.geometry.type === 'Point') {
+                        const coords = feature.geometry.coordinates;
+                        if (!Array.isArray(coords) || coords.length < 2 || !isFinite(coords[0]) || !isFinite(coords[1])) {
+                             console.error("Invalid coordinates for point feature:", feature.properties.Name, coords);
+                             this.fallbackMapDisplay(container, "Invalid feature coordinates");
+                             return resolve();
+                        }
+                    } else if (feature.geometry.coordinates.length === 0) {
+                        console.error("Empty coordinates for feature:", feature.properties.Name);
+                        this.fallbackMapDisplay(container, "Empty feature coordinates");
+                        return resolve();
+                    }
+        
+                    const map = L.map(container, {
+                        zoomControl: false, attributionControl: false, dragging: false,
+                        scrollWheelZoom: false, renderer: L.svg(), keyboard: false,
+                        touchZoom: false, doubleClickZoom: false
+                    });
+        
+                    map.createPane('basemap');
+                    map.getPane('basemap').style.zIndex = 200;
+                    map.createPane('vectors');
+                    map.getPane('vectors').style.zIndex = 450;
+        
+                    const svg = map.getRenderer(map)._container;
+                    if (svg && App.state.svgPatternDefs) {
+                        svg.appendChild(App.state.svgPatternDefs.cloneNode(true));
+                    }
+        
+                    let isBaseLayerLoaded = false;
+                    const onBaseLoad = () => {
+                        if (isBaseLayerLoaded) return;
+                        isBaseLayerLoaded = true;
+                        setTimeout(() => { 
+                            try {
+                                map.invalidateSize(); 
+                            } catch(e) {
+                                console.warn("Error during invalidateSize on mini-map", e);
+                            }
+                            resolve(); 
+                        }, 300);
+                    };
+                    setTimeout(() => { if (!isBaseLayerLoaded) { onBaseLoad(); } }, 4000);
+        
+                    if (App.state.data.ortho?.georaster) {
+                        new GeoRasterLayer({ georaster: App.state.data.ortho.georaster, opacity: 1, resolution: 256, pane: 'basemap' }).on('load', onBaseLoad).addTo(map);
+                    } else {
+                        L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', { maxZoom: 22, subdomains:['mt0','mt1','mt2','mt3'], crossOrigin: 'anonymous', pane: 'basemap' }).on('load', onBaseLoad).addTo(map);
+                    }
+        
+                    const vectorLayer = L.geoJSON(feature, {
+                        pane: 'vectors',
+                        style: f => App.CategoryManager.getCategoryStyleForFeature(f),
+                        pointToLayer: (f, latlng) => App.CategoryManager.createPointMarker(f, latlng),
+                        onEachFeature: (f, l) => {
+                            l.off(); // Remove interactivity
+                            const style = App.CategoryManager.getCategoryStyleForFeature(f);
+                            if (f.geometry.type.includes('LineString') && style.linePattern === 'arrows') {
+                                L.polylineDecorator(l, {
+                                    patterns: [{ offset: '15%', repeat: style.lineSpacing * 2, symbol: L.Symbol.arrowHead({ pixelSize: 12, polygon: false, pathOptions: { stroke: true, color: style.color, weight: style.weight, opacity: style.opacity }}) }]
+                                }).addTo(map);
+                            }
+                        }
+                    }).addTo(map);
+        
+                    if (feature.geometry.type === 'Point') {
+                        const coords = feature.geometry.coordinates;
+                        map.setView([coords[1], coords[0]], 18);
+                    } else {
+                        const bounds = vectorLayer.getBounds();
+                        if (bounds.isValid()) {
+                            // MODIFICATION: Use the new configurable map padding for more zoom
+                            map.fitBounds(bounds.pad(this.cfg.mapFitPadding));
+                        } else {
+                            console.warn("Could not determine valid bounds for non-point feature:", feature.properties.Name);
+                            map.setView([0, 0], 2);
+                        }
+                    }
+        
+                } catch (e) {
+                    console.error("Error rendering mini map:", e, feature?.properties?.Name);
+                    this.fallbackMapDisplay(container, "Map rendering error");
+                    resolve();
+                }
+            });
+        },
+        
+        fallbackMapDisplay(container, message = "Map unavailable") {
+            if (!container) return;
+            container.innerHTML = `<div style="background:#f0f0f0;border:1px solid #ccc;color:#666;display:flex;align-items:center;justify-content:center;height:100%;font-size:12px;">${message}</div>`;
+        },
+
+        async generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true });
+
+            App.UI.showLoader('Preparing PDF...');
+            try {
+                this.updateProgress('Loading libraries...');
+                await this.ensureLibraries();
+
+                const features = App.state.data.geojson?.data?.features || [];
+                if (!features.length) throw new Error('No features to export');
+                
+                this.updateProgress('Building title page...');
+                const title = this.safeText(document.getElementById('main-title')?.childNodes[0]?.nodeValue || 'Site Analysis Report');
+                const desc = this.safeText(document.getElementById('main-description')?.innerHTML || '');
+                const logoSrc = document.getElementById('logo-img')?.src;
+                const logoImg = (logoSrc && !logoSrc.includes('placehold.co')) ? `<img src="${logoSrc}" style="max-width:100px;max-height:100px;margin-bottom:16px" />` : '';
+                const titlePage = this.buildPage(`<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;text-align:center;">${logoImg}<h1 style="font-size:32px;">${title}</h1><p style="font-size:14px">${desc}</p></div>`, this.cfg.a4.w, this.cfg.a4.h);
+                const titleImg = await this.captureElement(titlePage, this.cfg.a4.w, this.cfg.a4.h, this.cfg.captureScale);
+                doc.addImage(titleImg, 'PNG', 0, 0, this.cfg.a4.w, this.cfg.a4.h);
+
+                this.updateProgress('Adding project team...');
+                const reportInfo = App.state.data.reportInfo;
+                const infoRows = `
+                    <tr><th>Client Name</th><td>${this.safeText(reportInfo.clientName)}</td></tr>
+                    <tr><th>Client Contact</th><td>${this.safeText(reportInfo.clientContact)}</td></tr>
+                    <tr><th>Client Address</th><td>${this.safeText(reportInfo.clientAddress)}</td></tr>
+                    <tr><th>Project ID</th><td>${this.safeText(reportInfo.projectId)}</td></tr>
+                    <tr><th>Report Date</th><td>${this.safeText(reportInfo.reportDate)}</td></tr>
+                    <tr><th>Report Status</th><td>${this.safeText(reportInfo.reportStatus)}</td></tr>
+                `;
+                const contribs = App.state.data.contributors || [];
+                const contribRows = contribs.map(c => `<tr><td><div style="width:50px;height:50px;border-radius:50%;overflow:hidden;"><img src="${c.image || 'https://placehold.co/50x50/e2e8f0/334155?text=NA'}" style="width:100%;height:100%;object-fit:cover;"/></div></td><td><strong>${this.safeText(c.name)}</strong><br><span class="small">${this.safeText(c.role)}</span></td><td>${c.bio || ''}</td></tr>`).join('');
+                const teamPageHTML = `
+                    <h1>Project Information</h1>
+                    <h2>Project Details</h2>
+                    <table><tbody>${infoRows}</tbody></table>
+                    <h2 style="margin-top: 20px;">Contributors</h2>
+                    <table><thead><tr><th style="width:60px">Image</th><th>Contributor</th><th>Bio</th></tr></thead><tbody>${contribRows}</tbody></table>
+                `;
+                const teamPage = this.buildPage(teamPageHTML, this.cfg.a4.w, this.cfg.a4.h);
+                const teamImg = await this.captureElement(teamPage, this.cfg.a4.w, this.cfg.a4.h, this.cfg.captureScale);
+                doc.addPage(); doc.addImage(teamImg, 'PNG', 0, 0, this.cfg.a4.w, this.cfg.a4.h);
+
+                this.updateProgress('Building legend...');
+                const legendPage = this.buildPage(this.buildLegendContent(), this.cfg.a4.w, this.cfg.a4.h, { svgDefs: this.getSvgDefs() });
+                const legendImg = await this.captureElement(legendPage, this.cfg.a4.w, this.cfg.a4.h, this.cfg.captureScale);
+                doc.addPage(); doc.addImage(legendImg, 'PNG', 0, 0, this.cfg.a4.w, this.cfg.a4.h);
+
+                this.updateProgress('Capturing maps...');
+                await this.buildAndCaptureMapPage(doc, 'Site Features Overview', 'default');
+                if (App.state.data.ortho?.georaster) await this.buildAndCaptureMapPage(doc, 'Site Features with Orthophoto', 'ortho');
+                if (App.state.data.dsm?.georaster) await this.buildAndCaptureMapPage(doc, 'Site Features with Elevation Model', 'dsm');
+                
+                const featuresByCategory = features.reduce((acc, feature) => {
+                    const category = feature.properties.category || 'Uncategorized';
+                    if (!acc[category]) acc[category] = [];
+                    acc[category].push(feature);
+                    return acc;
+                }, {});
+
+                for (const categoryName in featuresByCategory) {
+                    featuresByCategory[categoryName].sort((a, b) => (a.properties.Name || '').localeCompare(b.properties.Name || ''));
+                }
+                const sortedCategoryNames = Object.keys(featuresByCategory).sort((a, b) => a.localeCompare(b));
+
+                const processAndCapturePage = async (featuresForPage, categoryName, isContinuation) => {
+                    if (featuresForPage.length === 0) return;
+                    
+                    this.updateProgress(`Processing page for ${categoryName} with ${featuresForPage.length} feature(s)...`);
+                    
+                    const pageHeader = isContinuation
+                        ? `<h1>Feature Details: ${categoryName} (continued)</h1>`
+                        : `<h1>Feature Details: ${categoryName}</h1>`;
+                    
+                    const featureBlocksHTML = featuresForPage.map(f => this.buildFeatureDetailBlockHTML(f)).join('');
+                    const finalHtml = `${pageHeader}<div class="feature-blocks-container">${featureBlocksHTML}</div>`;
+                    
+                    const page = this.buildPage(finalHtml, this.cfg.a4.w, this.cfg.a4.h, {
+                        svgDefs: this.getSvgDefs()
+                    });
+
+                    this.updateProgress(`Rendering maps for ${featuresForPage.length} feature(s)...`);
+                    const mapPromises = featuresForPage.map(f => {
+                        const featureId = f.properties._internalId || (typeof f.id !== 'undefined' ? f.id : Math.random().toString(36).substring(2, 9));
+                        const snapshotId = `feature-snapshot-${String(featureId).replace(/[^a-zA-Z0-9-_]/g, '')}`;
+                        const mapContainer = page.querySelector(`#${snapshotId}`);
+                        return mapContainer ? this.renderMiniMap(mapContainer, f) : Promise.resolve();
+                    });
+                    
+                    await Promise.all(mapPromises);
+                    this.updateProgress(`Capturing page image...`);
+
+                    const img = await this.captureElement(page, this.cfg.a4.w, this.cfg.a4.h, this.cfg.captureScale);
+                    doc.addPage('a4', 'portrait');
+                    doc.addImage(img, 'PNG', 0, 0, this.cfg.a4.w, this.cfg.a4.h);
+                };
+
+                const maxContentHeight = this.mmToPx(this.cfg.a4.h - (this.cfg.paddingMM * 2.5));
+
+                for (const categoryName of sortedCategoryNames) {
+                    const categoryFeatures = featuresByCategory[categoryName];
+                    let featuresOnThisPage = [];
+                    let isFirstPageOfCategory = true;
+
+                    for (let i = 0; i < categoryFeatures.length; i++) {
+                        const feature = categoryFeatures[i];
+                        featuresOnThisPage.push(feature);
+
+                        const pageHeader = `<h1>Feature Details: ${categoryName}</h1>`;
+                        const featureBlocksHTML = featuresOnThisPage.map(f => this.buildFeatureDetailBlockHTML(f)).join('');
+                        const tempHtml = `${pageHeader}<div class="feature-blocks-container">${featureBlocksHTML}</div>`;
+                        
+                        const tempPage = this.buildPage(tempHtml, this.cfg.a4.w, this.cfg.a4.h, { svgDefs: this.getSvgDefs() });
+                        tempPage.style.position = 'absolute';
+                        tempPage.style.left = '-9999px';
+                        tempPage.style.top = '-9999px';
+
+                        const contentContainer = tempPage.querySelector('.feature-blocks-container');
+                        const currentHeight = contentContainer.getBoundingClientRect().height;
+                        
+                        document.body.removeChild(tempPage);
+
+                        if (currentHeight > maxContentHeight) {
+                            const featuresToPrint = featuresOnThisPage.slice(0, -1);
+                            await processAndCapturePage(featuresToPrint, categoryName, !isFirstPageOfCategory);
+                            
+                            featuresOnThisPage = [feature];
+                            isFirstPageOfCategory = false;
+                        }
+                    }
+
+                    if (featuresOnThisPage.length > 0) {
+                        await processAndCapturePage(featuresOnThisPage, categoryName, !isFirstPageOfCategory);
+                    }
+                }
+                
+                this.updateProgress('Adding page numbers...');
+                const pageCount = doc.internal.getNumberOfPages();
+                for (let i = 1; i <= pageCount; i++) {
+                    doc.setPage(i);
+                    doc.setFontSize(8);
+                    doc.setTextColor(100);
+                    
+                    const pageNumText = `Page ${i} of ${pageCount}`;
+                    const pageSize = doc.internal.pageSize;
+                    const y = pageSize.getHeight() - (this.cfg.paddingMM / 2);
+                    const isLandscape = pageSize.getWidth() > pageSize.getHeight();
+                    
+                    const footerTitle = isLandscape ? "Site Map" : title;
+                    const titleX = this.cfg.paddingMM;
+                    const pageNumX = pageSize.getWidth() - this.cfg.paddingMM;
+                    const lineY = y - 3; 
+
+                    if (i > 1) { 
+                        doc.setDrawColor(226, 232, 240); 
+                        doc.line(titleX, lineY, pageNumX, lineY);
+                        doc.text(footerTitle, titleX, y, { align: 'left' });
+                    }
+                    doc.text(pageNumText, pageNumX, y, { align: 'right' });
+                }
+
+                this.updateProgress('Finalizing PDF...');
+                doc.setProperties({ title, subject: desc, creator: 'Advanced Geospatial Data Viewer' });
+                const filename = `${title.replace(/\s+/g,'_')}_${App.Utils.formatDate(new Date())}.pdf`;
+                doc.save(filename);
+                App.UI.showMessage('Success', 'PDF report generated successfully');
+            } catch(err) {
+                console.error('PDF generation error:', err);
+                App.UI.showMessage('PDF Export Error', err.message || String(err));
+            } finally {
+                App.UI.hideLoader();
+            }
+        }
+    };
+
+    // Initialize the application on window load
+    window.onload = () => {
+        App.init();
+    };
+    </script>
+</body>
+</html>
+
