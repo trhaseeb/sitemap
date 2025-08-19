@@ -37,7 +37,4 @@ window.App = {
     }
 };
 
-// Initialize the application on window load
-window.onload = () => {
-    App.init();
-};
+// Initialization will be called after all modules are loaded
