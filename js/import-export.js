@@ -177,18 +177,26 @@ App.ImportExport = {
             // Render everything
             App.CategoryManager.updateSvgPatternDefs(); 
             App.CategoryManager.render(); 
-            App.Map.renderGeoJSONLayer();
+            try {
+                App.Map.renderGeoJSONLayer();
+            } catch (e) {
+                console.warn('Map rendering failed during import (likely missing map dependencies):', e.message);
+            }
             App.ContributorManager.render(); 
             App.UI.updateReportStatusDisplay();
 
-            // Set map view last, after layers are on the map
-            if (data.projectBoundary) {
-                App.Map.setBoundary(data.projectBoundary, true); // This will fit the view
-            } else if (App.state.geojsonLayer.getLayers().length > 0) {
-                const bounds = App.state.geojsonLayer.getBounds();
-                if (bounds.isValid()) App.state.map.fitBounds(bounds.pad(0.1));
-            } else if (data.mapView?.center) {
-                App.state.map.setView(data.mapView.center, data.mapView.zoom);
+            // Set map view last, after layers are on the map (skip if map not initialized)
+            try {
+                if (data.projectBoundary && App.state.map) {
+                    App.Map.setBoundary(data.projectBoundary, true); // This will fit the view
+                } else if (App.state.geojsonLayer && App.state.geojsonLayer.getLayers().length > 0) {
+                    const bounds = App.state.geojsonLayer.getBounds();
+                    if (bounds.isValid() && App.state.map) App.state.map.fitBounds(bounds.pad(0.1));
+                } else if (data.mapView?.center && App.state.map) {
+                    App.state.map.setView(data.mapView.center, data.mapView.zoom);
+                }
+            } catch (e) {
+                console.warn('Map view setting failed during import (likely missing map dependencies):', e.message);
             }
 
             App.UI.showMessage('Import Complete', 'Project loaded successfully. Re-select raster files if they were part of the original project.');
@@ -205,14 +213,22 @@ App.ImportExport = {
             // Re-render map and legend
             App.CategoryManager.updateSvgPatternDefs(); 
             App.CategoryManager.render(); 
-            App.Map.renderGeoJSONLayer();
+            try {
+                App.Map.renderGeoJSONLayer();
+            } catch (e) {
+                console.warn('Map rendering failed during GeoJSON import (likely missing map dependencies):', e.message);
+            }
             
-            // Zoom to new features
-            if (App.state.geojsonLayer.getLayers().length > 0) {
-                const bounds = App.state.geojsonLayer.getBounds();
-                if (bounds.isValid()) {
-                    App.state.map.fitBounds(bounds.pad(0.1));
+            // Zoom to new features (skip if map not initialized)
+            try {
+                if (App.state.geojsonLayer && App.state.geojsonLayer.getLayers().length > 0) {
+                    const bounds = App.state.geojsonLayer.getBounds();
+                    if (bounds.isValid() && App.state.map) {
+                        App.state.map.fitBounds(bounds.pad(0.1));
+                    }
                 }
+            } catch (e) {
+                console.warn('Map zoom failed during GeoJSON import (likely missing map dependencies):', e.message);
             }
 
             App.UI.showMessage('Import Complete', 'GeoJSON features loaded.');

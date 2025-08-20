@@ -60,6 +60,13 @@ App.Map = {
         map.on('popupopen', App.Events.handlePopupOpen);
     },
     renderGeoJSONLayer() {
+        // Skip rendering if map is not initialized
+        if (!App.state.geojsonLayer) {
+            console.warn('Cannot render GeoJSON layer: map not initialized');
+            App.Legend.render();
+            return;
+        }
+        
         App.state.geojsonLayer.clearLayers();
         App.state.decoratorLayers.forEach(d => d.remove());
         App.state.decoratorLayers = [];
@@ -158,6 +165,12 @@ App.Map = {
         }
     },
     setBoundary(boundaryGeoJSON, fitView = false) {
+        // Skip if map is not initialized
+        if (!App.state.map || !App.state.projectBoundary.layer) {
+            console.warn('Cannot set boundary: map not initialized');
+            return;
+        }
+        
         this.clearBoundary();
         if (!boundaryGeoJSON) return;
 
@@ -187,8 +200,12 @@ App.Map = {
             App.state.projectBoundary.layer.clearLayers();
         }
         App.state.projectBoundary.geojson = null;
-        App.state.map.setMaxBounds(null);
-        App.state.map.setMinZoom(0);
+        
+        // Only update map bounds if map is initialized
+        if (App.state.map) {
+            App.state.map.setMaxBounds(null);
+            App.state.map.setMinZoom(0);
+        }
 
         App.UI.elements.defineBoundaryBtn.classList.remove('hidden');
         App.UI.elements.clearBoundaryBtn.classList.add('hidden');
