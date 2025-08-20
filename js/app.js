@@ -27,12 +27,28 @@ window.App = {
     init() {
         // Initialize modules in dependency order
         this.Utils = window.AppUtils;
+        // Also expose Utils globally for module compatibility
+        App.Utils = window.AppUtils;
         this.UI.init(); 
-        this.Map.init(); 
+        
+        // Try to initialize Map, but continue if it fails (e.g., due to missing Leaflet)
+        try {
+            this.Map.init(); 
+        } catch(e) {
+            console.warn('Map initialization failed (likely due to missing external dependencies):', e.message);
+        }
+        
         this.Events.init();
         this.CategoryManager.render(); 
         this.Legend.render(); 
-        this.ContributorManager.init();
+        
+        // Try to initialize ContributorManager, but continue if it fails (e.g., due to missing Quill)
+        try {
+            this.ContributorManager.init();
+        } catch(e) {
+            console.warn('ContributorManager initialization failed (likely due to missing external dependencies):', e.message);
+        }
+        
         this.UI.updateReportStatusDisplay();
     }
 };
