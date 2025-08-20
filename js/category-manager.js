@@ -2,19 +2,12 @@
 window.App = window.App || {};
 
 App.CategoryManager = {
-    debouncedCategoryUpdate: null, // Will be initialized lazily
-    
-    getDebouncedCategoryUpdate() {
-        if (!this.debouncedCategoryUpdate && App.Utils?.debounce) {
-            this.debouncedCategoryUpdate = App.Utils.debounce((categoryName, styleType, prop, value) => {
-                if (!App.state.data.categories[categoryName]) return;
-                App.state.data.categories[categoryName].styles[styleType][prop] = value;
-                App.CategoryManager.updateSvgPatternDefs();
-                App.Map.renderGeoJSONLayer();
-            }, 250);
-        }
-        return this.debouncedCategoryUpdate;
-    },
+    debouncedCategoryUpdate: App.Utils.debounce((categoryName, styleType, prop, value) => {
+        if (!App.state.data.categories[categoryName]) return;
+        App.state.data.categories[categoryName].styles[styleType][prop] = value;
+        App.CategoryManager.updateSvgPatternDefs();
+        App.Map.renderGeoJSONLayer();
+    }, 250),
     handleCategoryInputChange(e) {
         const target = e.target;
         const categoryName = target.closest('.category-item').querySelector('.category-item-header span').innerText;
@@ -28,25 +21,13 @@ App.CategoryManager = {
         } else if (prop === 'fillPattern') {
             target.closest('.category-section').querySelector('.pattern-density-control').classList.toggle('hidden', value === 'solid');
         }
-        const debouncedUpdate = this.getDebouncedCategoryUpdate();
-        if (debouncedUpdate) {
-            debouncedUpdate(categoryName, styleType, prop, value);
-        }
+        this.debouncedCategoryUpdate(categoryName, styleType, prop, value);
     },
     render() {
         const container = document.getElementById('category-manager-content');
-        if (!container) return;
-        
         container.innerHTML = '';
-        const categories = App.state.data.categories || {};
-        
-        if (Object.keys(categories).length === 0) {
-            container.innerHTML = '<p class="text-gray-500">No categories defined. Click "Add New Category" to create one.</p>';
-            return;
-        }
-        
-        Object.keys(categories).forEach((categoryName, catIndex) => {
-            const category = categories[categoryName];
+        Object.keys(App.state.data.categories).forEach((categoryName, catIndex) => {
+            const category = App.state.data.categories[categoryName];
             const itemDiv = document.createElement('div');
             itemDiv.className = 'category-item';
             itemDiv.id = `cat-item-${catIndex}`;
@@ -115,120 +96,90 @@ App.CategoryManager = {
             });
         });
         document.querySelectorAll('#category-manager-content .rename-cat-btn').forEach(btn => btn.onclick = e => {
-            const currentName = e.target.closest('.category-item-header').querySelector('span').innerText;
-            App.UI.showPrompt('Rename Category', [{ id: 'name', label: 'New Category Name', value: currentName, type: 'text' }], (results) => {
-                if (!results.name || results.name.trim() === currentName) return;
-                const newName = results.name.trim();
-                if (App.state.data.categories[newName]) { App.UI.showMessage('Error', 'A category with that name already exists.'); return; }
-                App.state.data.categories[newName] = App.state.data.categories[currentName];
-                delete App.state.data.categories[currentName];
-                App.state.categoryVisibility[newName] = App.state.categoryVisibility[currentName];
-                delete App.state.categoryVisibility[currentName];
-                App.state.data.geojson.data.features.forEach(f => { if (f.properties.category === currentName) f.properties.category = newName; });
-                this.updateSvgPatternDefs(); this.render(); App.Map.renderGeoJSONLayer();
+            const oldName = e.target.closest('.category-item-header').querySelector('span').innerText;
+            App.UI.showPrompt('Rename Category', [{ id: 'newName', label: 'New Name', value: oldName, type: 'text' }], r => {
+                const newName = r.newName.trim();
+                if (newName && newName !== oldName && !App.state.data.categories[newName]) {
+                    App.state.data.categories[newName] = App.state.data.categories[oldName];
+                    delete App.state.data.categories[oldName];
+                    App.state.categoryVisibility[newName] = App.state.categoryVisibility[oldName];
+                    delete App.state.categoryVisibility[oldName];
+                    App.state.data.geojson.data?.features.forEach(f => { if (f.properties.category === oldName) f.properties.category = newName; });
+                    this.updateSvgPatternDefs(); this.render(); App.Map.renderGeoJSONLayer();
+                } else if (App.state.data.categories[newName]) App.UI.showMessage('Error', 'A category with that name already exists.');
             });
         });
         document.querySelectorAll('#category-manager-content .category-section input, #category-manager-content .category-section select, #category-manager-content .category-section textarea').forEach(input => {
-            input.addEventListener('input', this.handleCategoryInputChange.bind(this));
+            input.oninput = this.handleCategoryInputChange.bind(this);
         });
     },
     addCategory() {
-        App.UI.showPrompt('Add New Category', [
-            { id: 'name', label: 'Category Name', value: '', type: 'text' }
-        ], (results) => {
-            if (!results.name) return;
-            const categoryName = results.name.trim();
-            if (App.state.data.categories[categoryName]) {
-                App.UI.showMessage('Error', 'A category with that name already exists.');
-                return;
-            }
-            App.state.data.categories[categoryName] = this.getDefaultCategory();
-            App.state.categoryVisibility[categoryName] = true;
-            this.render();
-            App.Legend.render();
+        App.UI.showPrompt('Add New Category', [{ id: 'name', label: 'Category Name', value: '', type: 'text' }], r => {
+            const name = r.name.trim();
+            if (name && !App.state.data.categories[name]) {
+                App.state.data.categories[name] = this.getDefaultCategory();
+                App.state.categoryVisibility[name] = true;
+                this.updateSvgPatternDefs(); this.render(); App.Legend.render();
+            } else if (App.state.data.categories[name]) App.UI.showMessage('Error', 'A category with that name already exists.');
+            else if (!name) App.UI.showMessage('Error', 'Category name cannot be empty.');
         });
     },
-    getCategoryStyleForFeature(feature) {
-        const categoryName = feature.properties.category;
-        const category = App.state.data.categories[categoryName];
-        if (!category) return this.getDefaultStyle();
+    getCategoryStyleForFeature: (feature) => {
+        const category = App.state.data.categories[feature.properties.category];
+        const defaultStyles = App.CategoryManager.getDefaultCategory().styles;
+
+        if (!category) {
+            return { color: '#808080', weight: 2, opacity: 1, fillOpacity: 0.2 };
+        }
         
         const geomType = feature.geometry.type;
-        if (geomType.includes('Point')) {
-            return category.styles?.point || this.getDefaultStyle().point;
+        let style;
+
+        if (geomType.includes('Polygon')) {
+            style = { ...defaultStyles.polygon, ...category.styles.polygon };
+            if (style.fillPattern !== 'solid') {
+                const safeCategoryName = (feature.properties.category || '').replace(/[^a-zA-Z0-9]/g, '-');
+                style.fillColor = `url(#${style.fillPattern}-${safeCategoryName})`;
+            }
         } else if (geomType.includes('LineString')) {
-            return category.styles?.line || this.getDefaultStyle().line;
-        } else if (geomType.includes('Polygon')) {
-            return category.styles?.polygon || this.getDefaultStyle().polygon;
+            style = { ...defaultStyles.line, ...category.styles.line };
+            const weight = style.weight || 1;
+            switch(style.linePattern) {
+                case 'dashed': style.dashArray = `${weight * 2} ${weight * 1.5}`; break;
+                case 'dotted': style.dashArray = `1 ${weight * 1.5}`; break;
+                case 'dash-dot': style.dashArray = `${weight * 2} ${weight * 1.5} 1 ${weight * 1.5}`; break;
+                default: style.dashArray = null;
+            }
+        } else { // Point
+            style = { ...defaultStyles.point, ...category.styles.point };
         }
-        return this.getDefaultStyle();
+        return style;
     },
     createPointMarker(feature, latlng) {
         const style = this.getCategoryStyleForFeature(feature);
-        const size = style.size || 16;
-        
         if (style.shape === 'svg' && style.svg) {
             try {
-                const svgSize = style.svgSize || 32;
+                const size = style.svgSize || 32;
                 const iconHtml = `<div style="opacity: ${style.fillOpacity};">${style.svg.replace(/currentColor/g, style.fillColor)}</div>`;
                 // Basic validation
                 if (!iconHtml.includes('<svg')) throw new Error("Invalid SVG content");
-                // Since L.marker isn't available, we'll fall back to circle marker
-                console.warn('SVG markers not supported without Leaflet - falling back to circle marker');
-                return { 
-                    _latlng: latlng, 
-                    options: { ...style, radius: size/2 },
-                    type: 'circle'
-                };
+                return L.marker(latlng, { icon: L.divIcon({ html: iconHtml, className: 'custom-svg-icon', iconSize: [size, size], iconAnchor: [size/2, size/2] }) });
             } catch (e) {
                 console.error("Failed to render custom SVG icon, falling back to default.", e);
+                // Fallback to a default circle marker if SVG rendering fails
+                return L.circleMarker(latlng, { ...style, radius: (style.size || 16)/2 });
             }
         }
-        
-        // Handle different shapes
+        const size = style.size || 16;
         if (style.shape === 'square') {
-            const iconHtml = `<div style="width: ${size}px; height: ${size}px; background-color: ${style.fillColor}; opacity: ${style.fillOpacity}; border: ${style.weight}px solid ${style.color}; border-radius: 2px;"></div>`;
-            return {
-                _latlng: latlng,
-                options: { iconHtml, iconSize: [size, size], iconAnchor: [size/2, size/2] },
-                type: 'marker'
-            };
+            const iconHtml = `<div style="background-color:${style.fillColor}; opacity: ${style.fillOpacity}; border: ${style.weight}px solid ${style.color}; width:${size}px;height:${size}px;border-radius:2px;"></div>`;
+            return L.marker(latlng, { icon: L.divIcon({ html: iconHtml, className: 'leaflet-square-icon', iconSize: [size, size], iconAnchor: [size/2, size/2] }) });
         }
-        
         if (style.shape === 'triangle') {
-            const iconHtml = `<div style="width: 0; height: 0; border-left: ${size/2}px solid transparent; border-right: ${size/2}px solid transparent; border-bottom: ${size}px solid ${style.fillColor}; opacity: ${style.fillOpacity};"></div>`;
-            return {
-                _latlng: latlng,
-                options: { iconHtml, iconSize: [size, size], iconAnchor: [size/2, size*0.9] },
-                type: 'marker'
-            };
+            const iconHtml = `<svg viewbox="0 0 24 24" width="${size}" height="${size}" style="opacity: ${style.fillOpacity};"><path d="M12 2 L2 22 L22 22 Z" fill="${style.fillColor}" stroke="${style.color}" stroke-width="${style.weight*24/size}"></path></svg>`;
+            return L.marker(latlng, { icon: L.divIcon({ html: iconHtml, className: 'custom-svg-icon', iconSize: [size, size], iconAnchor: [size/2, size*0.9] }) });
         }
-        
-        // Default to circle marker
-        return {
-            _latlng: latlng,
-            options: { 
-                radius: size/2,
-                fillColor: style.fillColor || '#ff8c00',
-                color: style.color || '#000000',
-                weight: style.weight || 1,
-                opacity: style.opacity || 1,
-                fillOpacity: style.fillOpacity || 0.8
-            },
-            type: 'circle'
-        };
-    },
-    getDefaultCategory() {
-        return { 
-            styles: { 
-                point: { fillColor: '#ff8c00', fillOpacity: 0.8, color: '#000000', weight: 1, opacity: 1, size: 16, shape: 'circle', svg: '', svgSize: 24 },
-                line: { color: '#ff4500', weight: 3, opacity: 1, linePattern: 'solid', lineSpacing: 10, lineCap: 'round', lineJoin: 'round' },
-                polygon: { fillColor: '#ff6347', fillOpacity: 0.2, color: '#ff6347', weight: 3, opacity: 1, dashArray: 'solid', fillPattern: 'solid', patternDensity: 10, patternRotation: 0 }
-            } 
-        };
-    },
-    getDefaultStyle() {
-        return this.getDefaultCategory().styles;
+        return L.circleMarker(latlng, { ...style, radius: size/2 });
     },
     updateSvgPatternDefs() {
         const defsEl = App.state.svgPatternDefs;
@@ -239,13 +190,11 @@ App.CategoryManager = {
             const pattern = style.fillPattern;
             if (pattern !== 'solid') {
                 const safeCategoryName = categoryName.replace(/[^a-zA-Z0-9]/g, '-');
-                // Create SVG pattern element
-                const p = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
+                const p = L.SVG.create('pattern');
                 p.setAttribute('id', `${pattern}-${safeCategoryName}`);
                 p.setAttribute('patternUnits', 'userSpaceOnUse');
                 const size = style.patternDensity || 10;
-                p.setAttribute('width', size); 
-                p.setAttribute('height', size);
+                p.setAttribute('width', size); p.setAttribute('height', size);
                 
                 const rotation = style.patternRotation || 0;
                 if (rotation !== 0) p.setAttribute('patternTransform', `rotate(${rotation} 0 0)`);
@@ -254,51 +203,15 @@ App.CategoryManager = {
                 const strokeWidth = Math.max(1, size / 8);
                 const color = style.fillColor;
                 switch (pattern) {
-                    case 'h-lines': 
-                        shape = document.createElementNS('http://www.w3.org/2000/svg', 'path'); 
-                        shape.setAttribute('d', `M 0 ${size/2} L ${size} ${size/2}`); 
-                        break;
-                    case 'v-lines': 
-                        shape = document.createElementNS('http://www.w3.org/2000/svg', 'path'); 
-                        shape.setAttribute('d', `M ${size/2} 0 L ${size/2} ${size}`); 
-                        break;
-                    case 'diag-lines': 
-                        shape = document.createElementNS('http://www.w3.org/2000/svg', 'path'); 
-                        shape.setAttribute('d', `M 0 ${size} L ${size} 0`); 
-                        break;
-                    case 'crosshatch': 
-                        shape = document.createElementNS('http://www.w3.org/2000/svg', 'path'); 
-                        shape.setAttribute('d', `M 0 ${size/2} L ${size} ${size/2} M ${size/2} 0 L ${size/2} ${size}`); 
-                        break;
-                    case 'dots': 
-                        shape = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); 
-                        shape.setAttribute('cx', size/2); 
-                        shape.setAttribute('cy', size/2); 
-                        shape.setAttribute('r', Math.max(1, size/5)); 
-                        break;
-                    case 'squares': 
-                        const sqSize = Math.max(2, size/2); 
-                        shape = document.createElementNS('http://www.w3.org/2000/svg', 'rect'); 
-                        shape.setAttribute('x', (size-sqSize)/2); 
-                        shape.setAttribute('y', (size-sqSize)/2); 
-                        shape.setAttribute('width', sqSize); 
-                        shape.setAttribute('height', sqSize); 
-                        break;
-                    case 'triangles': 
-                        shape = document.createElementNS('http://www.w3.org/2000/svg', 'path'); 
-                        shape.setAttribute('d', `M${size/2} 0 L${size} ${size} L0 ${size} Z`); 
-                        break;
-                    case 'hexagons': 
-                        const h = size * 0.866; 
-                        shape = document.createElementNS('http://www.w3.org/2000/svg', 'path'); 
-                        shape.setAttribute('d', `M${size/2} 0 L${size} ${h/4} L${size} ${h*3/4} L${size/2} ${h} L0 ${h*3/4} L0 ${h/4} Z`); 
-                        p.setAttribute('height', h); 
-                        break;
-                    case 'wave': 
-                        shape = document.createElementNS('http://www.w3.org/2000/svg', 'path'); 
-                        shape.setAttribute('d', `M 0 ${size/2} C ${size/4} 0, ${size*3/4} ${size}, ${size} ${size/2}`); 
-                        shape.setAttribute('fill', 'transparent'); 
-                        break;
+                    case 'h-lines': shape = L.SVG.create('path'); shape.setAttribute('d', `M 0 ${size/2} L ${size} ${size/2}`); break;
+                    case 'v-lines': shape = L.SVG.create('path'); shape.setAttribute('d', `M ${size/2} 0 L ${size/2} ${size}`); break;
+                    case 'diag-lines': shape = L.SVG.create('path'); shape.setAttribute('d', `M 0 ${size} L ${size} 0`); break;
+                    case 'crosshatch': shape = L.SVG.create('path'); shape.setAttribute('d', `M 0 ${size/2} L ${size} ${size/2} M ${size/2} 0 L ${size/2} ${size}`); break;
+                    case 'dots': shape = L.SVG.create('circle'); shape.setAttribute('cx', size/2); shape.setAttribute('cy', size/2); shape.setAttribute('r', Math.max(1, size/5)); break;
+                    case 'squares': const sqSize = Math.max(2, size/2); shape = L.SVG.create('rect'); shape.setAttribute('x', (size-sqSize)/2); shape.setAttribute('y', (size-sqSize)/2); shape.setAttribute('width', sqSize); shape.setAttribute('height', sqSize); break;
+                    case 'triangles': shape = L.SVG.create('path'); shape.setAttribute('d', `M${size/2} 0 L${size} ${size} L0 ${size} Z`); break;
+                    case 'hexagons': const h = size * 0.866; shape = L.SVG.create('path'); shape.setAttribute('d', `M${size/2} 0 L${size} ${h/4} L${size} ${h*3/4} L${size/2} ${h} L0 ${h*3/4} L0 ${h/4} Z`); p.setAttribute('height', h); break;
+                    case 'wave': shape = L.SVG.create('path'); shape.setAttribute('d', `M 0 ${size/2} C ${size/4} 0, ${size*3/4} ${size}, ${size} ${size/2}`); shape.setAttribute('fill', 'transparent'); break;
                 }
                 if (shape) {
                     if (pattern.includes('lines') || pattern === 'crosshatch' || pattern === 'wave') { 
@@ -306,10 +219,16 @@ App.CategoryManager = {
                         shape.setAttribute('stroke-width', strokeWidth); 
                     }
                     else { shape.setAttribute('fill', color); }
-                    p.appendChild(shape); 
-                    defsEl.appendChild(p);
+                    p.appendChild(shape); defsEl.appendChild(p);
                 }
             }
         }
-    }
+    },
+    getDefaultCategory: () => ({
+        styles: {
+            point: { fillColor: '#ff8c00', fillOpacity: 0.8, color: '#000000', weight: 1, opacity: 1, size: 16, shape: 'circle', svg: '', svgSize: 24 },
+            line: { color: '#ff4500', weight: 3, opacity: 1, linePattern: 'solid', lineSpacing: 10, lineCap: 'round', lineJoin: 'round' },
+            polygon: { fillColor: '#ff6347', fillOpacity: 0.2, color: '#ff6347', weight: 3, opacity: 1, dashArray: 'solid', fillPattern: 'solid', patternDensity: 10, patternRotation: 0 }
+        }
+    }),
 };
