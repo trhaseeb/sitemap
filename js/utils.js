@@ -1,5 +1,7 @@
 // Utility functions
-window.AppUtils = {
+window.App = window.App || {};
+
+App.Utils = {
     debounce(func, delay = 250) {
         let timeoutId;
         return (...args) => {
