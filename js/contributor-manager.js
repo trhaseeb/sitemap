@@ -5,7 +5,9 @@ App.ContributorManager = {
     init() {
         // Initialize Quill editor for the 'add new' form
         const editorElement = document.getElementById('new-contributor-bio-editor');
-        if (editorElement && !App.state.quillInstances.contributorBio) {
+        const textareaElement = document.getElementById('new-contributor-bio-textarea');
+        
+        if (typeof Quill !== 'undefined' && editorElement && !App.state.quillInstances.contributorBio) {
             App.state.quillInstances.contributorBio = new Quill(editorElement, {
                 theme: 'snow',
                 modules: {
@@ -16,7 +18,12 @@ App.ContributorManager = {
                     ]
                 }
             });
+        } else if (editorElement && textareaElement) {
+            // Hide Quill editor and show textarea fallback when Quill is not available
+            editorElement.style.display = 'none';
+            textareaElement.classList.remove('hidden');
         }
+        
         this.render();
     },
     render() {
@@ -66,7 +73,19 @@ App.ContributorManager = {
         
         const name = nameInput.value.trim();
         const role = roleInput.value.trim();
-        const bio = App.state.quillInstances.contributorBio.root.innerHTML;
+        
+        // Get bio from Quill editor if available, otherwise from textarea fallback
+        let bio = '';
+        if (App.state.quillInstances.contributorBio && App.state.quillInstances.contributorBio.root) {
+            bio = App.state.quillInstances.contributorBio.root.innerHTML;
+        } else {
+            // Fallback to textarea if Quill is not available
+            const bioTextarea = document.getElementById('new-contributor-bio-textarea');
+            if (bioTextarea) {
+                bio = bioTextarea.value.trim();
+            }
+        }
+        
         const imageFile = imageInput.files[0];
 
         if (!name) {
@@ -99,7 +118,16 @@ App.ContributorManager = {
         nameInput.value = '';
         roleInput.value = '';
         imageInput.value = '';
-        App.state.quillInstances.contributorBio.root.innerHTML = '';
+        
+        // Clear bio editor if available
+        if (App.state.quillInstances.contributorBio && App.state.quillInstances.contributorBio.root) {
+            App.state.quillInstances.contributorBio.root.innerHTML = '';
+        } else {
+            const bioTextarea = document.getElementById('new-contributor-bio-textarea');
+            if (bioTextarea) {
+                bioTextarea.value = '';
+            }
+        }
         
         this.render();
     }
