@@ -17,12 +17,18 @@ App.PDFExport = {
         try {
             // Check if PDF libraries are available
             if (!window.jspdf || !window.jspdf.jsPDF) {
-                throw new Error('PDF generation library not loaded');
+                App.UI.hideLoader();
+                App.UI.showMessage('PDF Export Unavailable', 
+                    'PDF generation requires external dependencies that are currently not available. ' +
+                    'The PDF export feature will work when all dependencies are loaded.');
+                return;
             }
             
             const features = App.state.data.geojson?.data?.features || [];
             if (!features.length) {
-                throw new Error('No features to export');
+                App.UI.hideLoader();
+                App.UI.showMessage('No Features', 'There are no features to include in the PDF report. Please add some features first.');
+                return;
             }
             
             const { jsPDF } = window.jspdf;
