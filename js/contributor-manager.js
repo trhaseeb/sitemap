@@ -1,65 +1,52 @@
-// Contributor Manager - Handles project contributors
+// Contributor Manager
 window.App = window.App || {};
 
 App.ContributorManager = {
     init() {
         // Initialize Quill editor for the 'add new' form
-        const editorElement = document.getElementById('new-contributor-bio-editor');
-        const textareaElement = document.getElementById('new-contributor-bio-textarea');
-        
-        if (typeof Quill !== 'undefined' && editorElement && !App.state.quillInstances.contributorBio) {
-            App.state.quillInstances.contributorBio = new Quill(editorElement, {
-                theme: 'snow',
-                modules: {
-                    toolbar: [
-                        ['bold', 'italic', 'underline'],
-                        ['link'],
-                        [{ 'list': 'ordered'}, { 'list': 'bullet' }]
-                    ]
-                }
-            });
-        } else if (editorElement && textareaElement) {
-            // Hide Quill editor and show textarea fallback when Quill is not available
-            editorElement.style.display = 'none';
-            textareaElement.classList.remove('hidden');
-        }
-        
+        App.state.quillInstances.contributorBio = new Quill('#new-contributor-bio-editor', {
+            theme: 'snow',
+            modules: {
+                toolbar: [['bold', 'italic'], [{ 'list': 'bullet' }]]
+            },
+            placeholder: 'Enter a short bio for the contributor...'
+        });
         this.render();
     },
     render() {
         const container = document.getElementById('contributor-list');
-        if (!container) return;
-        
         container.innerHTML = '';
-        const contributors = App.state.data.contributors || [];
-        
-        contributors.forEach((contributor, index) => {
-            const contributorDiv = document.createElement('div');
-            contributorDiv.className = 'contributor-item border rounded-lg p-4 mb-4';
-            
-            contributorDiv.innerHTML = `
+        if (App.state.data.contributors.length === 0) {
+            container.innerHTML = '<p class="text-gray-500 text-sm">No contributors added yet.</p>';
+            return;
+        }
+        App.state.data.contributors.forEach((contributor, index) => {
+            const div = document.createElement('div');
+            div.className = 'p-3 bg-gray-50 rounded-md border border-gray-200';
+            const placeholderImg = 'https://placehold.co/64x64/e2e8f0/334155?text=...';
+            div.innerHTML = `
                 <div class="contributor-item-display">
-                    <img src="${contributor.image || 'https://placehold.co/64x64/e2e8f0/334155?text=NA'}" 
-                         alt="${contributor.name}" class="contributor-image">
+                    <img src="${contributor.image || placeholderImg}" alt="Contributor Image">
                     <div class="contributor-item-details">
-                        <div class="contributor-item-name">${contributor.name}</div>
-                        <div class="contributor-item-role">${contributor.role || 'No role specified'}</div>
-                        <div class="contributor-item-bio">${contributor.bio || 'No bio provided'}</div>
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="contributor-item-name">${contributor.name}</span>
+                                ${contributor.role ? `<div class="contributor-item-role">${contributor.role}</div>` : ''}
+                            </div>
+                            <button data-index="${index}" class="remove-contributor-btn text-red-500 hover:text-red-700 text-xl font-bold leading-none" title="Remove Contributor">&times;</button>
+                        </div>
+                        ${contributor.bio ? `<div class="contributor-item-bio ql-snow"><div class="ql-editor">${contributor.bio}</div></div>` : ''}
                     </div>
-                    <button class="text-red-500 hover:text-red-700 delete-contributor-btn" 
-                            data-index="${index}">&times;</button>
-                </div>
-            `;
-            
-            container.appendChild(contributorDiv);
+                </div>`;
+            container.appendChild(div);
         });
-        
-        // Add delete handlers
-        container.querySelectorAll('.delete-contributor-btn').forEach(btn => {
-            btn.onclick = () => {
-                const index = parseInt(btn.dataset.index);
-                const contributor = contributors[index];
-                App.UI.showConfirm('Remove Contributor?', `Are you sure you want to remove "${contributor.name}"?`, () => {
+        this.addEventListeners();
+    },
+    addEventListeners() {
+        document.querySelectorAll('#contributor-manager-content .remove-contributor-btn').forEach(btn => {
+            btn.onclick = (e) => {
+                const index = parseInt(e.target.dataset.index);
+                App.UI.showConfirm('Remove Contributor?', `Are you sure you want to remove "${App.state.data.contributors[index].name}"?`, () => {
                     App.state.data.contributors.splice(index, 1);
                     this.render();
                 });
@@ -73,19 +60,7 @@ App.ContributorManager = {
         
         const name = nameInput.value.trim();
         const role = roleInput.value.trim();
-        
-        // Get bio from Quill editor if available, otherwise from textarea fallback
-        let bio = '';
-        if (App.state.quillInstances.contributorBio && App.state.quillInstances.contributorBio.root) {
-            bio = App.state.quillInstances.contributorBio.root.innerHTML;
-        } else {
-            // Fallback to textarea if Quill is not available
-            const bioTextarea = document.getElementById('new-contributor-bio-textarea');
-            if (bioTextarea) {
-                bio = bioTextarea.value.trim();
-            }
-        }
-        
+        const bio = App.state.quillInstances.contributorBio.root.innerHTML;
         const imageFile = imageInput.files[0];
 
         if (!name) {
@@ -100,11 +75,7 @@ App.ContributorManager = {
 
         let imageDataUrl = null;
         if (imageFile) {
-            try {
-                imageDataUrl = await App.Utils.readFile(imageFile, 'dataURL');
-            } catch (e) {
-                console.error('Error reading image file:', e);
-            }
+            imageDataUrl = await App.Utils.readFile(imageFile, 'dataURL');
         }
 
         App.state.data.contributors.push({
@@ -118,16 +89,7 @@ App.ContributorManager = {
         nameInput.value = '';
         roleInput.value = '';
         imageInput.value = '';
-        
-        // Clear bio editor if available
-        if (App.state.quillInstances.contributorBio && App.state.quillInstances.contributorBio.root) {
-            App.state.quillInstances.contributorBio.root.innerHTML = '';
-        } else {
-            const bioTextarea = document.getElementById('new-contributor-bio-textarea');
-            if (bioTextarea) {
-                bioTextarea.value = '';
-            }
-        }
+        App.state.quillInstances.contributorBio.root.innerHTML = '';
         
         this.render();
     }

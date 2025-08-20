@@ -159,6 +159,19 @@ App.Events = {
             App.Map.renderGeoJSONLayer(); 
             this.selectFeature(feature.properties._internalId);
         });
+
+        // After showing the main prompt, inject the observations section
+        const modalBody = document.getElementById('modal-body');
+        const obsContainer = document.createElement('div');
+        obsContainer.className = 'mt-6 border-t pt-4';
+        obsContainer.innerHTML = `<h4 class="text-lg font-semibold mb-2">Observations</h4><div id="observation-list" class="space-y-3"></div><button id="add-observation-btn" class="mt-4 bg-green-500 hover:bg-green-600 text-white text-sm py-1 px-3 rounded">Add Observation</button>`;
+        modalBody.appendChild(obsContainer);
+
+        this.renderObservationsList(feature, obsContainer.querySelector('#observation-list'));
+
+        obsContainer.querySelector('#add-observation-btn').onclick = () => {
+            this.showObservationModal(feature);
+        };
     },
     editFeatureShape(layer) {
         if (this.activeEditor) {
@@ -168,6 +181,128 @@ App.Events = {
         layer.editing.enable();
         this.activeEditor = layer.editing;
         this.activeLayer = layer;
+        this.showFinishEditingControl();
+    },
+    showFinishEditingControl() {
+        if (this.finishControlInstance) return; // Already showing
+
+        const FinishControl = L.Control.extend({
+            onAdd: map => {
+                const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                container.style.background = 'white';
+                container.style.padding = '5px';
+                container.innerHTML = '<button id="finish-edit-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-2 rounded-md text-sm">Finish Editing</button>';
+                L.DomEvent.disableClickPropagation(container);
+                L.DomEvent.on(container.querySelector('#finish-edit-btn'), 'click', () => {
+                    App.Events.finishEditing();
+                });
+                return container;
+            }
+        });
+        this.finishControlInstance = new FinishControl({ position: 'topright' }).addTo(App.state.map);
+    },
+    finishEditing() {
+        if (!this.activeEditor) return;
+
+        this.activeEditor.disable();
+        const layer = this.activeLayer;
+
+        if (this.finishControlInstance) {
+            App.state.map.removeControl(this.finishControlInstance);
+            this.finishControlInstance = null;
+        }
+
+        const feature = App.Data.getFeatureById(layer.feature_internal_id);
+        if (feature) {
+            if (layer instanceof L.Marker) {
+                const newLatLng = layer.getLatLng();
+                feature.geometry.coordinates = [newLatLng.lng, newLatLng.lat];
+            } else {
+                feature.geometry = layer.toGeoJSON().geometry;
+            }
+        }
+
+        this.activeEditor = null;
+        this.activeLayer = null;
+
+        App.Map.renderGeoJSONLayer();
+        if (feature) {
+            App.Events.selectFeature(feature.properties._internalId);
+        }
+    },
+    renderObservationsList(feature, container) {
+        container.innerHTML = '';
+        if (!feature.properties.observations || feature.properties.observations.length === 0) {
+            container.innerHTML = '<p class="text-sm text-gray-500">No observations for this feature.</p>';
+            return;
+        }
+
+        feature.properties.observations.forEach((obs, index) => {
+            const obsDiv = document.createElement('div');
+            obsDiv.className = 'p-3 border rounded-lg bg-gray-50';
+            const contributor = App.state.data.contributors.find(c => c.name === obs.contributor);
+            obsDiv.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="font-bold">${obs.observationType || 'General Observation'}</p>
+                        <p class="text-sm text-gray-600">Severity: ${obs.severity}</p>
+                        ${contributor ? `<p class="text-sm text-gray-600">By: ${contributor.name}</p>` : ''}
+                    </div>
+                    <div>
+                        <button class="edit-obs-btn text-sm text-blue-600 hover:underline mr-2" data-index="${index}">Edit</button>
+                        <button class="delete-obs-btn text-sm text-red-600 hover:underline" data-index="${index}">Delete</button>
+                    </div>
+                </div>
+            `;
+            container.appendChild(obsDiv);
+        });
+
+        container.querySelectorAll('.edit-obs-btn').forEach(btn => {
+            btn.onclick = () => this.showObservationModal(feature, parseInt(btn.dataset.index));
+        });
+        container.querySelectorAll('.delete-obs-btn').forEach(btn => {
+            btn.onclick = () => {
+                const index = parseInt(btn.dataset.index);
+                App.UI.showConfirm('Delete Observation?', 'Are you sure you want to delete this observation?', () => {
+                    feature.properties.observations.splice(index, 1);
+                    this.renderObservationsList(feature, container);
+                    App.Map.renderGeoJSONLayer();
+                    App.Snapshot.render(feature);
+                });
+            };
+        });
+    },
+    showObservationModal(feature, obsIndex = -1) {
+        const isEditing = obsIndex > -1;
+        const observation = isEditing ? feature.properties.observations[obsIndex] : {};
+        const title = isEditing ? 'Edit Observation' : 'Add Observation';
+
+        const contributorOptions = App.state.data.contributors.map(c => ({ label: `${c.name} (${c.role || 'N/A'})`, value: c.name }));
+        contributorOptions.unshift({ label: 'None', value: '' });
+
+        const fields = [
+            { id: 'observationType', label: 'Observation Type (e.g., Stormwater, Waste)', value: observation.observationType || '', type: 'text' },
+            { id: 'severity', label: 'Severity', value: observation.severity || 'Low', type: 'select', options: [{label:'Low',value:'Low'},{label:'Medium',value:'Medium'},{label:'High',value:'High'},{label:'Critical',value:'Critical'}] },
+            { id: 'contributor', label: 'Observed By', value: observation.contributor || '', type: 'select', options: contributorOptions },
+            { id: 'recommendation', label: 'Recommendation', value: observation.recommendation || '', type: 'quill' },
+            { id: 'images', label: 'Images', value: observation.images || [], type: 'images' }
+        ];
+
+        App.UI.showPrompt(title, fields, (results) => {
+            const newObservation = {
+                id: observation.id || crypto.randomUUID(),
+                ...results
+            };
+            if (isEditing) {
+                feature.properties.observations[obsIndex] = newObservation;
+            } else {
+                feature.properties.observations.push(newObservation);
+            }
+            // Re-render the list in the main edit modal
+            this.renderObservationsList(feature, document.getElementById('observation-list'));
+            App.Map.renderGeoJSONLayer();
+            App.Snapshot.render(feature);
+        }, 'observation-modal');
     },
     deleteFeature(featureToDelete) {
         App.state.map.closePopup();
