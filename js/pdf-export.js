@@ -220,9 +220,10 @@ App.PDFExport = {
                     const wrap = document.createElement('div'); wrap.appendChild(sw); swatchHtml = wrap.innerHTML;
                 } catch(_){}
 
-                const hasObservations = f.properties.observations && f.properties.observations.length > 0;
+                const highestSeverity = f.properties._cachedSeverity;
+                const hasObservations = !!highestSeverity;
                 const obsIndicator = hasObservations ?
-                    `<span class="severity-tag severity-${(App.Utils.getHighestSeverity(f.properties.observations) || 'low').toLowerCase()}">!</span>` : '';
+                    `<span class="severity-tag severity-${(highestSeverity || 'low').toLowerCase()}">!</span>` : '';
 
                 return `<div class="legend-item">${swatchHtml}<span>${(f.properties.Name||'Unnamed').slice(0,35)}</span>${obsIndicator}</div>`;
             }).join('');
@@ -251,7 +252,9 @@ App.PDFExport = {
         const map = L.map(mapDiv, {
             zoomControl: false, attributionControl: false, zoomAnimation: false,
             fadeAnimation: false, markerZoomAnimation: false, inertia: false,
-            renderer: L.svg()
+            renderer: L.svg(),
+            rotate: true,
+            bearing: App.state.map.getBearing()
         });
 
         if (mode === 'default') {
@@ -282,7 +285,7 @@ App.PDFExport = {
                             labelContent += `<span>${f.properties.Name}</span>`;
                         }
                         if (hasObservations) {
-                            const highestSeverity = App.Utils.getHighestSeverity(f.properties.observations);
+                            const highestSeverity = f.properties._cachedSeverity;
                             const color = App.Utils.getColorForSeverity(highestSeverity);
                             const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="${color}" style="filter: drop-shadow(0 1px 1px rgba(0,0,0,0.5));"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2V7h2v7z"/></svg>`;
                             labelContent += iconSvg;
@@ -330,7 +333,7 @@ App.PDFExport = {
             
             let rows = '<tr><td colspan="2" class="small">No geometry stats</td></tr>';
             try {
-                const geoData = App.Utils.calculateGeoData(feature) || [];
+                const geoData = feature.properties._cachedGeoData || [];
                 if (geoData.length > 0) {
                     rows = geoData.map(g => `<tr><th>${this.safeText(g.label)}</th><td>${this.safeText(g.value)}</td></tr>`).join('');
                 }

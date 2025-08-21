@@ -6,7 +6,13 @@ App.CategoryManager = {
         if (!App.state.data.categories[categoryName]) return;
         App.state.data.categories[categoryName].styles[styleType][prop] = value;
         App.CategoryManager.updateSvgPatternDefs();
-        App.Map.renderGeoJSONLayer();
+
+        // Update all features in this category
+        const featuresToUpdate = App.state.data.geojson.data.features.filter(
+            f => f.properties.category === categoryName
+        );
+        featuresToUpdate.forEach(f => App.Map.updateFeature(f));
+        App.Legend.render(); // Also need to re-render legend for swatch changes
     }, 250),
     handleCategoryInputChange(e) {
         const target = e.target;
@@ -89,10 +95,15 @@ App.CategoryManager = {
         document.querySelectorAll('#category-manager-content .delete-cat-btn').forEach(btn => btn.onclick = e => {
             const name = e.target.closest('.category-item-header').querySelector('span').innerText;
             App.UI.showConfirm('Delete Category?', `This will delete the "${name}" category and all its features. This cannot be undone.`, () => {
+                const featuresToRemove = App.state.data.geojson.data.features.filter(f => f.properties.category === name);
+                featuresToRemove.forEach(f => App.Map.removeFeature(f.properties._internalId));
+
                 App.state.data.geojson.data.features = App.state.data.geojson.data.features.filter(f => f.properties.category !== name);
                 delete App.state.data.categories[name];
                 delete App.state.categoryVisibility[name];
-                this.updateSvgPatternDefs(); this.render(); App.Map.renderGeoJSONLayer();
+                this.updateSvgPatternDefs();
+                this.render();
+                App.Legend.render();
             });
         });
         document.querySelectorAll('#category-manager-content .rename-cat-btn').forEach(btn => btn.onclick = e => {
@@ -100,12 +111,23 @@ App.CategoryManager = {
             App.UI.showPrompt('Rename Category', [{ id: 'newName', label: 'New Name', value: oldName, type: 'text' }], r => {
                 const newName = r.newName.trim();
                 if (newName && newName !== oldName && !App.state.data.categories[newName]) {
+                    const featuresToUpdate = [];
+                    App.state.data.geojson.data?.features.forEach(f => {
+                        if (f.properties.category === oldName) {
+                            f.properties.category = newName;
+                            featuresToUpdate.push(f);
+                        }
+                    });
+
                     App.state.data.categories[newName] = App.state.data.categories[oldName];
                     delete App.state.data.categories[oldName];
                     App.state.categoryVisibility[newName] = App.state.categoryVisibility[oldName];
                     delete App.state.categoryVisibility[oldName];
-                    App.state.data.geojson.data?.features.forEach(f => { if (f.properties.category === oldName) f.properties.category = newName; });
-                    this.updateSvgPatternDefs(); this.render(); App.Map.renderGeoJSONLayer();
+
+                    featuresToUpdate.forEach(f => App.Map.updateFeature(f));
+                    this.updateSvgPatternDefs();
+                    this.render();
+                    App.Legend.render();
                 } else if (App.state.data.categories[newName]) App.UI.showMessage('Error', 'A category with that name already exists.');
             });
         });
