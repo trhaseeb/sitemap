@@ -172,15 +172,32 @@ App.PDFExport = {
             this.updateProgress("Preparing page elements for capture...");
             const images = el.querySelectorAll('img');
             const imagePromises = Array.from(images).map(img => {
-                if (img.complete) return Promise.resolve();
+                if (img.complete && img.naturalHeight !== 0) return Promise.resolve();
+
+                // MODIFICATION: Added a more robust image loading promise with error handling and timeout
                 return new Promise(resolve => {
-                    img.onload = resolve;
-                    img.onerror = (err) => {
-                        console.error(`PDF Export: Image failed to load. SRC: ${img.src}`, err);
-                        // Still resolve so that one broken image doesn't stop the whole PDF export
+                    let settled = false;
+                    const settle = () => {
+                        if (settled) return;
+                        settled = true;
+                        clearTimeout(timeoutId);
                         resolve();
                     };
-                    setTimeout(resolve, 1500); // Timeout
+
+                    img.onload = settle;
+                    img.onerror = () => {
+                        console.warn(`PDF Export: Image failed to load, replacing. SRC: ${img.src}`);
+                        img.onerror = null; // prevent recursion
+                        img.onload = settle; // new src will trigger onload
+                        img.src = "https://placehold.co/150x100/f8fafc/cbd5e0?text=Image+Error";
+                    };
+
+                    const timeoutId = setTimeout(() => {
+                        console.warn(`PDF Export: Image timed out, replacing. SRC: ${img.src}`);
+                        img.onerror = null; // prevent recursion
+                        img.onload = settle;
+                        img.src = "https://placehold.co/150x100/f8fafc/cbd5e0?text=Image+Timeout";
+                    }, 3000); // 3-second timeout per image
                 });
             });
 
