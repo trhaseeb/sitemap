@@ -175,7 +175,11 @@ App.PDFExport = {
                 if (img.complete) return Promise.resolve();
                 return new Promise(resolve => {
                     img.onload = resolve;
-                    img.onerror = () => { console.warn('Image failed to load:', img.src); resolve(); };
+                    img.onerror = (err) => {
+                        console.error(`PDF Export: Image failed to load. SRC: ${img.src}`, err);
+                        // Still resolve so that one broken image doesn't stop the whole PDF export
+                        resolve();
+                    };
                     setTimeout(resolve, 1500); // Timeout
                 });
             });
