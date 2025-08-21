@@ -17,26 +17,83 @@ App.Utils = {
         else if (readAs === 'text') reader.readAsText(file);
         else if (readAs === 'dataURL') reader.readAsDataURL(file);
     }),
-    calculateGeoData(feature) {
-        const data = [];
+    validateFeatureGeometry(feature) {
+        if (!feature || !feature.geometry) return { isValid: false, message: 'Feature has no geometry.' };
+        // For polygons, check for self-intersections.
+        if (feature.geometry.type === 'Polygon') {
+            const kinks = turf.kinks(feature);
+            if (kinks.features.length > 0) {
+                return {
+                    isValid: false,
+                    message: 'Invalid Polygon: Geometry cannot self-intersect. Please redraw the feature.'
+                };
+            }
+        }
+        // Add other validation checks here if needed
+        return { isValid: true };
+    },
+    updateFeatureCalculations(feature) {
+        if (!feature || !feature.properties) return;
+
+        const calculations = {
+            centroid: null,
+            perimeter: null,
+            areaSqFt: null,
+            areaAcres: null,
+            highestSeverity: null,
+        };
+
         try {
-            if (!feature || !feature.geometry || !feature.geometry.coordinates || feature.geometry.coordinates.length === 0) return null;
-            const center = turf.centroid(feature);
-            const [lon, lat] = center.geometry.coordinates;
-            data.push({ label: 'Latitude', value: lat.toFixed(6) });
-            data.push({ label: 'Longitude', value: lon.toFixed(6) });
-            if (feature.geometry.type.includes('LineString') || feature.geometry.type.includes('Polygon')) {
-                const lengthMeters = turf.length(feature, { units: 'meters' });
-                data.push({ label: feature.geometry.type.includes('Polygon') ? 'Perimeter' : 'Length', value: `${(lengthMeters * 3.28084).toLocaleString(undefined, {maximumFractionDigits: 2})} ft` });
+            if (feature.geometry && feature.geometry.coordinates && feature.geometry.coordinates.length > 0) {
+                const center = turf.centroid(feature);
+                calculations.centroid = center.geometry.coordinates;
+
+                if (feature.geometry.type.includes('LineString') || feature.geometry.type.includes('Polygon')) {
+                    const lengthMeters = turf.length(feature, { units: 'meters' });
+                    calculations.perimeter = lengthMeters * 3.28084; // meters to feet
+                }
+
+                if (feature.geometry.type.includes('Polygon')) {
+                    const areaMeters = turf.area(feature);
+                    calculations.areaSqFt = areaMeters * 10.7639;
+                    calculations.areaAcres = areaMeters / 4046.86;
+                }
             }
-            if (feature.geometry.type.includes('Polygon')) {
-                const areaMeters = turf.area(feature);
-                const areaAcres = areaMeters / 4046.86;
-                data.push({ label: 'Area (sq ft)', value: (areaMeters * 10.7639).toLocaleString(undefined, {maximumFractionDigits: 2}) });
-                data.push({ label: 'Area (acres)', value: areaAcres.toLocaleString(undefined, {maximumFractionDigits: 4}) });
-            }
-            return data;
-        } catch(e) { console.error("GeoData Error:", e); return null; }
+        } catch (e) {
+            console.error(`Geospatial calculation error for feature ${feature.properties.Name}:`, e);
+        }
+
+        calculations.highestSeverity = this.getHighestSeverity(feature.properties.observations);
+
+        // Use Object.assign to preserve the object reference if it already exists
+        feature.properties._precalculated = Object.assign(feature.properties._precalculated || {}, calculations);
+    },
+    getFormattedGeoData(feature) {
+        const calcs = feature.properties._precalculated;
+        if (!calcs) return null;
+        const data = [];
+        if (calcs.centroid) {
+            data.push({ label: 'Latitude', value: calcs.centroid[1].toFixed(6) });
+            data.push({ label: 'Longitude', value: calcs.centroid[0].toFixed(6) });
+        }
+        if (calcs.perimeter !== null) {
+            const label = feature.geometry.type.includes('Polygon') ? 'Perimeter' : 'Length';
+            data.push({ label, value: `${calcs.perimeter.toLocaleString(undefined, {maximumFractionDigits: 2})} ft` });
+        }
+        if (calcs.areaSqFt !== null && calcs.areaAcres !== null) {
+            data.push({ label: 'Area (sq ft)', value: calcs.areaSqFt.toLocaleString(undefined, {maximumFractionDigits: 2}) });
+            data.push({ label: 'Area (acres)', value: calcs.areaAcres.toLocaleString(undefined, {maximumFractionDigits: 4}) });
+        }
+        return data.length > 0 ? data : null;
+    },
+    // This function is now a proxy to the new pre-calculation system
+    calculateGeoData(feature) {
+        if (!feature || !feature.properties) return null;
+        // If for some reason pre-calculation hasn't run, run it now.
+        if (!feature.properties._precalculated) {
+            this.updateFeatureCalculations(feature);
+        }
+        return this.getFormattedGeoData(feature);
     },
     stripHtml(html) {
         try {

@@ -3,6 +3,43 @@ window.App = window.App || {};
 
 App.Data = {
     getFeatureById: id => App.state.data.geojson.data?.features.find(f => f.properties._internalId === id),
+
+    /**
+     * Calculates and caches geospatial data and observation severity for a single feature.
+     * This is the core of the pre-calculation optimization.
+     * @param {object} feature - The GeoJSON feature to process.
+     */
+    updateFeatureCalculations(feature) {
+        if (!feature || !feature.properties) return;
+
+        // Cache geospatial data (area, perimeter, etc.)
+        feature.properties._cachedGeoData = App.Utils.calculateGeoData(feature);
+
+        // Cache observation severity
+        feature.properties._cachedSeverity = App.Utils.getHighestSeverity(feature.properties.observations);
+
+        // Mark the feature as having cached data. The version number can be used for future cache invalidation strategies.
+        feature.properties._cacheVer = 1;
+    },
+
+    /**
+     * A helper function to run the calculation update on an array of features.
+     * @param {Array<object>} features - An array of GeoJSON features.
+     */
+    updateFeatures(features) {
+        if (!Array.isArray(features)) return;
+        features.forEach(feature => this.updateFeatureCalculations(feature));
+    },
+
+    /**
+     * Recalculates cached data for all features in the project.
+     * Useful for initial data load and large-scale updates.
+     */
+    recalculateAllFeatures() {
+        const allFeatures = App.state.data.geojson.data?.features || [];
+        this.updateFeatures(allFeatures);
+    },
+
     async handleRasterUpload(event, type) {
         const file = event.target.files[0];
         if (!file) return;
@@ -43,6 +80,10 @@ App.Data = {
             }
             if (typeof feature.properties.showLabel === 'undefined') feature.properties.showLabel = true;
         });
+
+        // Pre-calculate data for all features.
+        this.recalculateAllFeatures();
+
         if (assignedDefaultCount > 0) {
             App.UI.showMessage('Import Note', `${assignedDefaultCount} feature(s) had missing or invalid categories and were assigned to the "${defaultCategoryName}" category.`);
         }

@@ -26,8 +26,8 @@ App.Legend = {
                 continue;
             }
             
-            const categoryObservations = allFeaturesInCategory.flatMap(f => f.properties.observations || []);
-            const hasObservation = categoryObservations.length > 0;
+            const categorySeverities = allFeaturesInCategory.map(f => f.properties._cachedSeverity).filter(Boolean);
+            const hasObservation = categorySeverities.length > 0;
 
             const categoryDiv = document.createElement('div');
             categoryDiv.className = 'legend-category';
@@ -52,7 +52,9 @@ App.Legend = {
             if (hasObservation) {
                 const indicator = document.createElement('span');
                 indicator.className = 'category-observation-indicator';
-                const highestSeverity = App.Utils.getHighestSeverity(categoryObservations);
+                // Create a dummy array of objects for getHighestSeverity, as it expects a specific structure
+                const dummyObservations = categorySeverities.map(s => ({ severity: s }));
+                const highestSeverity = App.Utils.getHighestSeverity(dummyObservations);
                 indicator.style.backgroundColor = App.Utils.getColorForSeverity(highestSeverity);
                 indicator.title = `This category's highest observation severity is ${highestSeverity}.`;
                 innerFlexDiv.appendChild(indicator);
@@ -69,14 +71,15 @@ App.Legend = {
             
             visibleFeaturesInCategory.forEach(feature => {
                 const item = document.createElement('div');
-                const hasObservations = feature.properties.observations && feature.properties.observations.length > 0;
+                const highestSeverity = feature.properties._cachedSeverity;
+                const hasObservations = !!highestSeverity;
+
                 item.className = 'legend-item';
                 if (hasObservations) item.classList.add('has-observations');
                 item.dataset.featureId = feature.properties._internalId;
                 
                 let observationIcon = '';
                 if (hasObservations) {
-                    const highestSeverity = App.Utils.getHighestSeverity(feature.properties.observations);
                     const color = App.Utils.getColorForSeverity(highestSeverity);
                     observationIcon = `<span class="observation-icon" title="Highest severity: ${highestSeverity}" style="background-color: ${color};"></span>`;
                 }
@@ -94,7 +97,7 @@ App.Legend = {
 
             categoryVisibilityToggle.onchange = e => {
                 App.state.categoryVisibility[categoryName] = e.target.checked;
-                App.Map.renderGeoJSONLayer();
+                App.Map.refreshFeaturesVisibility();
             };
         }
     },
