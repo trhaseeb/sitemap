@@ -1,0 +1,32 @@
+cdn.tailwindcss.com should not be used in production. To use Tailwind CSS in production, install it as a PostCSS plugin or use the Tailwind CLI: https://tailwindcss.com/docs/installation <anonymous code>:1:147461
+wrong event specified: touchleave <anonymous code>:1:147461
+Adding a listener for DOMNodeInserted is deprecated and will be removed soon. Instead of a MutationEvent, use MutationObserver. https://developer.mozilla.org/docs/Web/API/MutationObserver quill.js:4165:19
+MouseEvent.mozPressure is deprecated. Use PointerEvent.pressure instead. leaflet.js:5:320
+MouseEvent.mozInputSource is deprecated. Use PointerEvent.pointerType instead. leaflet.js:5:320
+wrong event specified: touchleave <anonymous code>:1:147461
+Could not fit bounds for PDF map Error: Set map center and zoom first.
+    _checkIfLoaded Map.js:1281
+    getPixelOrigin Map.js:919
+    mapBoundsToContainerBounds leaflet-rotate.js:1
+    getBoundsZoom leaflet-rotate.js:1
+    _getBoundsCenterZoom Map.js:260
+    fitBounds Map.js:294
+    buildAndCaptureMapPage pdf-export.js:332
+    generatePDF pdf-export.js:595
+<anonymous code>:1:147461
+Source map error: Error: request failed with status 404
+Stack in the worker:networkRequest@resource://devtools/client/shared/source-map-loader/utils/network-request.js:43:9
+
+Resource URL: https://trhaseeb.github.io/sitemap/%3Canonymous%20code%3E
+Source Map URL: installHook.js.map
+Source map error: Error: request failed with status 404
+Stack in the worker:networkRequest@resource://devtools/client/shared/source-map-loader/utils/network-request.js:43:9
+
+Resource URL: https://trhaseeb.github.io/sitemap/js/vendor/leaflet-rotate/leaflet-rotate.js
+Source Map URL: leaflet-rotate.js.map
+Capture error: 
+error { target: img, isTrusted: true, srcElement: img, currentTarget: img, eventPhase: 2, bubbles: false, cancelable: false, returnValue: true, defaultPrevented: false, composed: false, … }
+<anonymous code>:1:147461
+PDF generation error: 
+error { target: img, isTrusted: true, srcElement: img, currentTarget: img, eventPhase: 2, bubbles: false, cancelable: false, returnValue: true, defaultPrevented: false, composed: false, … }
+<anonymous code>:1:147461
