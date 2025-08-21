@@ -26,7 +26,7 @@ App.ImportExport = {
                 });
                 App.CategoryManager.updateSvgPatternDefs(); 
                 App.CategoryManager.render(); 
-                App.Map.renderGeoJSONLayer();
+                App.Map.refreshFeaturesVisibility();
                 App.UI.showMessage('Success', 'Categories imported successfully.');
             } else throw new Error("File does not appear to be a valid category JSON.");
         } catch (e) { App.UI.showMessage("Import Error", `Could not import categories: ${e.message}`); }
@@ -177,7 +177,7 @@ App.ImportExport = {
             // Render everything
             App.CategoryManager.updateSvgPatternDefs(); 
             App.CategoryManager.render(); 
-            App.Map.renderGeoJSONLayer();
+            App.Map.refreshFeaturesVisibility();
             App.ContributorManager.render(); 
             App.UI.updateReportStatusDisplay();
 
@@ -206,7 +206,7 @@ App.ImportExport = {
             App.CategoryManager.updateSvgPatternDefs(); 
             App.CategoryManager.render(); 
             try {
-                App.Map.renderGeoJSONLayer();
+                App.Map.refreshFeaturesVisibility();
             } catch (e) {
                 console.warn('Map rendering failed during GeoJSON import (likely missing map dependencies):', e.message);
             }
