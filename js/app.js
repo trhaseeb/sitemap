@@ -20,6 +20,7 @@ window.App = {
         featureIdToLayerMap: new Map(),
         categoryVisibility: {},
         showOnlyWithObservations: false, 
+        editingBackup: {}, // To hold feature state during edits
         quillInstances: {
             contributorBio: null
         }
@@ -27,6 +28,7 @@ window.App = {
     init() {
         this.UI.init(); 
         this.Map.init();
+        this.Snapshot.init(); // Initialize the snapshot map
         this.Events.init();
         this.CategoryManager.render(); 
         this.Legend.render(); 

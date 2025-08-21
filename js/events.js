@@ -4,6 +4,7 @@ window.App = window.App || {};
 App.Events = {
     activeEditor: null,
     activeLayer: null,
+    originalGeometry: null, // For custom edit sessions
     finishControlInstance: null,
     init() {
         document.getElementById('logo-input').addEventListener('change', async e => { 
@@ -29,7 +30,7 @@ App.Events = {
         document.getElementById('add-contributor-btn').onclick = () => App.ContributorManager.addContributor();
         document.getElementById('show-only-with-observations-toggle').addEventListener('change', e => {
             App.state.showOnlyWithObservations = e.target.checked;
-            App.Map.renderGeoJSONLayer(); 
+            App.Map.refreshFeaturesVisibility();
         });
         App.UI.elements.defineBoundaryBtn.onclick = () => this.startBoundaryDraw();
         App.UI.elements.clearBoundaryBtn.onclick = () => App.Map.clearBoundary();
@@ -103,6 +104,13 @@ App.Events = {
         }
         
         const newFeature = e.layer.toGeoJSON();
+        const validation = App.Utils.validateFeatureGeometry(newFeature);
+        if (!validation.isValid) {
+            App.UI.showMessage('Invalid Geometry', validation.message);
+            App.state.map.removeLayer(e.layer); // Remove the invalid layer
+            return;
+        }
+
         App.UI.showPrompt('New Feature Details', [
             { id: 'Name', label: 'Name', value: 'New Feature', type: 'text' },
             { id: 'Description', label: 'Description', value: '', type: 'quill' },
@@ -112,23 +120,33 @@ App.Events = {
             newFeature.properties = results;
             newFeature.properties._internalId = crypto.randomUUID(); 
             newFeature.properties.observations = [];
+
+            // Update the cache for the new feature
+            App.Data.updateFeatureCalculations(newFeature);
+
             if (!App.state.data.geojson.data) App.state.data.geojson.data = { type: 'FeatureCollection', features: [] };
             App.state.data.geojson.data.features.push(newFeature);
-            App.Map.renderGeoJSONLayer(); 
+            App.Map.addFeature(newFeature);
+            App.Legend.render();
             App.Events.selectFeature(newFeature.properties._internalId);
         });
     },
     handleFeaturesEdited(e) {
+        const featuresToUpdate = [];
         e.layers.eachLayer(layer => {
             const feature = App.Data.getFeatureById(layer.feature_internal_id);
             if (feature) { 
                 feature.geometry = layer.toGeoJSON().geometry; 
-                App.Map.updateFeatureDecorator(layer); 
+                featuresToUpdate.push(feature);
             }
         });
+
+        App.Data.updateFeatures(featuresToUpdate);
+        featuresToUpdate.forEach(f => App.Map.updateFeature(f));
+
         const selected = document.querySelector('.legend-item.selected');
         if (selected) { App.Snapshot.render(App.Data.getFeatureById(selected.dataset.featureId)); }
-        App.Map.renderGeoJSONLayer(); 
+        App.Legend.render();
     },
     selectFeature(featureId) {
         const feature = App.Data.getFeatureById(featureId);
@@ -156,7 +174,11 @@ App.Events = {
 
         App.UI.showPrompt('Edit Feature', fields, (results) => {
             Object.assign(feature.properties, results);
-            App.Map.renderGeoJSONLayer(); 
+
+            // Recalculate data as properties (like category) might affect styling
+            App.Data.updateFeatureCalculations(feature);
+            App.Map.updateFeature(feature);
+            App.Legend.render();
             this.selectFeature(feature.properties._internalId);
         });
 
@@ -220,15 +242,18 @@ App.Events = {
             } else {
                 feature.geometry = layer.toGeoJSON().geometry;
             }
+            // Recalculate data after geometry change
+            App.Data.updateFeatureCalculations(feature);
         }
 
         this.activeEditor = null;
         this.activeLayer = null;
 
-        App.Map.renderGeoJSONLayer();
         if (feature) {
+            App.Map.updateFeature(feature);
             App.Events.selectFeature(feature.properties._internalId);
         }
+        App.Legend.render();
     },
     renderObservationsList(feature, container) {
         container.innerHTML = '';
@@ -265,8 +290,12 @@ App.Events = {
                 const index = parseInt(btn.dataset.index);
                 App.UI.showConfirm('Delete Observation?', 'Are you sure you want to delete this observation?', () => {
                     feature.properties.observations.splice(index, 1);
+
+                    // Recalculate data as observations have changed
+                    App.Data.updateFeatureCalculations(feature);
                     this.renderObservationsList(feature, container);
-                    App.Map.renderGeoJSONLayer();
+                    App.Map.updateFeature(feature);
+                    App.Legend.render();
                     App.Snapshot.render(feature);
                 });
             };
@@ -298,18 +327,27 @@ App.Events = {
             } else {
                 feature.properties.observations.push(newObservation);
             }
+
+            // Recalculate data as observations have changed
+            App.Data.updateFeatureCalculations(feature);
+            App.Map.updateFeature(feature);
+
             // Re-render the list in the main edit modal
             this.renderObservationsList(feature, document.getElementById('observation-list'));
-            App.Map.renderGeoJSONLayer();
+            App.Legend.render();
             App.Snapshot.render(feature);
         }, 'observation-modal');
     },
     deleteFeature(featureToDelete) {
         App.state.map.closePopup();
         App.UI.showConfirm('Delete Feature', `Are you sure you want to delete "${featureToDelete.properties.Name || 'this feature'}"?`, () => {
-            App.state.data.geojson.data.features = App.state.data.geojson.data.features.filter(f => f.properties._internalId !== featureToDelete.properties._internalId);
-            document.getElementById('snapshot-container').innerHTML = '<p>Select a feature from the legend or map to view its details and a visual snapshot.</p>';
-            App.Map.renderGeoJSONLayer(); 
+            const featureId = featureToDelete.properties._internalId;
+            App.state.data.geojson.data.features = App.state.data.geojson.data.features.filter(f => f.properties._internalId !== featureId);
+
+            App.Map.removeFeature(featureId);
+            App.Legend.render();
+            // Reset the snapshot panel to its initial state
+            App.Snapshot.render(null);
         });
     },
     handleOverlayToggle(e) {
