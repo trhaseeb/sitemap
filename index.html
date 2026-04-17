@@ -1,0 +1,183 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ultimate Infinite Notes</title>
+    
+    <!-- Editor.js Core -->
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/editorjs@latest"></script>
+    
+    <!-- Official Plugins -->
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/header@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/nested-list@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/checklist@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/quote@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/code@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/embed@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/table@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/delimiter@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/warning@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/marker@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/inline-code@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/underline@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/simple-image@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/raw@latest"></script>
+
+    <!-- Popular Community Plugins -->
+    <script src="https://cdn.jsdelivr.net/npm/editorjs-toggle-block@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/editorjs-alert@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/editorjs-button@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/editorjs-text-color-plugin@latest"></script>
+    
+    <!-- UI Enhancement Plugins (DragDrop & Undo) -->
+    <script src="https://cdn.jsdelivr.net/npm/editorjs-drag-drop@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/editorjs-undo@latest"></script>
+
+    <style>
+        /* Pure Minimalist Styling */
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #111827;
+            --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-main);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* The Infinite Canvas */
+        #editorjs {
+            max-width: 750px;
+            margin: 0 auto;
+            padding: 10vh 20px 65vh 20px; /* Massive bottom padding */
+            box-sizing: border-box;
+        }
+
+        /* Editor Overrides */
+        .codex-editor__redactor { padding-bottom: 0 !important; }
+        .ce-block__content, .ce-toolbar__content { max-width: 100% !important; }
+
+        /* Block-specific aesthetics */
+        cdx-marker { background-color: #fef08a; padding: 2px 4px; border-radius: 4px; }
+        .ce-inline-tool-code { background: #f3f4f6; color: #ef4444; padding: 2px 5px; border-radius: 4px; font-family: monospace; font-size: 0.9em; }
+        .ce-code__textarea { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-family: monospace; }
+        .tc-wrap { border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+        .cdx-warning { background-color: #fffbeb; border-left: 4px solid #fbbf24; border-radius: 4px; }
+        
+        /* Alert Plugin custom styles */
+        .ce-alert { border-radius: 8px; padding: 12px 16px; margin: 10px 0; }
+        .ce-alert--primary { background-color: #eff6ff; border-left: 4px solid #3b82f6; color: #1e3a8a; }
+        .ce-alert--danger { background-color: #fef2f2; border-left: 4px solid #ef4444; color: #991b1b; }
+        .ce-alert--success { background-color: #f0fdf4; border-left: 4px solid #22c55e; color: #166534; }
+        
+        /* Toggle Plugin styling */
+        .toggle-block__icon { color: #6b7280; }
+        
+        /* Hide scrollbar for maximum minimalism */
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+    </style>
+</head>
+<body>
+
+    <!-- The Canvas -->
+    <div id="editorjs"></div>
+
+    <script>
+        const STORAGE_KEY = 'ultimate_infinite_notes';
+
+        // An expanded default dataset showcasing the new blocks
+        const defaultData = {
+            blocks: [
+                { type: "header", data: { text: "The Ultimate Infinite Canvas", level: 1 } },
+                { type: "paragraph", data: { text: "Welcome to your distraction-free void. The UI is completely hidden. Just scroll down and type forever." } },
+                { type: "alert", data: { type: "primary", message: "<b>New Feature:</b> Drag & Drop is now enabled. Grab the 6-dot menu to the left of any block to rearrange your notes." } },
+                { type: "paragraph", data: { text: "We've also added <font color=\"#3b82f6\">Text Colors</font>, <u>Underlines</u>, and full <mark>Undo/Redo</mark> (Ctrl+Z) support." } },
+                { type: "toggle", data: { text: "Click here to expand the list of new tools!", status: "closed", items: [
+                    { type: "list", data: { style: "unordered", items: [
+                        { content: "Nested Lists (Press Tab inside a list!)", items: [
+                            { content: "Like this sub-bullet", items: [] },
+                            { content: "And this one", items: [] }
+                        ]},
+                        { content: "Alert / Callout Boxes", items: [] },
+                        { content: "Interactive Buttons", items: [] },
+                        { content: "Toggle Blocks (You're looking at one)", items: [] },
+                        { content: "Text Color & Underline", items: [] }
+                    ]}}
+                ]}},
+                { type: "delimiter", data: {} },
+                { type: "button", data: { text: "Learn Editor.js", link: "https://editorjs.io" } },
+                { type: "quote", data: { text: "We have reached maximum block capacity.", caption: "The Developer", alignment: "left" } },
+            ]
+        };
+
+        let savedData = localStorage.getItem(STORAGE_KEY);
+        let editorData = savedData ? JSON.parse(savedData) : defaultData;
+
+        // Shared Inline Toolbar configuration to ensure all tools get colors, highlights, etc.
+        const inlineToolbarConfig = ['marker', 'inlineCode', 'underline', 'Color', 'link'];
+
+        const editor = new EditorJS({
+            holder: 'editorjs',
+            placeholder: 'Type \'/\' for commands or hit Tab...',
+            data: editorData,
+            
+            tools: {
+                header: { class: Header, inlineToolbar: inlineToolbarConfig, config: { levels: [1, 2, 3, 4], defaultLevel: 2 } },
+                list: { class: NestedList, inlineToolbar: inlineToolbarConfig, config: { defaultStyle: 'unordered' } },
+                checklist: { class: Checklist, inlineToolbar: inlineToolbarConfig },
+                quote: { class: Quote, inlineToolbar: inlineToolbarConfig },
+                code: { class: CodeTool },
+                embed: { class: Embed, inlineToolbar: true, config: { services: { youtube: true, codepen: true, twitter: true } } },
+                table: { class: Table, inlineToolbar: inlineToolbarConfig },
+                delimiter: { class: Delimiter },
+                warning: { class: Warning, inlineToolbar: inlineToolbarConfig },
+                raw: { class: RawTool },
+                image: { class: SimpleImage }, 
+                
+                // --- NEW BLOCKS ---
+                alert: { class: Alert, inlineToolbar: inlineToolbarConfig, config: { defaultType: 'primary', messagePlaceholder: 'Enter callout text' } },
+                toggle: { class: ToggleBlock, inlineToolbar: true },
+                button: { class: Button },
+
+                // --- INLINE TOOLS ---
+                Marker: { class: Marker, shortcut: 'CMD+SHIFT+M' },
+                inlineCode: { class: InlineCode, shortcut: 'CMD+SHIFT+C' },
+                underline: { class: Underline, shortcut: 'CMD+U' },
+                Color: { 
+                    class: window.ColorPlugin, 
+                    config: { 
+                        colorCollections: ['#EF4444','#F97316','#F59E0B','#10B981','#3B82F6','#6366F1','#8B5CF6','#EC4899','#111827','#6B7280'],
+                        defaultColor: '#111827',
+                        type: 'text', 
+                        customPicker: true
+                    } 
+                }
+            },
+
+            // Wait for the editor to initialize, then attach DragDrop and Undo
+            onReady: () => {
+                new Undo({ editor });
+                new DragDrop(editor);
+                console.log("Canvas Ready: DragDrop & Undo Initialized");
+            },
+
+            // Auto-save silently to browser memory
+            onChange: async (api, event) => {
+                const outputData = await editor.save();
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(outputData));
+            }
+        });
+    </script>
+</body>
+</html>
+
+
+```
