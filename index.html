@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang=q"en">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -38,10 +38,10 @@
             --muted-text: #666666;
             --accent-color: #000000;
             --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            
             --editor-toolbar-bg: #ffffff;
             --editor-hover-bg: #ebebeb;
-            --overlay-bg: transparent; /* No hue behind panels */
+            --overlay-bg: transparent; 
+            --keyboard-offset: 0px; /* Tracks virtual keyboard height */
         }
 
         /* True Flat Dark Mode */
@@ -55,154 +55,77 @@
                 --accent-color: #ffffff;
                 --editor-toolbar-bg: #1e1e1e;
                 --editor-hover-bg: #2a2a2a;
-                --overlay-bg: transparent; /* Ensure no blue hue in dark mode */
+                --overlay-bg: transparent; 
             }
         }
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: var(--font-main);
-            margin: 0;
-            padding: 0;
-            line-height: 1.6;
-            overflow-x: hidden;
-        }
-
-        #editorjs {
-            max-width: 750px;
-            margin: 0 auto;
-            padding: 10vh 20px 65vh 20px;
-            box-sizing: border-box;
-        }
-
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: var(--font-main); margin: 0; padding: 0; line-height: 1.6; overflow-x: hidden; }
+        #editorjs { max-width: 750px; margin: 0 auto; padding: 10vh 20px 65vh 20px; box-sizing: border-box; }
         ::-webkit-scrollbar { width: 0px; background: transparent; }
         .ce-block__content, .ce-toolbar__content { max-width: 100% !important; }
 
-        /* --- Fix Main Buttons Transparency (Applies to Light & Dark) --- */
-        .ce-toolbar__plus, .ce-toolbar__settings-btn {
-            background-color: var(--bg-color) !important;
-            color: var(--text-color) !important;
-            border: 1px solid transparent;
-        }
-        .ce-toolbar__plus:hover, .ce-toolbar__settings-btn:hover {
-            background-color: var(--editor-hover-bg) !important;
-            border-color: var(--border-color);
-        }
+        /* Prevent SVGs from squishing */
+        svg { flex-shrink: 0; }
 
-        /* --- Eliminate the Blue Hue / Overlay --- */
-        .ce-popover__overlay,
-        .ce-popover-overlay,
-        .cdx-overlay {
-            background: var(--overlay-bg) !important;
-            background-color: var(--overlay-bg) !important;
-            box-shadow: none !important;
-            backdrop-filter: none !important;
-        }
+        /* Main Buttons */
+        .ce-toolbar__plus, .ce-toolbar__settings-btn { background-color: var(--bg-color) !important; color: var(--text-color) !important; border: 1px solid transparent; }
+        .ce-toolbar__plus:hover, .ce-toolbar__settings-btn:hover { background-color: var(--editor-hover-bg) !important; border-color: var(--border-color); }
 
-        /* --- Editor.js Deep Overrides (Flat & Solid) --- */
+        /* Remove Overlays */
+        .ce-popover__overlay, .ce-popover-overlay, .cdx-overlay { background: var(--overlay-bg) !important; background-color: var(--overlay-bg) !important; box-shadow: none !important; backdrop-filter: none !important; }
+
+        /* Deep Overrides for Dark Mode */
         @media (prefers-color-scheme: dark) {
-            
-            /* Aggressively target ALL container backgrounds */
-            .ce-popover, 
-            .ce-popover__container,
-            .ce-popover__panel,
-            .ce-popover__items,
-            .ce-inline-toolbar, 
-            .ce-conversion-toolbar, 
-            .ce-settings,
-            .ce-tooltip,
-            .tc-popover { 
-                background: var(--editor-toolbar-bg) !important;
-                background-color: var(--editor-toolbar-bg) !important; 
-                border-color: var(--border-color) !important; 
-                box-shadow: none !important; 
-            }
-            
-            /* Items inside the popovers */
-            .ce-popover-item,
-            .ce-inline-tool, 
-            .ce-conversion-tool, 
-            .ce-settings__button { 
-                background-color: transparent !important;
-                color: var(--text-color) !important; 
-            }
-
-            .ce-popover-item__title {
-                color: var(--text-color) !important; 
-            }
-
-            /* Hover states */
-            .ce-popover-item:hover, 
-            .ce-inline-tool:hover, 
-            .ce-conversion-tool:hover, 
-            .ce-settings__button:hover { 
-                background-color: var(--editor-hover-bg) !important; 
-            }
-
-            /* Icons */
-            .ce-popover-item__icon,
-            .ce-popover-item__icon--active,
-            .ce-popover__item-icon { 
-                background-color: var(--muted-bg) !important; 
-                color: var(--text-color) !important; 
-                box-shadow: none !important; 
-                border-color: var(--border-color) !important;
-            }
-            
-            /* Search Inputs and Fields */
-            .cdx-search-field, .cdx-input { 
-                background-color: var(--muted-bg) !important; 
-                color: var(--text-color) !important; 
-                border: 1px solid var(--border-color) !important; 
-                box-shadow: none !important; 
-            }
+            .ce-popover, .ce-popover__container, .ce-popover__panel, .ce-popover__items, .ce-inline-toolbar, .ce-conversion-toolbar, .ce-settings, .ce-tooltip, .tc-popover { background: var(--editor-toolbar-bg) !important; background-color: var(--editor-toolbar-bg) !important; border-color: var(--border-color) !important; box-shadow: none !important; }
+            .ce-popover-item, .ce-inline-tool, .ce-conversion-tool, .ce-settings__button { background-color: transparent !important; color: var(--text-color) !important; }
+            .ce-popover-item__title { color: var(--text-color) !important; }
+            .ce-popover-item:hover, .ce-inline-tool:hover, .ce-conversion-tool:hover, .ce-settings__button:hover { background-color: var(--editor-hover-bg) !important; }
+            .ce-popover-item__icon, .ce-popover-item__icon--active, .ce-popover__item-icon { background-color: var(--muted-bg) !important; color: var(--text-color) !important; box-shadow: none !important; border-color: var(--border-color) !important; }
+            .cdx-search-field, .cdx-input { background-color: var(--muted-bg) !important; color: var(--text-color) !important; border: 1px solid var(--border-color) !important; box-shadow: none !important; }
             .cdx-search-field__icon { color: var(--muted-text) !important; }
-
             .ce-block--selected .ce-block__content { background-color: var(--editor-hover-bg) !important; }
             ::selection { background: #444444 !important; color: #ffffff; }
-
-            /* Block Specifics */
             .ce-code__textarea { background: var(--muted-bg) !important; color: var(--text-color) !important; border: 1px solid var(--border-color) !important; }
             .ce-inline-tool-code { background: var(--muted-bg) !important; color: var(--text-color) !important; }
             cdx-marker { background: #4a4a00 !important; color: var(--text-color) !important; }
             .cdx-warning { background: var(--muted-bg) !important; border-left-color: #555555 !important; color: var(--text-color) !important; }
             .tc-wrap, .tc-row::after, .tc-cell { border-color: var(--border-color) !important; }
-            
-            emoji-picker {
-                --background: var(--editor-toolbar-bg);
-                --border-color: var(--border-color);
-                --input-border-color: var(--border-color);
-                --category-icon-color: var(--muted-text);
+            emoji-picker { --background: var(--editor-toolbar-bg); --border-color: var(--border-color); --input-border-color: var(--border-color); --category-icon-color: var(--muted-text); }
+        }
+
+        /* --- Mobile Keyboard Fix CSS --- */
+        @media (max-width: 650px) {
+            .ce-popover, .ce-settings, .ce-inline-toolbar {
+                /* Dynamically push panels up by the keyboard's exact height */
+                bottom: var(--keyboard-offset, 0px) !important;
+                /* Shrink max height so the panel doesn't overflow the top of the screen */
+                max-height: calc(100vh - var(--keyboard-offset, 0px) - 20px) !important;
+                transition: bottom 0.2s cubic-bezier(0.1, 0.7, 0.1, 1), max-height 0.2s ease;
             }
         }
 
-        /* --- Custom Tools: Flat Styling --- */
-        
-        /* Voice Memo */
+        /* Custom Tools Styles */
         .v-memo { background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; margin: 10px 0; }
-        .v-memo__btn { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border-color); background: var(--muted-bg); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-color); flex-shrink: 0; }
+        .v-memo__btn { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border-color); background: var(--muted-bg); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-color); flex-shrink: 0; min-width: 36px; }
+        .v-memo__btn svg { min-width: 16px; min-height: 16px; width: 16px; height: 16px; } 
         .v-memo__btn.recording { color: #ffffff; border-color: #ef4444; background: #ef4444; animation: pulse 1.5s infinite; }
-        .v-memo__status { font-size: 14px; color: var(--muted-text); flex-grow: 1; }
-        audio { height: 32px; max-width: 200px; outline: none; }
+        .v-memo__status { font-size: 14px; color: var(--muted-text); flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        audio { height: 32px; max-width: 200px; outline: none; flex-shrink: 0; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
 
-        /* Shared Canvas Container */
         .canvas-container { border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; background: var(--bg-color); margin: 10px 0; }
         .canvas-toolbar { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--muted-bg); border-bottom: 1px solid var(--border-color); }
         .canvas-colors { display: flex; gap: 6px; }
-        .canvas-color { width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--border-color); cursor: pointer; padding: 0; }
+        .canvas-color { width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--border-color); cursor: pointer; padding: 0; flex-shrink: 0; }
         .canvas-color.active { outline: 2px solid var(--text-color); outline-offset: -4px; }
-        .canvas-clear { background: var(--bg-color); border: 1px solid var(--border-color); padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; color: var(--text-color); }
+        .canvas-clear { background: var(--bg-color); border: 1px solid var(--border-color); padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; color: var(--text-color); flex-shrink: 0; }
         .canvas-clear:hover { background: var(--editor-hover-bg); }
         .canvas-wrapper { width: 100%; overflow: hidden; display: flex; justify-content: center; background: var(--bg-color); }
-        canvas { touch-action: none; background: transparent; cursor: crosshair; }
-
-        /* Photo Upload Specific */
+        canvas { touch-action: none; background: transparent; cursor: crosshair; display: block; }
+        
         .photo-uploader { padding: 40px 20px; text-align: center; border: 2px dashed var(--border-color); border-radius: 6px; margin: 10px; cursor: pointer; color: var(--muted-text); display: flex; flex-direction: column; align-items: center; gap: 10px; background: var(--bg-color); }
         .photo-uploader:hover { border-color: var(--text-color); color: var(--text-color); background: var(--muted-bg); }
 
-        /* Emoji Picker Wrapper */
         .emoji-picker-wrapper { position: absolute; top: 40px; left: -100px; z-index: 10000; border: 1px solid var(--border-color); border-radius: 6px; display: none; background: var(--editor-toolbar-bg); }
         emoji-picker { --num-columns: 6; --emoji-size: 1.2rem; }
     </style>
@@ -212,7 +135,34 @@
     <div id="editorjs"></div>
 
     <script>
-        const STORAGE_KEY = 'ultimate_notes_pure_flat_v4';
+        const STORAGE_KEY = 'ultimate_notes_pure_flat_v6';
+
+        // --- Mobile Keyboard Fix Engine ---
+        // Accurately tracks when the iOS/Android keyboard opens and pushes UI above it
+        if (window.visualViewport) {
+            const updateKeyboardOffset = () => {
+                // The difference between layout height and visual height is the keyboard
+                const offset = window.innerHeight - window.visualViewport.height;
+                const safeOffset = Math.max(0, offset);
+                
+                // Inject the offset into CSS to lift the fixed panels
+                document.documentElement.style.setProperty('--keyboard-offset', `${safeOffset}px`);
+
+                // Auto-scroll the active block so typing doesn't happen off-screen
+                if (safeOffset > 100) {
+                    setTimeout(() => {
+                        const activeBlock = document.querySelector('.ce-block--focused');
+                        if (activeBlock) {
+                            activeBlock.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }, 150);
+                }
+            };
+
+            window.visualViewport.addEventListener('resize', updateKeyboardOffset);
+            window.visualViewport.addEventListener('scroll', updateKeyboardOffset);
+            updateKeyboardOffset(); // Initial run
+        }
 
         // --- 1. Custom Inline Tool: Emoji Picker ---
         class EmojiInlineTool {
@@ -353,13 +303,14 @@
                 });
 
                 toolbar.querySelector('.canvas-clear').onclick = () => {
+                    if (!this.baseImage) return;
                     const img = new Image();
-                    img.src = this.baseImage;
                     img.onload = () => {
                         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
                         this.ctx.drawImage(img, 0, 0, this.canvas.width, this.canvas.height);
                         this.saveToData();
                     };
+                    img.src = this.baseImage;
                 };
 
                 const canvasWrapper = document.createElement('div');
@@ -374,9 +325,9 @@
                 this.ctx.lineJoin = 'round';
 
                 const loadAndDraw = () => {
+                    if (!this.data && !this.baseImage) return;
                     const imgSrcToLoad = this.data || this.baseImage;
                     const img = new Image();
-                    img.src = imgSrcToLoad;
                     img.onload = () => {
                         const maxWidth = 750;
                         const scale = maxWidth / img.width;
@@ -384,6 +335,7 @@
                         this.canvas.height = img.height * scale;
                         this.ctx.drawImage(img, 0, 0, this.canvas.width, this.canvas.height);
                     };
+                    img.src = imgSrcToLoad;
                 };
                 loadAndDraw();
 
@@ -400,9 +352,14 @@
                 const draw = (e) => { if (!isDrawing) return; e.preventDefault(); const {x, y} = getCoords(e); this.ctx.lineTo(x, y); this.ctx.strokeStyle = this.currentColor; this.ctx.lineWidth = 4; this.ctx.stroke(); };
                 const stopDraw = () => { if(isDrawing) { isDrawing = false; this.saveToData(); } };
 
-                this.canvas.addEventListener('mousedown', startDraw); this.canvas.addEventListener('mousemove', draw);
-                this.canvas.addEventListener('mouseup', stopDraw); this.canvas.addEventListener('mouseleave', stopDraw);
-                this.canvas.addEventListener('touchstart', startDraw, {passive: false}); this.canvas.addEventListener('touchmove', draw, {passive: false}); this.addEventListener('touchend', stopDraw);
+                this.canvas.addEventListener('mousedown', startDraw); 
+                this.canvas.addEventListener('mousemove', draw);
+                this.canvas.addEventListener('mouseup', stopDraw); 
+                this.canvas.addEventListener('mouseleave', stopDraw);
+                
+                this.canvas.addEventListener('touchstart', startDraw, {passive: false}); 
+                this.canvas.addEventListener('touchmove', draw, {passive: false}); 
+                this.canvas.addEventListener('touchend', stopDraw);
 
                 canvasWrapper.appendChild(this.canvas);
                 this.wrapper.appendChild(toolbar);
@@ -414,25 +371,96 @@
         }
 
         // --- 3. Custom Block Tool: Whiteboard ---
-        class WhiteboardTool extends AnnotatedPhotoTool {
+        class WhiteboardTool {
             static get toolbox() { return { title: 'Whiteboard', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg>' }; }
             
+            constructor({data}) {
+                this.data = data.image || null;
+                this.currentColor = '#000000'; 
+                this.canvas = null;
+                this.ctx = null;
+                this.wrapper = document.createElement('div');
+                this.wrapper.className = 'canvas-container';
+            }
+
             render() {
-                if (!this.baseImage && !this.data) {
-                    const offCanvas = document.createElement('canvas');
-                    offCanvas.width = 700; offCanvas.height = 400;
-                    this.baseImage = offCanvas.toDataURL('image/png');
-                    this.data = this.baseImage;
-                }
-                this.buildEditor();
+                this.wrapper.innerHTML = '';
+                const toolbar = document.createElement('div');
+                toolbar.className = 'canvas-toolbar';
+                toolbar.innerHTML = `
+                    <div class="canvas-colors">
+                        <button class="canvas-color active" style="background:#000000" data-color="#000000"></button>
+                        <button class="canvas-color" style="background:#ffffff" data-color="#ffffff"></button>
+                        <button class="canvas-color" style="background:#EF4444" data-color="#EF4444"></button>
+                        <button class="canvas-color" style="background:#3B82F6" data-color="#3B82F6"></button>
+                        <button class="canvas-color" style="background:#10B981" data-color="#10B981"></button>
+                    </div>
+                    <button class="canvas-clear">Clear Canvas</button>
+                `;
+
+                toolbar.querySelectorAll('.canvas-color').forEach(btn => {
+                    btn.onclick = (e) => {
+                        toolbar.querySelector('.active').classList.remove('active');
+                        e.target.classList.add('active');
+                        this.currentColor = e.target.getAttribute('data-color');
+                    };
+                });
+
+                toolbar.querySelector('.canvas-clear').onclick = () => {
+                    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                    this.saveToData();
+                };
+
+                const canvasWrapper = document.createElement('div');
+                canvasWrapper.className = 'canvas-wrapper';
                 
-                setTimeout(() => {
-                    const btn = this.wrapper.querySelector('.canvas-clear');
-                    if(btn) btn.innerText = 'Clear Canvas';
-                }, 10);
+                this.canvas = document.createElement('canvas');
+                this.canvas.width = 700;
+                this.canvas.height = 400;
+                this.canvas.style.width = '100%';
+                this.canvas.style.height = 'auto';
+                
+                this.ctx = this.canvas.getContext('2d');
+                this.ctx.lineCap = 'round';
+                this.ctx.lineJoin = 'round';
+
+                if (this.data) {
+                    const img = new Image();
+                    img.onload = () => this.ctx.drawImage(img, 0, 0);
+                    img.src = this.data;
+                }
+
+                let isDrawing = false;
+                const getCoords = (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    const scaleX = this.canvas.width / rect.width;
+                    const scaleY = this.canvas.height / rect.height;
+                    if (e.touches && e.touches.length > 0) return { x: (e.touches[0].clientX - rect.left) * scaleX, y: (e.touches[0].clientY - rect.top) * scaleY };
+                    return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+                };
+
+                const startDraw = (e) => { isDrawing = true; const {x, y} = getCoords(e); this.ctx.beginPath(); this.ctx.moveTo(x, y); };
+                const draw = (e) => { if (!isDrawing) return; e.preventDefault(); const {x, y} = getCoords(e); this.ctx.lineTo(x, y); this.ctx.strokeStyle = this.currentColor; this.ctx.lineWidth = 4; this.ctx.stroke(); };
+                const stopDraw = () => { if(isDrawing) { isDrawing = false; this.saveToData(); } };
+
+                this.canvas.addEventListener('mousedown', startDraw); 
+                this.canvas.addEventListener('mousemove', draw);
+                this.canvas.addEventListener('mouseup', stopDraw); 
+                this.canvas.addEventListener('mouseleave', stopDraw);
+                
+                this.canvas.addEventListener('touchstart', startDraw, {passive: false}); 
+                this.canvas.addEventListener('touchmove', draw, {passive: false}); 
+                this.canvas.addEventListener('touchend', stopDraw);
+
+                canvasWrapper.appendChild(this.canvas);
+                this.wrapper.appendChild(toolbar);
+                this.wrapper.appendChild(canvasWrapper);
                 
                 return this.wrapper;
             }
+
+            saveToData() { this.data = this.canvas.toDataURL('image/png'); }
+            save() { return { image: this.data }; }
         }
 
         // --- 4. Custom Block Tool: Voice Memo ---
@@ -445,7 +473,7 @@
             render() {
                 this.nodes.wrapper.className = 'v-memo';
                 this.nodes.button.className = 'v-memo__btn';
-                this.nodes.button.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4" fill="currentColor"></circle></svg>';
+                this.nodes.button.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="min-width: 16px; min-height: 16px;"><circle cx="12" cy="12" r="4" fill="currentColor"></circle></svg>';
                 this.nodes.status.className = 'v-memo__status';
                 this.nodes.status.innerText = this.data ? 'Recording saved' : 'Click to record audio';
                 this.nodes.audio.controls = true;
@@ -480,8 +508,8 @@
         // --- Editor Initialization ---
         const defaultData = {
             blocks: [
-                { type: "header", data: { text: "The Flat Editor", level: 1 } },
-                { type: "paragraph", data: { text: "All traces of the blue hue behind the panels have been eradicated. You should now have a perfectly flat, clean dark mode." } }
+                { type: "header", data: { text: "Mobile Optimized", level: 1 } },
+                { type: "paragraph", data: { text: "The menus will now dynamically avoid the virtual keyboard on mobile devices." } }
             ]
         };
 
