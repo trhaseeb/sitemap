@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang=q"en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -41,6 +41,7 @@
             
             --editor-toolbar-bg: #ffffff;
             --editor-hover-bg: #ebebeb;
+            --overlay-bg: transparent; /* No hue behind panels */
         }
 
         /* True Flat Dark Mode */
@@ -54,6 +55,7 @@
                 --accent-color: #ffffff;
                 --editor-toolbar-bg: #1e1e1e;
                 --editor-hover-bg: #2a2a2a;
+                --overlay-bg: transparent; /* Ensure no blue hue in dark mode */
             }
         }
 
@@ -86,6 +88,16 @@
         .ce-toolbar__plus:hover, .ce-toolbar__settings-btn:hover {
             background-color: var(--editor-hover-bg) !important;
             border-color: var(--border-color);
+        }
+
+        /* --- Eliminate the Blue Hue / Overlay --- */
+        .ce-popover__overlay,
+        .ce-popover-overlay,
+        .cdx-overlay {
+            background: var(--overlay-bg) !important;
+            background-color: var(--overlay-bg) !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important;
         }
 
         /* --- Editor.js Deep Overrides (Flat & Solid) --- */
@@ -200,7 +212,7 @@
     <div id="editorjs"></div>
 
     <script>
-        const STORAGE_KEY = 'ultimate_notes_pure_flat_v3';
+        const STORAGE_KEY = 'ultimate_notes_pure_flat_v4';
 
         // --- 1. Custom Inline Tool: Emoji Picker ---
         class EmojiInlineTool {
@@ -390,7 +402,7 @@
 
                 this.canvas.addEventListener('mousedown', startDraw); this.canvas.addEventListener('mousemove', draw);
                 this.canvas.addEventListener('mouseup', stopDraw); this.canvas.addEventListener('mouseleave', stopDraw);
-                this.canvas.addEventListener('touchstart', startDraw, {passive: false}); this.canvas.addEventListener('touchmove', draw, {passive: false}); this.canvas.addEventListener('touchend', stopDraw);
+                this.canvas.addEventListener('touchstart', startDraw, {passive: false}); this.canvas.addEventListener('touchmove', draw, {passive: false}); this.addEventListener('touchend', stopDraw);
 
                 canvasWrapper.appendChild(this.canvas);
                 this.wrapper.appendChild(toolbar);
@@ -469,7 +481,7 @@
         const defaultData = {
             blocks: [
                 { type: "header", data: { text: "The Flat Editor", level: 1 } },
-                { type: "paragraph", data: { text: "The menus, dropdowns, and search bars are all fully unified into the dark flat theme now!" } }
+                { type: "paragraph", data: { text: "All traces of the blue hue behind the panels have been eradicated. You should now have a perfectly flat, clean dark mode." } }
             ]
         };
 
