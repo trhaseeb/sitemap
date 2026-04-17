@@ -5,10 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Ultimate Infinite Notes</title>
     
-    <!-- Editor.js Core -->
+    <!-- Editor.js Core & Plugins -->
     <script src="https://cdn.jsdelivr.net/npm/@editorjs/editorjs@latest"></script>
-    
-    <!-- Official Plugins -->
     <script src="https://cdn.jsdelivr.net/npm/@editorjs/header@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@editorjs/nested-list@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@editorjs/checklist@latest"></script>
@@ -21,25 +19,42 @@
     <script src="https://cdn.jsdelivr.net/npm/@editorjs/marker@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@editorjs/inline-code@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@editorjs/underline@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@editorjs/simple-image@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@editorjs/raw@latest"></script>
-
-    <!-- Popular Community Plugins -->
     <script src="https://cdn.jsdelivr.net/npm/editorjs-toggle-block@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/editorjs-alert@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/editorjs-button@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/editorjs-text-color-plugin@latest"></script>
-    
-    <!-- UI Enhancement Plugins (DragDrop & Undo) -->
     <script src="https://cdn.jsdelivr.net/npm/editorjs-drag-drop@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/editorjs-undo@latest"></script>
 
+    <!-- Emoji Picker Element -->
+    <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1/index.js"></script>
+
     <style>
-        /* Pure Minimalist Styling */
+        /* --- Pure Flat Theme Variables --- */
         :root {
             --bg-color: #ffffff;
-            --text-color: #111827;
+            --text-color: #000000;
+            --border-color: #e0e0e0;
+            --muted-bg: #f5f5f5;
+            --muted-text: #666666;
+            --accent-color: #000000;
             --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            
+            --editor-toolbar-bg: #ffffff;
+            --editor-hover-bg: #ebebeb;
+        }
+
+        /* True Flat Dark Mode */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #121212;
+                --text-color: #ffffff;
+                --border-color: #333333;
+                --muted-bg: #1e1e1e;
+                --muted-text: #aaaaaa;
+                --accent-color: #ffffff;
+                --editor-toolbar-bg: #1e1e1e;
+                --editor-hover-bg: #2a2a2a;
+            }
         }
 
         body {
@@ -52,174 +67,469 @@
             overflow-x: hidden;
         }
 
-        /* The Infinite Canvas */
         #editorjs {
             max-width: 750px;
             margin: 0 auto;
-            padding: 10vh 20px 65vh 20px; /* Massive bottom padding */
+            padding: 10vh 20px 65vh 20px;
             box-sizing: border-box;
         }
 
-        /* Editor Overrides */
-        .codex-editor__redactor { padding-bottom: 0 !important; }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
         .ce-block__content, .ce-toolbar__content { max-width: 100% !important; }
 
-        /* Block-specific aesthetics */
-        cdx-marker { background-color: #fef08a; padding: 2px 4px; border-radius: 4px; }
-        .ce-inline-tool-code { background: #f3f4f6; color: #ef4444; padding: 2px 5px; border-radius: 4px; font-family: monospace; font-size: 0.9em; }
-        .ce-code__textarea { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-family: monospace; }
-        .tc-wrap { border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
-        .cdx-warning { background-color: #fffbeb; border-left: 4px solid #fbbf24; border-radius: 4px; }
+        /* --- Fix Main Buttons Transparency (Applies to Light & Dark) --- */
+        .ce-toolbar__plus, .ce-toolbar__settings-btn {
+            background-color: var(--bg-color) !important;
+            color: var(--text-color) !important;
+            border: 1px solid transparent;
+        }
+        .ce-toolbar__plus:hover, .ce-toolbar__settings-btn:hover {
+            background-color: var(--editor-hover-bg) !important;
+            border-color: var(--border-color);
+        }
+
+        /* --- Editor.js Deep Overrides (Flat & Solid) --- */
+        @media (prefers-color-scheme: dark) {
+            
+            /* Aggressively target ALL container backgrounds */
+            .ce-popover, 
+            .ce-popover__container,
+            .ce-popover__panel,
+            .ce-popover__items,
+            .ce-inline-toolbar, 
+            .ce-conversion-toolbar, 
+            .ce-settings,
+            .ce-tooltip,
+            .tc-popover { 
+                background: var(--editor-toolbar-bg) !important;
+                background-color: var(--editor-toolbar-bg) !important; 
+                border-color: var(--border-color) !important; 
+                box-shadow: none !important; 
+            }
+            
+            /* Items inside the popovers */
+            .ce-popover-item,
+            .ce-inline-tool, 
+            .ce-conversion-tool, 
+            .ce-settings__button { 
+                background-color: transparent !important;
+                color: var(--text-color) !important; 
+            }
+
+            .ce-popover-item__title {
+                color: var(--text-color) !important; 
+            }
+
+            /* Hover states */
+            .ce-popover-item:hover, 
+            .ce-inline-tool:hover, 
+            .ce-conversion-tool:hover, 
+            .ce-settings__button:hover { 
+                background-color: var(--editor-hover-bg) !important; 
+            }
+
+            /* Icons */
+            .ce-popover-item__icon,
+            .ce-popover-item__icon--active,
+            .ce-popover__item-icon { 
+                background-color: var(--muted-bg) !important; 
+                color: var(--text-color) !important; 
+                box-shadow: none !important; 
+                border-color: var(--border-color) !important;
+            }
+            
+            /* Search Inputs and Fields */
+            .cdx-search-field, .cdx-input { 
+                background-color: var(--muted-bg) !important; 
+                color: var(--text-color) !important; 
+                border: 1px solid var(--border-color) !important; 
+                box-shadow: none !important; 
+            }
+            .cdx-search-field__icon { color: var(--muted-text) !important; }
+
+            .ce-block--selected .ce-block__content { background-color: var(--editor-hover-bg) !important; }
+            ::selection { background: #444444 !important; color: #ffffff; }
+
+            /* Block Specifics */
+            .ce-code__textarea { background: var(--muted-bg) !important; color: var(--text-color) !important; border: 1px solid var(--border-color) !important; }
+            .ce-inline-tool-code { background: var(--muted-bg) !important; color: var(--text-color) !important; }
+            cdx-marker { background: #4a4a00 !important; color: var(--text-color) !important; }
+            .cdx-warning { background: var(--muted-bg) !important; border-left-color: #555555 !important; color: var(--text-color) !important; }
+            .tc-wrap, .tc-row::after, .tc-cell { border-color: var(--border-color) !important; }
+            
+            emoji-picker {
+                --background: var(--editor-toolbar-bg);
+                --border-color: var(--border-color);
+                --input-border-color: var(--border-color);
+                --category-icon-color: var(--muted-text);
+            }
+        }
+
+        /* --- Custom Tools: Flat Styling --- */
         
-        /* Alert Plugin custom styles */
-        .ce-alert { border-radius: 8px; padding: 12px 16px; margin: 10px 0; }
-        .ce-alert--primary { background-color: #eff6ff; border-left: 4px solid #3b82f6; color: #1e3a8a; }
-        .ce-alert--danger { background-color: #fef2f2; border-left: 4px solid #ef4444; color: #991b1b; }
-        .ce-alert--success { background-color: #f0fdf4; border-left: 4px solid #22c55e; color: #166534; }
-        
-        /* Toggle Plugin styling */
-        .toggle-block__icon { color: #6b7280; }
-        
-        /* Hide scrollbar for maximum minimalism */
-        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        /* Voice Memo */
+        .v-memo { background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; margin: 10px 0; }
+        .v-memo__btn { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border-color); background: var(--muted-bg); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-color); flex-shrink: 0; }
+        .v-memo__btn.recording { color: #ffffff; border-color: #ef4444; background: #ef4444; animation: pulse 1.5s infinite; }
+        .v-memo__status { font-size: 14px; color: var(--muted-text); flex-grow: 1; }
+        audio { height: 32px; max-width: 200px; outline: none; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
+        /* Shared Canvas Container */
+        .canvas-container { border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; background: var(--bg-color); margin: 10px 0; }
+        .canvas-toolbar { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--muted-bg); border-bottom: 1px solid var(--border-color); }
+        .canvas-colors { display: flex; gap: 6px; }
+        .canvas-color { width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--border-color); cursor: pointer; padding: 0; }
+        .canvas-color.active { outline: 2px solid var(--text-color); outline-offset: -4px; }
+        .canvas-clear { background: var(--bg-color); border: 1px solid var(--border-color); padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; color: var(--text-color); }
+        .canvas-clear:hover { background: var(--editor-hover-bg); }
+        .canvas-wrapper { width: 100%; overflow: hidden; display: flex; justify-content: center; background: var(--bg-color); }
+        canvas { touch-action: none; background: transparent; cursor: crosshair; }
+
+        /* Photo Upload Specific */
+        .photo-uploader { padding: 40px 20px; text-align: center; border: 2px dashed var(--border-color); border-radius: 6px; margin: 10px; cursor: pointer; color: var(--muted-text); display: flex; flex-direction: column; align-items: center; gap: 10px; background: var(--bg-color); }
+        .photo-uploader:hover { border-color: var(--text-color); color: var(--text-color); background: var(--muted-bg); }
+
+        /* Emoji Picker Wrapper */
+        .emoji-picker-wrapper { position: absolute; top: 40px; left: -100px; z-index: 10000; border: 1px solid var(--border-color); border-radius: 6px; display: none; background: var(--editor-toolbar-bg); }
+        emoji-picker { --num-columns: 6; --emoji-size: 1.2rem; }
     </style>
 </head>
 <body>
 
-    <!-- The Canvas -->
     <div id="editorjs"></div>
 
     <script>
-        const STORAGE_KEY = 'ultimate_infinite_notes';
+        const STORAGE_KEY = 'ultimate_notes_pure_flat_v3';
 
-        // An expanded default dataset showcasing the new blocks
+        // --- 1. Custom Inline Tool: Emoji Picker ---
+        class EmojiInlineTool {
+            static get isInline() { return true; }
+            get shortcut() { return 'CMD+E'; }
+            constructor({api}) { this.api = api; this.button = null; this.pickerWrapper = null; this.savedRange = null; }
+
+            render() {
+                this.button = document.createElement('button');
+                this.button.type = 'button';
+                this.button.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>';
+                this.button.classList.add(this.api.styles.inlineToolButton);
+                this.button.style.position = 'relative';
+
+                this.pickerWrapper = document.createElement('div');
+                this.pickerWrapper.className = 'emoji-picker-wrapper';
+                
+                const picker = document.createElement('emoji-picker');
+                picker.addEventListener('emoji-click', event => {
+                    this.insertEmoji(event.detail.unicode);
+                    this.pickerWrapper.style.display = 'none';
+                });
+
+                this.pickerWrapper.appendChild(picker);
+                this.button.appendChild(this.pickerWrapper);
+                return this.button;
+            }
+
+            surround(range) {
+                if (!range) return;
+                this.savedRange = range.cloneRange();
+                const isVisible = this.pickerWrapper.style.display === 'block';
+                document.querySelectorAll('.emoji-picker-wrapper').forEach(p => p.style.display = 'none');
+                this.pickerWrapper.style.display = isVisible ? 'none' : 'block';
+            }
+
+            insertEmoji(emoji) {
+                if (this.savedRange) {
+                    this.savedRange.deleteContents();
+                    const textNode = document.createTextNode(emoji);
+                    this.savedRange.insertNode(textNode);
+                    this.savedRange.setStartAfter(textNode);
+                    this.savedRange.collapse(true);
+                    const selection = window.getSelection();
+                    selection.removeAllRanges();
+                    selection.addRange(this.savedRange);
+                }
+            }
+            checkState() { return false; }
+        }
+
+        // --- 2. Custom Block Tool: Annotated Photo Upload ---
+        class AnnotatedPhotoTool {
+            static get toolbox() { return { title: 'Annotated Photo', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>' }; }
+
+            constructor({data}) {
+                this.baseImage = data.baseImage || null;
+                this.data = data.image || null;
+                this.currentColor = '#EF4444'; 
+                this.canvas = null;
+                this.ctx = null;
+                this.wrapper = document.createElement('div');
+                this.wrapper.className = 'canvas-container';
+            }
+
+            render() {
+                if (!this.baseImage) this.buildUploader();
+                else this.buildEditor();
+                return this.wrapper;
+            }
+
+            buildUploader() {
+                this.wrapper.innerHTML = '';
+                const uploadBtn = document.createElement('div');
+                uploadBtn.className = 'photo-uploader';
+                uploadBtn.innerHTML = `
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    <span>Click to Upload Photo</span>
+                `;
+                
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.accept = 'image/*';
+                fileInput.style.display = 'none';
+                
+                uploadBtn.onclick = () => fileInput.click();
+                
+                fileInput.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (re) => {
+                            const img = new Image();
+                            img.onload = () => {
+                                const maxW = 800;
+                                const scale = Math.min(1, maxW / img.width);
+                                const offCanvas = document.createElement('canvas');
+                                offCanvas.width = img.width * scale;
+                                offCanvas.height = img.height * scale;
+                                const offCtx = offCanvas.getContext('2d');
+                                offCtx.drawImage(img, 0, 0, offCanvas.width, offCanvas.height);
+                                
+                                this.baseImage = offCanvas.toDataURL('image/jpeg', 0.85);
+                                this.data = this.baseImage;
+                                this.buildEditor();
+                            };
+                            img.src = re.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                };
+
+                this.wrapper.appendChild(uploadBtn);
+                this.wrapper.appendChild(fileInput);
+            }
+
+            buildEditor() {
+                this.wrapper.innerHTML = '';
+                const toolbar = document.createElement('div');
+                toolbar.className = 'canvas-toolbar';
+                toolbar.innerHTML = `
+                    <div class="canvas-colors">
+                        <button class="canvas-color active" style="background:#EF4444" data-color="#EF4444"></button>
+                        <button class="canvas-color" style="background:#3B82F6" data-color="#3B82F6"></button>
+                        <button class="canvas-color" style="background:#10B981" data-color="#10B981"></button>
+                        <button class="canvas-color" style="background:#000000" data-color="#000000"></button>
+                        <button class="canvas-color" style="background:#ffffff" data-color="#ffffff"></button>
+                    </div>
+                    <button class="canvas-clear">Reset Image</button>
+                `;
+
+                toolbar.querySelectorAll('.canvas-color').forEach(btn => {
+                    btn.onclick = (e) => {
+                        toolbar.querySelector('.active').classList.remove('active');
+                        e.target.classList.add('active');
+                        this.currentColor = e.target.getAttribute('data-color');
+                    };
+                });
+
+                toolbar.querySelector('.canvas-clear').onclick = () => {
+                    const img = new Image();
+                    img.src = this.baseImage;
+                    img.onload = () => {
+                        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                        this.ctx.drawImage(img, 0, 0, this.canvas.width, this.canvas.height);
+                        this.saveToData();
+                    };
+                };
+
+                const canvasWrapper = document.createElement('div');
+                canvasWrapper.className = 'canvas-wrapper';
+                
+                this.canvas = document.createElement('canvas');
+                this.canvas.style.width = '100%';
+                this.canvas.style.height = 'auto';
+                
+                this.ctx = this.canvas.getContext('2d');
+                this.ctx.lineCap = 'round';
+                this.ctx.lineJoin = 'round';
+
+                const loadAndDraw = () => {
+                    const imgSrcToLoad = this.data || this.baseImage;
+                    const img = new Image();
+                    img.src = imgSrcToLoad;
+                    img.onload = () => {
+                        const maxWidth = 750;
+                        const scale = maxWidth / img.width;
+                        this.canvas.width = maxWidth;
+                        this.canvas.height = img.height * scale;
+                        this.ctx.drawImage(img, 0, 0, this.canvas.width, this.canvas.height);
+                    };
+                };
+                loadAndDraw();
+
+                let isDrawing = false;
+                const getCoords = (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    const scaleX = this.canvas.width / rect.width;
+                    const scaleY = this.canvas.height / rect.height;
+                    if (e.touches && e.touches.length > 0) return { x: (e.touches[0].clientX - rect.left) * scaleX, y: (e.touches[0].clientY - rect.top) * scaleY };
+                    return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+                };
+
+                const startDraw = (e) => { isDrawing = true; const {x, y} = getCoords(e); this.ctx.beginPath(); this.ctx.moveTo(x, y); };
+                const draw = (e) => { if (!isDrawing) return; e.preventDefault(); const {x, y} = getCoords(e); this.ctx.lineTo(x, y); this.ctx.strokeStyle = this.currentColor; this.ctx.lineWidth = 4; this.ctx.stroke(); };
+                const stopDraw = () => { if(isDrawing) { isDrawing = false; this.saveToData(); } };
+
+                this.canvas.addEventListener('mousedown', startDraw); this.canvas.addEventListener('mousemove', draw);
+                this.canvas.addEventListener('mouseup', stopDraw); this.canvas.addEventListener('mouseleave', stopDraw);
+                this.canvas.addEventListener('touchstart', startDraw, {passive: false}); this.canvas.addEventListener('touchmove', draw, {passive: false}); this.canvas.addEventListener('touchend', stopDraw);
+
+                canvasWrapper.appendChild(this.canvas);
+                this.wrapper.appendChild(toolbar);
+                this.wrapper.appendChild(canvasWrapper);
+            }
+
+            saveToData() { this.data = this.canvas.toDataURL('image/png'); }
+            save() { return { image: this.data, baseImage: this.baseImage }; }
+        }
+
+        // --- 3. Custom Block Tool: Whiteboard ---
+        class WhiteboardTool extends AnnotatedPhotoTool {
+            static get toolbox() { return { title: 'Whiteboard', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg>' }; }
+            
+            render() {
+                if (!this.baseImage && !this.data) {
+                    const offCanvas = document.createElement('canvas');
+                    offCanvas.width = 700; offCanvas.height = 400;
+                    this.baseImage = offCanvas.toDataURL('image/png');
+                    this.data = this.baseImage;
+                }
+                this.buildEditor();
+                
+                setTimeout(() => {
+                    const btn = this.wrapper.querySelector('.canvas-clear');
+                    if(btn) btn.innerText = 'Clear Canvas';
+                }, 10);
+                
+                return this.wrapper;
+            }
+        }
+
+        // --- 4. Custom Block Tool: Voice Memo ---
+        class VoiceMemo {
+            static get toolbox() { return { title: 'Voice Memo', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>' }; }
+            constructor({data}) {
+                this.data = data.url || null; this.recorder = null; this.chunks = [];
+                this.nodes = { wrapper: document.createElement('div'), button: document.createElement('button'), audio: document.createElement('audio'), status: document.createElement('div') };
+            }
+            render() {
+                this.nodes.wrapper.className = 'v-memo';
+                this.nodes.button.className = 'v-memo__btn';
+                this.nodes.button.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4" fill="currentColor"></circle></svg>';
+                this.nodes.status.className = 'v-memo__status';
+                this.nodes.status.innerText = this.data ? 'Recording saved' : 'Click to record audio';
+                this.nodes.audio.controls = true;
+                
+                if (this.data) this.nodes.audio.src = this.data; else this.nodes.audio.style.display = 'none';
+                this.nodes.button.onclick = () => this.toggleRecording();
+                this.nodes.wrapper.append(this.nodes.button, this.nodes.status, this.nodes.audio);
+                return this.nodes.wrapper;
+            }
+            async toggleRecording() {
+                if (this.recorder && this.recorder.state === 'recording') {
+                    this.recorder.stop(); this.nodes.button.classList.remove('recording'); this.nodes.status.innerText = 'Processing...';
+                } else {
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        this.recorder = new MediaRecorder(stream); this.chunks = [];
+                        this.recorder.ondataavailable = (e) => this.chunks.push(e.data);
+                        this.recorder.onstop = () => {
+                            const blob = new Blob(this.chunks, { type: 'audio/ogg; codecs=opus' });
+                            const reader = new FileReader();
+                            reader.onloadend = () => { this.data = reader.result; this.nodes.audio.src = this.data; this.nodes.audio.style.display = 'block'; this.nodes.status.innerText = 'Saved'; };
+                            reader.readAsDataURL(blob);
+                        };
+                        this.recorder.start();
+                        this.nodes.button.classList.add('recording'); this.nodes.status.innerText = 'Recording...'; this.nodes.audio.style.display = 'none';
+                    } catch (err) { this.nodes.status.innerText = 'Mic access denied'; }
+                }
+            }
+            save() { return { url: this.data }; }
+        }
+
+        // --- Editor Initialization ---
         const defaultData = {
             blocks: [
-                { type: "header", data: { text: "The Ultimate Infinite Canvas", level: 1 } },
-                { type: "paragraph", data: { text: "Welcome to your distraction-free void. The UI is completely hidden. Just scroll down and type forever." } },
-                { type: "alert", data: { type: "primary", message: "<b>New Feature:</b> Drag & Drop is now enabled. Grab the 6-dot menu to the left of any block to rearrange your notes." } },
-                { type: "paragraph", data: { text: "We've also added <font color=\"#3b82f6\">Text Colors</font>, <u>Underlines</u>, and full <mark>Undo/Redo</mark> (Ctrl+Z) support." } },
-                { type: "toggle", data: { text: "Click here to expand the list of new tools!", status: "closed", items: [
-                    { type: "list", data: { style: "unordered", items: [
-                        { content: "Nested Lists (Press Tab inside a list!)", items: [
-                            { content: "Like this sub-bullet", items: [] },
-                            { content: "And this one", items: [] }
-                        ]},
-                        { content: "Alert / Callout Boxes", items: [] },
-                        { content: "Interactive Buttons", items: [] },
-                        { content: "Toggle Blocks (You're looking at one)", items: [] },
-                        { content: "Text Color & Underline", items: [] }
-                    ]}}
-                ]}},
-                { type: "delimiter", data: {} },
-                { type: "button", data: { text: "Learn Editor.js", link: "https://editorjs.io" } },
-                { type: "quote", data: { text: "We have reached maximum block capacity.", caption: "The Developer", alignment: "left" } },
+                { type: "header", data: { text: "The Flat Editor", level: 1 } },
+                { type: "paragraph", data: { text: "The menus, dropdowns, and search bars are all fully unified into the dark flat theme now!" } }
             ]
         };
 
-        function getStoredEditorData() {
-            const savedData = localStorage.getItem(STORAGE_KEY);
-
-            if (!savedData) {
-                return defaultData;
-            }
-
-            try {
-                return JSON.parse(savedData);
-            } catch (error) {
-                console.error('Failed to parse saved editor data. Resetting to defaults.', error);
-                localStorage.removeItem(STORAGE_KEY);
-                return defaultData;
-            }
-        }
+        const inlineToolbarConfig = ['emoji', 'Marker', 'inlineCode', 'underline', 'Color', 'link'];
 
         function buildTools() {
-            const tools = {
-                header: { class: Header, inlineToolbar: inlineToolbarConfig, config: { levels: [1, 2, 3, 4], defaultLevel: 2 } },
-                list: { class: NestedList, inlineToolbar: inlineToolbarConfig, config: { defaultStyle: 'unordered' } },
+            return {
+                header: { class: Header, inlineToolbar: inlineToolbarConfig, config: { levels: [1, 2, 3], defaultLevel: 2 } },
+                list: { class: NestedList, inlineToolbar: inlineToolbarConfig },
                 checklist: { class: Checklist, inlineToolbar: inlineToolbarConfig },
                 quote: { class: Quote, inlineToolbar: inlineToolbarConfig },
-                code: { class: CodeTool },
-                embed: { class: Embed, inlineToolbar: true, config: { services: { youtube: true, codepen: true, twitter: true } } },
-                table: { class: Table, inlineToolbar: inlineToolbarConfig },
-                delimiter: { class: Delimiter },
-                warning: { class: Warning, inlineToolbar: inlineToolbarConfig },
-                raw: { class: RawTool },
-                image: { class: SimpleImage },
-                alert: { class: Alert, inlineToolbar: inlineToolbarConfig, config: { defaultType: 'primary', messagePlaceholder: 'Enter callout text' } },
-                toggle: { class: ToggleBlock, inlineToolbar: true },
-                Marker: { class: Marker, shortcut: 'CMD+SHIFT+M' },
-                inlineCode: { class: InlineCode, shortcut: 'CMD+SHIFT+C' },
-                underline: { class: Underline, shortcut: 'CMD+U' }
-            };
-
-            if (window.ColorPlugin) {
-                tools.Color = {
-                    class: window.ColorPlugin,
-                    config: {
-                        colorCollections: ['#EF4444','#F97316','#F59E0B','#10B981','#3B82F6','#6366F1','#8B5CF6','#EC4899','#111827','#6B7280'],
-                        defaultColor: '#111827',
-                        type: 'text',
-                        customPicker: true
-                    }
-                };
-            }
-
-            return tools;
-        }
-
-        let editorData = getStoredEditorData();
-
-        // Shared Inline Toolbar configuration to ensure all tools get colors, highlights, etc.
-        const inlineToolbarConfig = ['Marker', 'inlineCode', 'underline', 'Color', 'link'];
-
-        let editor;
-
-        function createEditor(data) {
-            editor = new EditorJS({
-                holder: 'editorjs',
-                placeholder: 'Type \'/\' for commands or hit Tab...',
-                data,
-                tools: buildTools(),
-
-                // Wait for the editor to initialize, then attach DragDrop and Undo
-                onReady: () => {
-                    if (typeof Undo === 'function') {
-                        new Undo({ editor });
-                    }
-
-                    if (typeof DragDrop === 'function') {
-                        new DragDrop(editor);
-                    }
-
-                    console.log('Canvas ready');
-                },
-
-                // Auto-save silently to browser memory
-                onChange: async () => {
-                    try {
-                        const outputData = await editor.save();
-                        localStorage.setItem(STORAGE_KEY, JSON.stringify(outputData));
-                    } catch (error) {
-                        console.error('Failed to save editor data.', error);
-                    }
+                code: CodeTool,
+                embed: Embed,
+                table: Table,
+                delimiter: Delimiter,
+                warning: Warning,
+                alert: Alert,
+                toggle: ToggleBlock,
+                
+                // Custom Suite
+                annotatedPhoto: AnnotatedPhotoTool,
+                whiteboard: WhiteboardTool,
+                voice: VoiceMemo,
+                emoji: EmojiInlineTool,
+                
+                // Formatting
+                Marker: Marker,
+                inlineCode: InlineCode,
+                underline: Underline,
+                Color: { 
+                    class: window.ColorPlugin, 
+                    config: { 
+                        colorCollections: ['#EF4444','#F59E0B','#10B981','#3B82F6','#111827', '#F3F4F6'], 
+                        defaultColor: '#111827', 
+                        type: 'text' 
+                    } 
                 }
-            });
-
-            return editor.isReady;
+            };
         }
 
-        createEditor(editorData).catch((error) => {
-            console.error('Editor failed to initialize. Resetting saved data.', error);
-            localStorage.removeItem(STORAGE_KEY);
-            document.getElementById('editorjs').innerHTML = '';
-            editorData = defaultData;
-
-            createEditor(defaultData).catch((fallbackError) => {
-                console.error('Editor failed to initialize with default data.', fallbackError);
-            });
+        const editor = new EditorJS({
+            holder: 'editorjs',
+            placeholder: 'Type "/" for commands...',
+            data: localStorage.getItem(STORAGE_KEY) ? JSON.parse(localStorage.getItem(STORAGE_KEY)) : defaultData,
+            tools: buildTools(),
+            onReady: () => {
+                if (typeof Undo !== 'undefined') new Undo({ editor });
+                if (typeof DragDrop !== 'undefined') new DragDrop(editor);
+                
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('.ce-inline-toolbar')) {
+                        document.querySelectorAll('.emoji-picker-wrapper').forEach(p => p.style.display = 'none');
+                    }
+                });
+            },
+            onChange: async () => {
+                const outputData = await editor.save();
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(outputData));
+            }
         });
     </script>
 </body>
 </html>
-
