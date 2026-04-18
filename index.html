@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
-    <!-- PWA & Mobile Web App Meta Tags -->
     <title>Infinite Notes</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -12,27 +11,22 @@
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#121212">
     
-    <!-- Dynamic Manifest & Icons -->
     <link id="pwa-manifest" rel="manifest" href="">
     <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzAwMDAwMCI+PHBhdGggZD0iTTE0IDJINmEyIDIgMCAwIDAtMiAydjE2YTIgMiAwIDAgMCAyIDJoMTJhMiAyIDAgMCAwIDItMlY4bC02LTZ6Ii8+PC9zdmc+">
 
-    <!-- Editor.js Core & Official Core Plugins ONLY -->
+    <!-- Editor.js Core & Core Plugins -->
     <script src="https://cdn.jsdelivr.net/npm/@editorjs/editorjs@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@editorjs/header@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@editorjs/nested-list@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@editorjs/checklist@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@editorjs/quote@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@editorjs/code@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@editorjs/table@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@editorjs/delimiter@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/editorjs-toggle-block@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/editorjs-alert@latest"></script>
-
-    <!-- Emoji Picker Element -->
-    <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1/index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/editorjs-drag-drop@latest"></script>
 
     <style>
-        /* --- Standardized Pure Flat Theme Variables --- */
+        /* --- Standardized Theme Variables --- */
         :root {
             --bg-color: #ffffff;
             --text-color: #000000;
@@ -71,122 +65,91 @@
         body { background-color: var(--bg-color); color: var(--text-color); font-family: var(--font-main); margin: 0; padding: 0; line-height: 1.6; width: 100vw; overflow-x: hidden; }
         #editorjs { max-width: 750px; width: 100%; margin: 0 auto; padding: calc(10vh + var(--safe-area-top)) 20px 65vh 20px; box-sizing: border-box; }
         ::-webkit-scrollbar { width: 0px; background: transparent; }
-        ::-webkit-scrollbar:horizontal { display: none; }
-        .ce-block__content, .ce-toolbar__content { max-width: 100% !important; }
-        svg { flex-shrink: 0; }
-
+        
         .ce-toolbar__plus, .ce-toolbar__settings-btn { background-color: var(--bg-color) !important; color: var(--text-color) !important; border: 1px solid transparent; }
         .ce-toolbar__plus:hover, .ce-toolbar__settings-btn:hover { background-color: var(--editor-hover-bg) !important; border-color: var(--border-color); }
-        .ce-popover__overlay, .ce-popover-overlay, .cdx-overlay { background: var(--overlay-bg) !important; background-color: var(--overlay-bg) !important; box-shadow: none !important; backdrop-filter: none !important; }
-
-        /* Icon Standardizations */
+        .ce-popover__overlay, .cdx-overlay { background: var(--overlay-bg) !important; box-shadow: none !important; backdrop-filter: none !important; }
         .ce-popover-item__icon svg { width: var(--std-icon-size) !important; height: var(--std-icon-size) !important; }
-        .ce-popover-item__title { font-size: 14px !important; font-weight: 500 !important; }
+
+        /* --- GLOBAL EDITOR STYLES & CLEANUP --- */
+        
+        /* Global Smartlink Style */
+        .ce-block__content a {
+            color: #3B82F6;
+            text-decoration: underline;
+            cursor: pointer;
+            word-break: break-word;
+        }
+
+        /* Completely hide the inline formatting popup */
+        .ce-inline-toolbar { display: none !important; }
+
+        /* Hide default move up/down block settings (Replaced by native Drag & Drop) */
+        div[data-item-name="move-up"],
+        div[data-item-name="move-down"],
+        .ce-settings__button[data-tune="moveUp"],
+        .ce-settings__button[data-tune="moveDown"] { display: none !important; }
 
         @media (prefers-color-scheme: dark) {
-            .ce-popover, .ce-popover__container, .ce-popover__panel, .ce-popover__items, .ce-inline-toolbar, .ce-conversion-toolbar, .ce-settings, .ce-tooltip, .tc-popover { background: var(--editor-toolbar-bg) !important; background-color: var(--editor-toolbar-bg) !important; border-color: var(--border-color) !important; }
-            .ce-popover-item, .ce-inline-tool, .ce-conversion-tool, .ce-settings__button { background-color: transparent !important; color: var(--text-color) !important; }
-            .ce-popover-item__title { color: var(--text-color) !important; }
-            .ce-popover-item:hover, .ce-inline-tool:hover, .ce-conversion-tool:hover, .ce-settings__button:hover { background-color: var(--editor-hover-bg) !important; }
-            .ce-popover-item__icon, .ce-popover-item__icon--active, .ce-popover__item-icon { background-color: var(--muted-bg) !important; color: var(--text-color) !important; box-shadow: none !important; border-color: var(--border-color) !important; }
-            .cdx-search-field, .cdx-input { background-color: var(--muted-bg) !important; color: var(--text-color) !important; border: 1px solid var(--border-color) !important; box-shadow: none !important; }
-            .cdx-search-field__icon { color: var(--muted-text) !important; }
+            .ce-popover, .ce-settings, .tc-popover { background: var(--editor-toolbar-bg) !important; border-color: var(--border-color) !important; box-shadow: none !important; }
+            .ce-popover-item { color: var(--text-color) !important; }
+            .ce-popover-item:hover { background-color: var(--editor-hover-bg) !important; }
+            .ce-popover-item__icon { background-color: var(--muted-bg) !important; color: var(--text-color) !important; border-color: var(--border-color) !important; }
+            .cdx-search-field { background-color: var(--muted-bg) !important; color: var(--text-color) !important; border-color: var(--border-color) !important; }
             .ce-block--selected .ce-block__content { background-color: var(--editor-hover-bg) !important; }
             ::selection { background: #444444 !important; color: #ffffff; }
-            .ce-code__textarea { background: var(--muted-bg) !important; color: var(--text-color) !important; border: 1px solid var(--border-color) !important; }
-            
-            /* Table Dark Mode Fixes */
-            .tc-wrap, .tc-row::after, .tc-cell { border-color: var(--border-color) !important; }
-            .tc-cell { background-color: var(--bg-color) !important; color: var(--text-color) !important; }
-            .tc-row--heading .tc-cell { background-color: var(--editor-hover-bg) !important; color: var(--text-color) !important; }
-            .tc-add-column, .tc-add-row { background-color: var(--muted-bg) !important; border-color: var(--border-color) !important; color: var(--text-color) !important; }
-            .tc-add-column:hover, .tc-add-row:hover { background-color: var(--editor-hover-bg) !important; }
-            
-            emoji-picker { --background: var(--editor-toolbar-bg); --border-color: var(--border-color); --input-border-color: var(--border-color); --category-icon-color: var(--muted-text); }
+            .tc-cell { border-color: var(--border-color) !important; background-color: var(--bg-color) !important; color: var(--text-color) !important; }
         }
 
         .tc-wrap { overflow-x: auto; width: 100%; max-width: 100%; box-sizing: border-box; }
 
-        /* --- OVERRIDE NATIVE MOBILE BOTTOM SHEET --- */
-        /* Editor.js natively forces popovers to the bottom on screens < 650px. This defeats that and forces them under the buttons. */
         @media (max-width: 650px) {
-            .ce-popover, .ce-settings, .ce-inline-toolbar, .ce-conversion-toolbar, .tc-popover {
-                position: absolute !important; /* Break out of fixed bottom sheet */
-                bottom: auto !important; /* Release the bottom anchor */
-                right: auto !important;
-                transform: none !important; /* Remove bottom-sheet translate animations */
-                width: 260px !important; /* Desktop-like compact width */
-                max-width: calc(100vw - 40px) !important;
-                border-radius: var(--std-border-radius) !important;
-                box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important;
-                margin-top: 8px !important; /* Add a nice tooltip gap */
-            }
-            @media (prefers-color-scheme: dark) {
-                .ce-popover, .ce-settings, .ce-inline-toolbar, .ce-conversion-toolbar, .tc-popover {
-                    box-shadow: 0 4px 20px rgba(0,0,0,0.6) !important;
-                }
-            }
-            /* Hide the full-screen transparent overlay Editor.js adds on mobile */
-            .ce-popover__overlay, .ce-popover-overlay, .cdx-overlay {
-                display: none !important;
+            .ce-popover, .ce-settings {
+                bottom: var(--keyboard-offset, 0px) !important;
+                max-height: calc(100vh - var(--keyboard-offset, 0px) - 20px) !important;
+                transition: bottom 0.2s cubic-bezier(0.1, 0.7, 0.1, 1);
             }
         }
 
-        /* --- STANDARDIZED Custom Tools Framework --- */
+        /* --- BASE BLOCK ARCHITECTURE STYLES --- */
         .custom-block-wrapper { margin: var(--std-margin); border-radius: var(--std-border-radius); border: 1px solid var(--border-color); background: var(--bg-color); box-sizing: border-box; width: 100%; overflow: hidden; }
+        .custom-block-wrapper svg { flex-shrink: 0; }
+        .cb-inner { padding: var(--std-padding); }
 
-        /* General Button Styles */
-        .cal-btn { padding: 8px 12px; background: transparent; border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-color); cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; }
-        .cal-btn:hover { background: var(--editor-hover-bg); }
-        .cal-btn.primary { background: var(--text-color); color: var(--bg-color); border-color: var(--text-color); }
-        .cal-btn.primary:hover { opacity: 0.9; }
-        .cal-btn.granted { background: #10B981; color: white; border-color: #10B981; }
+        .cb-btn { padding: 8px 12px; background: transparent; border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-color); cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; font-family: inherit; }
+        .cb-btn svg { width: 16px; height: 16px; }
+        .cb-btn:hover { background: var(--editor-hover-bg); }
+        .cb-btn.primary { background: var(--text-color); color: var(--bg-color); border-color: var(--text-color); }
+        .cb-btn.success { background: #10B981; color: white; border-color: #10B981; }
+        .cb-btn.danger { background: #EF4444; color: white; border-color: #EF4444; }
+        .cb-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        /* Calendar Tool */
-        .cal-wrapper { padding: var(--std-padding); display: flex; flex-direction: column; gap: 12px; }
-        .cal-header { display: flex; align-items: center; gap: 10px; }
-        .cal-header svg { color: var(--text-color); }
+        /* Component-Specific Overrides */
+        .cal-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
         .cal-title { flex-grow: 1; border: none; background: transparent; color: var(--text-color); font-size: 16px; font-weight: 500; outline: none; font-family: inherit; }
-        .cal-display-btn { border: 1px solid var(--border-color); background: var(--muted-bg); color: var(--text-color); border-radius: 6px; padding: 8px 12px; font-family: inherit; font-size: 14px; outline: none; cursor: pointer; text-align: left; display: flex; align-items: center; justify-content: space-between; }
-        .cal-display-btn:hover { background: var(--editor-hover-bg); }
-        .cal-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-        .cal-actions .cal-btn { flex: 1; }
-        
-        .cp-container { border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; background: var(--bg-color); margin-top: 4px; display: none; }
+        .cp-container { border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; background: var(--bg-color); margin: 8px 0; display: none; }
         .cp-container.open { display: block; animation: fadeIn 0.2s ease; }
         .cp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: bold; }
-        .cp-header button { background: var(--muted-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px; width: 28px; height: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .cp-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 11px; color: var(--muted-text); margin-bottom: 4px; font-weight: 600; }
-        .cp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
-        .cp-day { padding: 6px 0; text-align: center; font-size: 13px; cursor: pointer; border-radius: 4px; color: var(--text-color); }
+        .cp-weekdays, .cp-grid { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; }
+        .cp-weekdays { font-size: 11px; color: var(--muted-text); font-weight: 600; margin-bottom: 4px; }
+        .cp-day { padding: 6px 0; font-size: 13px; cursor: pointer; border-radius: 4px; color: var(--text-color); }
         .cp-day:hover { background: var(--editor-hover-bg); }
         .cp-day.active { background: var(--text-color); color: var(--bg-color); font-weight: bold; }
         .cp-day.muted { color: var(--border-color); pointer-events: none; }
-        
-        .cp-time { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color); }
-        .cp-time input, .cp-time select { background: var(--muted-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px; padding: 4px 8px; font-family: inherit; font-size: 14px; outline: none; }
-        .cp-time input[type="number"] { width: 40px; text-align: center; }
+        .cp-time { display: flex; justify-content: center; gap: 6px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color); }
+        .cp-time input, .cp-time select { background: var(--muted-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px; padding: 4px; font-family: inherit; }
 
-        /* Voice Memo */
-        .v-memo { padding: var(--std-padding); display: flex; align-items: center; gap: 12px; }
-        .v-memo__btn { width: var(--std-control-height); height: var(--std-control-height); border-radius: 50%; border: 1px solid var(--border-color); background: var(--muted-bg); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-color); flex-shrink: 0; min-width: var(--std-control-height); transition: all 0.2s; }
-        .v-memo__btn svg { width: 16px; height: 16px; } 
-        .v-memo__btn:hover { background: var(--editor-hover-bg); }
+        .v-memo-container { display: flex; align-items: center; gap: 12px; }
+        .v-memo__btn { width: var(--std-control-height); height: var(--std-control-height); border-radius: 50%; border: 1px solid var(--border-color); background: var(--muted-bg); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-color); flex-shrink: 0; }
         .v-memo__btn.recording { color: #ffffff; border-color: #ef4444; background: #ef4444; animation: pulse 1.5s infinite; }
         .v-memo__btn.playing { color: #ffffff; border-color: #3B82F6; background: #3B82F6; }
-        .v-memo__status { font-size: 14px; color: var(--muted-text); flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
-        
-        /* Canvas Tool */
-        .canvas-wrapper { width: 100%; display: flex; justify-content: center; background: var(--bg-color); }
-        canvas { touch-action: none; background: transparent; cursor: crosshair; display: block; max-width: 100%; height: auto !important; }
-        .canvas-color-grid { display: flex; gap: 12px; width: 100%; justify-content: space-between; padding: 6px 12px; box-sizing: border-box; }
-        .canvas-color-setting { width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--border-color); cursor: pointer; padding: 0; transition: transform 0.1s; background-clip: padding-box; }
-        .canvas-color-setting.active { transform: scale(1.15); box-shadow: 0 0 0 2px var(--editor-toolbar-bg), 0 0 0 4px var(--text-color); border-color: transparent; }
 
-        .emoji-picker-wrapper { position: absolute; top: 40px; left: -100px; z-index: 10000; border: 1px solid var(--border-color); border-radius: var(--std-border-radius); display: none; background: var(--editor-toolbar-bg); max-width: 90vw; }
-        emoji-picker { --num-columns: 6; --emoji-size: 1.2rem; width: 100%; }
+        .canvas-wrapper { width: 100%; display: flex; justify-content: center; position: relative; }
+        .canvas-color-grid { display: flex; gap: 12px; width: 100%; justify-content: space-between; padding: 6px 12px; box-sizing: border-box; margin-bottom: 8px;}
+        .canvas-color-setting { width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--border-color); cursor: pointer; transition: transform 0.1s; }
+        .canvas-color-setting.active { transform: scale(1.15); box-shadow: 0 0 0 2px var(--editor-toolbar-bg), 0 0 0 4px var(--text-color); }
 
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
@@ -196,427 +159,385 @@
 
     <script>
         const STORAGE_KEY = 'ultimate_notes_pure_flat_v6';
+        window.CalendarInstances = new Set();
 
-        // --- PWA Setup ---
-        const pwaManifest = {
-            "name": "Infinite Notes",
-            "short_name": "Notes",
-            "start_url": ".",
-            "display": "standalone",
-            "background_color": window.matchMedia('(prefers-color-scheme: dark)').matches ? "#121212" : "#ffffff",
-            "theme_color": window.matchMedia('(prefers-color-scheme: dark)').matches ? "#121212" : "#ffffff",
-            "icons": [{
-                "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzAwMDAwMCI+PHBhdGggZD0iTTE0IDJINmEyIDIgMCAwIDAtMiAydjE2YTIgMiAwIDAgMCAyIDJoMTJhMiAyIDAgMCAwIDItMlY4bC02LTZ6Ii8+PC9zdmc+",
-                "sizes": "192x192",
-                "type": "image/svg+xml"
-            }]
-        };
-        const manifestString = JSON.stringify(pwaManifest);
-        document.getElementById('pwa-manifest').setAttribute('href', 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(manifestString));
-
-        // --- Mobile Keyboard Fix Engine ---
-        if (window.visualViewport) {
-            const updateKeyboardOffset = () => {
-                const offset = window.innerHeight - window.visualViewport.height;
-                const safeOffset = Math.max(0, offset);
-                document.documentElement.style.setProperty('--keyboard-offset', `${safeOffset}px`);
-                if (safeOffset > 100) {
-                    setTimeout(() => {
-                        const activeBlock = document.querySelector('.ce-block--focused');
-                        if (activeBlock) activeBlock.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }, 150);
-                }
-            };
-            window.visualViewport.addEventListener('resize', updateKeyboardOffset);
-            window.visualViewport.addEventListener('scroll', updateKeyboardOffset);
-            updateKeyboardOffset();
-        }
-
-        // --- Global Notification Engine ---
-        setInterval(() => {
-            if (Notification.permission !== 'granted') return;
-            const dataStr = localStorage.getItem(STORAGE_KEY);
-            if (!dataStr) return;
-            try {
-                const doc = JSON.parse(dataStr);
-                let modified = false;
-                
-                doc.blocks.forEach(block => {
-                    if (block.type === 'calendar' && block.data.datetime && !block.data.notified) {
-                        const eventTime = new Date(block.data.datetime).getTime();
-                        const now = new Date().getTime();
-                        
-                        if (eventTime <= now) {
-                            new Notification('Note Reminder', {
-                                body: block.data.title || 'Scheduled Event Reached',
-                                icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzAwMDAwMCI+PHBhdGggZD0iTTE0IDJINmEyIDIgMCAwIDAtMiAydjE2YTIgMiAwIDAgMCAyIDJoMTJhMiAyIDAgMCAwIDItMlY4bC02LTZ6Ii8+PC9zdmc+'
-                            });
-                            block.data.notified = true;
-                            modified = true;
-                        }
-                    }
-                });
-
-                if (modified) localStorage.setItem(STORAGE_KEY, JSON.stringify(doc));
-            } catch (e) { }
-        }, 5000); 
-
-        // --- Standard Custom Icons ---
+        // --- Standardized Centralized Asset Library ---
         const ICONS = {
             mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>',
             stop: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"></rect></svg>',
             play: '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>',
             pause: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect></svg>',
             image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>',
-            trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>',
-            download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>'
+            trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>',
+            download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>',
+            calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>',
+            bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>',
+            chevronDown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>',
+            brush: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg>'
         };
 
-        // --- NEW: Custom Block Tool: JSON Backup Exporter ---
-        class BackupTool {
-            static get toolbox() { return { title: 'Export Backup', icon: ICONS.download }; }
-
-            constructor({data, api}) {
+        // --- CORE BASE BLOCK CLASS ---
+        class BaseEditorBlock {
+            constructor({ data, api, config }) {
                 this.api = api;
-                this.wrapper = document.createElement('div');
+                this.config = config || {};
+                this.data = data || {};
+                this.wrapper = null;
             }
 
             render() {
-                this.wrapper.className = 'custom-block-wrapper cal-wrapper'; 
-                this.wrapper.style.cursor = 'pointer';
-                this.wrapper.style.transition = 'background 0.2s';
-                
-                this.wrapper.innerHTML = `
-                    <div style="display: flex; align-items: center; justify-content: space-between;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <div style="background: var(--text-color); color: var(--bg-color); padding: 8px; border-radius: 50%; display: flex; width: 20px; height: 20px; align-items: center; justify-content: center;">
-                                ${ICONS.download}
-                            </div>
-                            <div>
-                                <div style="font-weight: 600; font-size: 15px;">Backup Note Data</div>
-                                <div style="font-size: 12px; color: var(--muted-text);">Export state as JSON file</div>
-                            </div>
-                        </div>
-                        <button class="cal-btn primary" style="flex: 0; margin: 0; pointer-events: none;">Save</button>
-                    </div>
-                `;
-
-                this.wrapper.onmouseover = () => this.wrapper.style.background = 'var(--editor-hover-bg)';
-                this.wrapper.onmouseout = () => this.wrapper.style.background = 'var(--bg-color)';
-
-                this.wrapper.onclick = async () => {
-                    const outputData = await this.api.saver.save();
-                    const dataStr = JSON.stringify(outputData, null, 2);
-                    const blob = new Blob([dataStr], { type: "application/json" });
-                    const url = URL.createObjectURL(blob);
-                    
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `Infinite_Notes_Backup_${new Date().toISOString().split('T')[0]}.json`;
-                    
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                    
-                    const btn = this.wrapper.querySelector('button');
-                    btn.innerText = "Saved!";
-                    btn.classList.add('granted');
-                    setTimeout(() => {
-                        btn.innerText = "Save";
-                        btn.classList.remove('granted');
-                    }, 2000);
-                };
-
-                return this.wrapper;
-            }
-
-            save() { return {}; } 
-        }
-
-        // --- 1. Custom Block Tool: Calendar & Custom Date Picker ---
-        class CalendarTool {
-            static get toolbox() { return { title: 'Calendar Event', icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>' }; }
-            
-            constructor({data}) {
-                this.data = {
-                    title: data.title || '',
-                    datetime: data.datetime || new Date().toISOString(),
-                    notified: data.notified || false
-                };
-                this.wrapper = document.createElement('div');
-                this.viewDate = new Date(this.data.datetime); 
-            }
-
-            formatDisplayDate() {
-                const d = new Date(this.data.datetime);
-                const datePart = d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-                const timePart = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-                return `${datePart} at ${timePart}`;
-            }
-
-            render() {
-                this.wrapper.className = 'custom-block-wrapper cal-wrapper';
-                const isGranted = typeof Notification !== 'undefined' && Notification.permission === 'granted';
-
-                this.wrapper.innerHTML = `
-                    <div class="cal-header">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                        <input type="text" class="cal-title" placeholder="Event Name / Reminder..." value="${this.data.title}">
-                    </div>
-                    <button class="cal-display-btn">
-                        <span class="cal-display-text">${this.formatDisplayDate()}</span>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                    </button>
-                    <div class="cp-container">
-                        <div class="cp-header">
-                            <button class="cp-prev">&lt;</button>
-                            <span class="cp-month-label">Month Year</span>
-                            <button class="cp-next">&gt;</button>
-                        </div>
-                        <div class="cp-weekdays">
-                            <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
-                        </div>
-                        <div class="cp-grid"></div>
-                        <div class="cp-time">
-                            <input type="number" class="cp-hour" min="1" max="12"> : 
-                            <input type="number" class="cp-minute" min="0" max="59">
-                            <select class="cp-ampm"><option value="AM">AM</option><option value="PM">PM</option></select>
-                        </div>
-                    </div>
-                    <div class="cal-actions">
-                        <button class="cal-btn cal-export-btn primary">
-                            ${ICONS.download} Add to Calendar
-                        </button>
-                        <button class="cal-btn cal-notify-btn ${isGranted ? 'granted' : ''}">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-                            ${isGranted ? 'On' : 'Notify'}
-                        </button>
-                    </div>
-                `;
-
-                const titleInput = this.wrapper.querySelector('.cal-title');
-                const displayBtn = this.wrapper.querySelector('.cal-display-btn');
-                const displayTxt = this.wrapper.querySelector('.cal-display-text');
-                const picker = this.wrapper.querySelector('.cp-container');
-                const grid = this.wrapper.querySelector('.cp-grid');
-                const monthLabel = this.wrapper.querySelector('.cp-month-label');
-                const hourInput = this.wrapper.querySelector('.cp-hour');
-                const minInput = this.wrapper.querySelector('.cp-minute');
-                const ampmInput = this.wrapper.querySelector('.cp-ampm');
-
-                titleInput.oninput = (e) => { this.data.title = e.target.value; };
-                displayBtn.onclick = () => { picker.classList.toggle('open'); this.renderGrid(); };
-
-                this.renderGrid = () => {
-                    const activeDate = new Date(this.data.datetime);
-                    const year = this.viewDate.getFullYear();
-                    const month = this.viewDate.getMonth();
-                    
-                    monthLabel.innerText = this.viewDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-                    
-                    let h = activeDate.getHours();
-                    const ampm = h >= 12 ? 'PM' : 'AM';
-                    h = h % 12 || 12; 
-                    hourInput.value = h;
-                    minInput.value = activeDate.getMinutes().toString().padStart(2, '0');
-                    ampmInput.value = ampm;
-
-                    grid.innerHTML = '';
-                    const firstDay = new Date(year, month, 1).getDay();
-                    const daysInMonth = new Date(year, month + 1, 0).getDate();
-                    
-                    for (let i = 0; i < firstDay; i++) {
-                        const empty = document.createElement('div');
-                        empty.className = 'cp-day muted';
-                        grid.appendChild(empty);
-                    }
-                    
-                    for (let i = 1; i <= daysInMonth; i++) {
-                        const dayEl = document.createElement('div');
-                        dayEl.className = 'cp-day';
-                        dayEl.innerText = i;
-                        if (activeDate.getFullYear() === year && activeDate.getMonth() === month && activeDate.getDate() === i) {
-                            dayEl.classList.add('active');
-                        }
-                        dayEl.onclick = () => {
-                            const newDate = new Date(this.data.datetime);
-                            newDate.setFullYear(year, month, i);
-                            this.updateDateTime(newDate);
-                            this.renderGrid(); 
-                        };
-                        grid.appendChild(dayEl);
-                    }
-                };
-
-                this.updateDateTime = (newDateObj) => {
-                    this.data.datetime = newDateObj.toISOString();
-                    this.data.notified = false;
-                    displayTxt.innerText = this.formatDisplayDate();
-                };
-
-                const handleTimeChange = () => {
-                    const newDate = new Date(this.data.datetime);
-                    let h = parseInt(hourInput.value) || 12;
-                    const m = parseInt(minInput.value) || 0;
-                    const ampm = ampmInput.value;
-                    
-                    if (h === 12 && ampm === 'AM') h = 0;
-                    if (h < 12 && ampm === 'PM') h += 12;
-                    newDate.setHours(h, m);
-                    this.updateDateTime(newDate);
-                };
-
-                hourInput.onchange = handleTimeChange;
-                minInput.onchange = handleTimeChange;
-                ampmInput.onchange = handleTimeChange;
-
-                this.wrapper.querySelector('.cp-prev').onclick = () => { this.viewDate.setMonth(this.viewDate.getMonth() - 1); this.renderGrid(); };
-                this.wrapper.querySelector('.cp-next').onclick = () => { this.viewDate.setMonth(this.viewDate.getMonth() + 1); this.renderGrid(); };
-
-                this.wrapper.querySelector('.cal-export-btn').onclick = () => {
-                    const start = new Date(this.data.datetime);
-                    const end = new Date(start.getTime() + 60 * 60 * 1000); 
-                    const formatICS = (date) => date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-                    const icsContent = [
-                        'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Infinite Notes//EN', 'BEGIN:VEVENT',
-                        `DTSTART:${formatICS(start)}`, `DTEND:${formatICS(end)}`,
-                        `SUMMARY:${this.data.title || 'Note Event'}`,
-                        'END:VEVENT', 'END:VCALENDAR'
-                    ].join('\n');
-
-                    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `${this.data.title ? this.data.title.replace(/\s+/g, '_') : 'event'}.ics`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                };
-
-                const notifyBtn = this.wrapper.querySelector('.cal-notify-btn');
-                notifyBtn.onclick = async () => {
-                    if (!('Notification' in window)) return alert('Your browser does not support notifications.');
-                    if (Notification.permission === 'granted') return alert('Notifications active! Keep app open to receive them.');
-                    const permission = await Notification.requestPermission();
-                    if (permission === 'granted') {
-                        notifyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg> On';
-                        notifyBtn.classList.add('granted');
-                    } else { alert('Notifications blocked in device settings.'); }
-                };
-                return this.wrapper;
-            }
-            save() { return this.data; }
-        }
-
-        // --- 2. Custom Inline Tool: Emoji Picker ---
-        class EmojiInlineTool {
-            static get isInline() { return true; }
-            get shortcut() { return 'CMD+E'; }
-            constructor({api}) { this.api = api; this.button = null; this.pickerWrapper = null; this.savedRange = null; }
-
-            render() {
-                this.button = document.createElement('button');
-                this.button.type = 'button';
-                this.button.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>';
-                this.button.classList.add(this.api.styles.inlineToolButton);
-                this.button.style.position = 'relative';
-
-                this.pickerWrapper = document.createElement('div');
-                this.pickerWrapper.className = 'emoji-picker-wrapper';
-                const picker = document.createElement('emoji-picker');
-                picker.addEventListener('emoji-click', event => {
-                    this.insertEmoji(event.detail.unicode);
-                    this.pickerWrapper.style.display = 'none';
-                });
-
-                this.pickerWrapper.appendChild(picker);
-                this.button.appendChild(this.pickerWrapper);
-                return this.button;
-            }
-
-            surround(range) {
-                if (!range) return;
-                this.savedRange = range.cloneRange();
-                const isVisible = this.pickerWrapper.style.display === 'block';
-                document.querySelectorAll('.emoji-picker-wrapper').forEach(p => p.style.display = 'none');
-                this.pickerWrapper.style.display = isVisible ? 'none' : 'block';
-            }
-
-            insertEmoji(emoji) {
-                if (this.savedRange) {
-                    this.savedRange.deleteContents();
-                    const textNode = document.createTextNode(emoji);
-                    this.savedRange.insertNode(textNode);
-                    this.savedRange.setStartAfter(textNode);
-                    this.savedRange.collapse(true);
-                    const selection = window.getSelection();
-                    selection.removeAllRanges();
-                    selection.addRange(this.savedRange);
-                }
-            }
-            checkState() { return false; }
-        }
-
-        // --- 3. Minimal Custom Block Tool: Drawing & Photo Annotator ---
-        class CanvasTool {
-            static get toolbox() { return { title: 'Drawing/Photo', icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg>' }; }
-
-            constructor({data, api}) {
-                this.api = api; 
-                this.baseImage = data.baseImage || 'blank'; 
-                this.data = data.image || null; 
-                this.currentColor = 'theme-ink'; 
-                this.canvas = null;
-                this.ctx = null;
                 this.wrapper = document.createElement('div');
                 this.wrapper.className = 'custom-block-wrapper';
+                const content = this.renderContent();
+                if (content) this.wrapper.appendChild(content);
+                return this.wrapper;
+            }
+
+            save() { return this.data; }
+            renderContent() { return document.createElement('div'); }
+
+            createButton(text, iconHtml, onClick, extraClass = '') {
+                const btn = document.createElement('button');
+                btn.className = `cb-btn ${extraClass}`.trim();
+                if (iconHtml) btn.innerHTML = `${iconHtml} <span>${text}</span>`;
+                else btn.textContent = text;
+                btn.addEventListener('click', onClick);
+                return btn;
+            }
+        }
+
+        // --- BACKUP TOOL ---
+        class BackupTool extends BaseEditorBlock {
+            static get toolbox() { return { title: 'Export Backup', icon: ICONS.download }; }
+
+            renderContent() {
+                const container = document.createElement('div');
+                container.className = 'cb-inner';
+                container.style.display = 'flex';
+                container.style.justifyContent = 'space-between';
+                container.style.alignItems = 'center';
+
+                container.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="background: var(--text-color); color: var(--bg-color); border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+                            ${ICONS.download}
+                        </div>
+                        <div>
+                            <div style="font-weight: 600; font-size: 15px;">Backup Note Data</div>
+                            <div style="font-size: 12px; color: var(--muted-text);">Export state as JSON file</div>
+                        </div>
+                    </div>
+                `;
+
+                const btn = this.createButton('Save', null, () => this.executeBackup(btn), 'primary');
+                container.appendChild(btn);
+
+                this.wrapper.style.cursor = 'pointer';
+                this.wrapper.onmouseover = () => this.wrapper.style.background = 'var(--editor-hover-bg)';
+                this.wrapper.onmouseout = () => this.wrapper.style.background = 'var(--bg-color)';
+                this.wrapper.onclick = (e) => { if (e.target !== btn) btn.click(); };
+
+                return container;
+            }
+
+            async executeBackup(btnElement) {
+                const outputData = await this.api.saver.save();
+                const blob = new Blob([JSON.stringify(outputData, null, 2)], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Infinite_Notes_Backup_${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                btnElement.textContent = "Saved!";
+                btnElement.classList.add('success');
+                setTimeout(() => {
+                    btnElement.textContent = "Save";
+                    btnElement.classList.remove('success');
+                }, 2000);
+            }
+        }
+
+        // --- VOICE MEMO TOOL ---
+        class VoiceMemo extends BaseEditorBlock {
+            static get toolbox() { return { title: 'Voice Memo', icon: ICONS.mic }; }
+
+            constructor(opts) {
+                super(opts);
+                this.data = opts.data.url || null; 
+                this.recorder = null; 
+                this.chunks = [];
+                this.isPlaying = false;
+                this.isRecording = false;
+                this.audio = new Audio();
+                
+                if (this.data) this.audio.src = this.data;
+                this.audio.onplay = () => { this.isPlaying = true; this.updateUI(); };
+                this.audio.onpause = () => { this.isPlaying = false; this.updateUI(); };
+                this.audio.onended = () => { this.isPlaying = false; this.updateUI(); };
+            }
+
+            renderContent() {
+                const container = document.createElement('div');
+                container.className = 'cb-inner v-memo-container';
+
+                this.btn = document.createElement('button');
+                this.btn.className = 'v-memo__btn';
+                this.btn.onclick = () => this.handleAction();
+
+                this.statusText = document.createElement('div');
+                this.statusText.style.flexGrow = '1';
+                this.statusText.style.fontSize = '14px';
+
+                container.append(this.btn, this.statusText);
+                this.updateUI();
+                return container;
+            }
+
+            updateUI() {
+                this.btn.className = 'v-memo__btn'; 
+                if (this.isPlaying) {
+                    this.btn.innerHTML = ICONS.pause;
+                    this.statusText.innerText = 'Playing...';
+                    this.btn.classList.add('playing');
+                } else if (this.data) {
+                    this.btn.innerHTML = ICONS.play;
+                    this.statusText.innerText = 'Voice Memo (Ready)';
+                } else if (this.isRecording) {
+                    this.btn.innerHTML = ICONS.stop;
+                    this.statusText.innerText = 'Recording...';
+                    this.btn.classList.add('recording');
+                } else {
+                    this.btn.innerHTML = ICONS.mic;
+                    this.statusText.innerText = 'Click to record';
+                }
+            }
+
+            async handleAction() {
+                if (this.data) {
+                    this.isPlaying ? this.audio.pause() : this.audio.play();
+                } else {
+                    if (this.isRecording) {
+                        this.recorder.stop();
+                        this.isRecording = false;
+                        this.statusText.innerText = 'Processing...';
+                    } else {
+                        try {
+                            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                            this.recorder = new MediaRecorder(stream); this.chunks = [];
+                            this.recorder.ondataavailable = (e) => this.chunks.push(e.data);
+                            this.recorder.onstop = () => {
+                                const reader = new FileReader();
+                                reader.onloadend = () => { 
+                                    this.data = reader.result; 
+                                    this.audio.src = this.data; 
+                                    this.updateUI(); 
+                                };
+                                reader.readAsDataURL(new Blob(this.chunks, { type: 'audio/ogg; codecs=opus' }));
+                                stream.getTracks().forEach(track => track.stop());
+                            };
+                            this.recorder.start();
+                            this.isRecording = true;
+                            this.updateUI();
+                        } catch (err) { this.statusText.innerText = 'Mic access denied'; }
+                    }
+                }
+            }
+
+            destroy() {
+                if (this.recorder && this.recorder.state !== 'inactive') this.recorder.stop();
+                if (this.recorder?.stream) this.recorder.stream.getTracks().forEach(t => t.stop());
+                this.audio.pause();
+            }
+
+            save() { return { url: this.data }; }
+        }
+
+        // --- CALENDAR TOOL ---
+        class CalendarTool extends BaseEditorBlock {
+            static get toolbox() { return { title: 'Calendar Event', icon: ICONS.calendar }; }
+            
+            constructor(opts) {
+                super(opts);
+                this.data = {
+                    title: opts.data.title || '',
+                    datetime: opts.data.datetime || new Date().toISOString(),
+                    notified: opts.data.notified || false
+                };
+                this.viewDate = new Date(this.data.datetime); 
+                window.CalendarInstances.add(this);
+            }
+
+            renderContent() {
+                const container = document.createElement('div');
+                container.className = 'cb-inner';
+
+                const header = document.createElement('div');
+                header.className = 'cal-header';
+                header.innerHTML = ICONS.calendar;
+                this.titleInput = document.createElement('input');
+                this.titleInput.className = 'cal-title';
+                this.titleInput.placeholder = 'Event Name / Reminder...';
+                this.titleInput.value = this.data.title;
+                this.titleInput.oninput = (e) => this.data.title = e.target.value;
+                header.appendChild(this.titleInput);
+
+                this.displayBtn = this.createButton(this.getFormattedDate(), ICONS.chevronDown);
+                this.displayBtn.style.width = '100%';
+                this.displayBtn.style.justifyContent = 'space-between';
+                this.displayBtn.onclick = () => {
+                    this.picker.classList.toggle('open');
+                    this.renderGrid();
+                };
+
+                this.picker = document.createElement('div');
+                this.picker.className = 'cp-container';
+                this.picker.innerHTML = `
+                    <div class="cp-header">
+                        <button class="cb-btn cp-prev">&lt;</button>
+                        <span class="cp-month-label"></span>
+                        <button class="cb-btn cp-next">&gt;</button>
+                    </div>
+                    <div class="cp-weekdays"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div>
+                    <div class="cp-grid"></div>
+                    <div class="cp-time">
+                        <input type="number" class="cp-hour" min="1" max="12"> : 
+                        <input type="number" class="cp-minute" min="0" max="59">
+                        <select class="cp-ampm"><option value="AM">AM</option><option value="PM">PM</option></select>
+                    </div>
+                `;
+                
+                this.setupPickerEvents();
+
+                const actions = document.createElement('div');
+                actions.style.display = 'flex'; actions.style.gap = '8px'; actions.style.marginTop = '12px';
+                
+                const exportBtn = this.createButton('Add to Calendar', ICONS.download, () => this.exportICS(), 'primary');
+                exportBtn.style.flex = '1';
+                
+                const isGranted = typeof Notification !== 'undefined' && Notification.permission === 'granted';
+                this.notifyBtn = this.createButton(isGranted ? 'On' : 'Notify', ICONS.bell, () => this.toggleNotify(), isGranted ? 'success' : '');
+                this.notifyBtn.style.flex = '1';
+
+                actions.append(exportBtn, this.notifyBtn);
+                container.append(header, this.displayBtn, this.picker, actions);
+                return container;
+            }
+
+            getFormattedDate() {
+                const d = new Date(this.data.datetime);
+                return `${d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} at ${d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`;
+            }
+
+            setupPickerEvents() {
+                this.picker.querySelector('.cp-prev').onclick = () => { this.viewDate.setMonth(this.viewDate.getMonth() - 1); this.renderGrid(); };
+                this.picker.querySelector('.cp-next').onclick = () => { this.viewDate.setMonth(this.viewDate.getMonth() + 1); this.renderGrid(); };
+                
+                const updateTime = () => {
+                    const d = new Date(this.data.datetime);
+                    let h = parseInt(this.picker.querySelector('.cp-hour').value) || 12;
+                    if (h === 12 && this.picker.querySelector('.cp-ampm').value === 'AM') h = 0;
+                    if (h < 12 && this.picker.querySelector('.cp-ampm').value === 'PM') h += 12;
+                    d.setHours(h, parseInt(this.picker.querySelector('.cp-minute').value) || 0);
+                    this.updateDate(d);
+                };
+                
+                this.picker.querySelectorAll('input, select').forEach(el => el.onchange = updateTime);
+            }
+
+            renderGrid() {
+                const active = new Date(this.data.datetime);
+                const year = this.viewDate.getFullYear(), month = this.viewDate.getMonth();
+                
+                this.picker.querySelector('.cp-month-label').innerText = this.viewDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+                
+                let h = active.getHours();
+                this.picker.querySelector('.cp-ampm').value = h >= 12 ? 'PM' : 'AM';
+                this.picker.querySelector('.cp-hour').value = h % 12 || 12;
+                this.picker.querySelector('.cp-minute').value = active.getMinutes().toString().padStart(2, '0');
+
+                const grid = this.picker.querySelector('.cp-grid');
+                grid.innerHTML = '';
+                
+                for (let i = 0; i < new Date(year, month, 1).getDay(); i++) {
+                    const empty = document.createElement('div'); empty.className = 'cp-day muted'; grid.appendChild(empty);
+                }
+                
+                for (let i = 1; i <= new Date(year, month + 1, 0).getDate(); i++) {
+                    const day = document.createElement('div');
+                    day.className = `cp-day ${active.getFullYear() === year && active.getMonth() === month && active.getDate() === i ? 'active' : ''}`;
+                    day.innerText = i;
+                    day.onclick = () => {
+                        const d = new Date(this.data.datetime); d.setFullYear(year, month, i);
+                        this.updateDate(d); this.renderGrid();
+                    };
+                    grid.appendChild(day);
+                }
+            }
+
+            updateDate(newDateObj) {
+                this.data.datetime = newDateObj.toISOString();
+                this.data.notified = false;
+                this.displayBtn.querySelector('span').innerText = this.getFormattedDate();
+            }
+
+            exportICS() {
+                const start = new Date(this.data.datetime);
+                const end = new Date(start.getTime() + 60 * 60 * 1000); 
+                const format = (d) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+                const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART:${format(start)}\nDTEND:${format(end)}\nSUMMARY:${this.data.title || 'Note Event'}\nEND:VEVENT\nEND:VCALENDAR`;
+                
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }));
+                a.download = `${this.data.title ? this.data.title.replace(/\s+/g, '_') : 'event'}.ics`;
+                a.click();
+            }
+
+            async toggleNotify() {
+                if (!('Notification' in window)) return alert('Not supported.');
+                if (Notification.permission === 'granted') return alert('Active! Keep app open.');
+                if (await Notification.requestPermission() === 'granted') {
+                    this.notifyBtn.querySelector('span').innerText = 'On';
+                    this.notifyBtn.classList.add('success');
+                }
+            }
+
+            destroy() { window.CalendarInstances.delete(this); }
+        }
+
+        // --- CANVAS TOOL ---
+        class CanvasTool extends BaseEditorBlock {
+            static get toolbox() { return { title: 'Drawing/Photo', icon: ICONS.brush }; }
+
+            constructor(opts) {
+                super(opts);
+                this.baseImage = this.data.baseImage || 'blank'; 
+                this.image = this.data.image || null; 
+                this.currentColor = 'theme-ink'; 
+                this.isDrawing = false;
+                
                 this.startDraw = this.startDraw.bind(this);
                 this.draw = this.draw.bind(this);
                 this.stopDraw = this.stopDraw.bind(this);
-                this.isDrawing = false;
             }
 
-            render() {
-                this.wrapper.innerHTML = '';
-                const canvasWrapper = document.createElement('div');
-                canvasWrapper.className = 'canvas-wrapper';
+            renderContent() {
+                const container = document.createElement('div');
+                container.className = 'canvas-wrapper';
                 
                 this.canvas = document.createElement('canvas');
-                this.canvas.style.width = '100%';
-                this.canvas.style.height = 'auto';
-                this.canvas.style.display = 'block'; 
-                
                 this.ctx = this.canvas.getContext('2d');
-                const initContext = () => { this.ctx.lineCap = 'round'; this.ctx.lineJoin = 'round'; };
 
-                const loadAndDraw = () => {
-                    const dynamicMaxWidth = this.wrapper.clientWidth > 0 ? this.wrapper.clientWidth : (window.innerWidth - 40);
-                    if (this.baseImage && this.baseImage !== 'blank') {
-                        const imgSrcToLoad = this.data || this.baseImage;
-                        const img = new Image();
-                        img.onload = () => {
-                            const scale = Math.min(1, dynamicMaxWidth / img.width);
-                            this.canvas.width = img.width * scale;
-                            this.canvas.height = img.height * scale;
-                            initContext();
-                            this.ctx.drawImage(img, 0, 0, this.canvas.width, this.canvas.height);
-                        };
-                        img.src = imgSrcToLoad;
-                    } else {
-                        this.canvas.width = dynamicMaxWidth;
-                        this.canvas.height = Math.min(400, dynamicMaxWidth * 0.75); 
-                        initContext();
-                        if (this.data) {
-                            const img = new Image();
-                            img.onload = () => this.ctx.drawImage(img, 0, 0, this.canvas.width, this.canvas.height);
-                            img.src = this.data;
-                        }
+                this.resizeObserver = new ResizeObserver(entries => {
+                    const width = entries[0].contentRect.width;
+                    if (width > 0 && !this.initialized) {
+                        this.initialized = true;
+                        this.loadAndDraw(width);
                     }
-                };
-                setTimeout(loadAndDraw, 10);
+                });
+                this.resizeObserver.observe(this.wrapper);
 
                 this.canvas.addEventListener('mousedown', this.startDraw); 
                 this.canvas.addEventListener('mousemove', this.draw);
@@ -626,276 +547,211 @@
                 this.canvas.addEventListener('touchmove', this.draw, {passive: false}); 
                 this.canvas.addEventListener('touchend', this.stopDraw);
 
-                canvasWrapper.appendChild(this.canvas);
-                this.wrapper.appendChild(canvasWrapper);
-                return this.wrapper;
+                container.appendChild(this.canvas);
+                return container;
+            }
+
+            loadAndDraw(width) {
+                const dpr = window.devicePixelRatio || 1;
+                
+                const executeDraw = (imgSource, setHeight) => {
+                    this.canvas.style.width = `${width}px`; 
+                    this.canvas.style.height = `${setHeight}px`;
+                    this.canvas.width = width * dpr; 
+                    this.canvas.height = setHeight * dpr;
+                    this.ctx.scale(dpr, dpr);
+                    this.ctx.lineCap = 'round'; 
+                    this.ctx.lineJoin = 'round';
+
+                    if (imgSource) this.ctx.drawImage(imgSource, 0, 0, width, setHeight);
+                    if (this.image && this.image !== 'blank' && this.image !== this.baseImage) {
+                        const overlay = new Image();
+                        overlay.onload = () => this.ctx.drawImage(overlay, 0, 0, width, setHeight);
+                        overlay.src = this.image;
+                    }
+                };
+
+                if (this.baseImage && this.baseImage !== 'blank') {
+                    const img = new Image();
+                    img.onload = () => executeDraw(img, width * (img.height / img.width));
+                    img.src = this.baseImage;
+                } else {
+                    executeDraw(null, Math.min(400, width * 0.75));
+                }
             }
 
             getCoords(e) {
                 const rect = this.canvas.getBoundingClientRect();
-                const scaleX = this.canvas.width / rect.width;
-                const scaleY = this.canvas.height / rect.height;
-                if (e.touches && e.touches.length > 0) return { x: (e.touches[0].clientX - rect.left) * scaleX, y: (e.touches[0].clientY - rect.top) * scaleY };
-                return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                return { x: clientX - rect.left, y: clientY - rect.top };
             }
 
-            startDraw(e) { this.isDrawing = true; const {x, y} = this.getCoords(e); this.ctx.beginPath(); this.ctx.moveTo(x, y); }
-            
+            startDraw(e) { if(e.type === 'touchstart') e.preventDefault(); this.isDrawing = true; const {x, y} = this.getCoords(e); this.ctx.beginPath(); this.ctx.moveTo(x, y); }
             draw(e) { 
-                if (!this.isDrawing) return; 
-                e.preventDefault(); 
-                const {x, y} = this.getCoords(e); 
-                this.ctx.lineTo(x, y); 
-                
-                let strokeColor = this.currentColor;
+                if (!this.isDrawing) return; e.preventDefault();
+                const {x, y} = this.getCoords(e); this.ctx.lineTo(x, y); 
+                let color = this.currentColor;
                 const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                if (strokeColor === 'theme-ink') strokeColor = isDark ? '#ffffff' : '#000000';
-                if (strokeColor === 'theme-paper') strokeColor = isDark ? '#121212' : '#ffffff';
-
-                this.ctx.strokeStyle = strokeColor; 
-                this.ctx.lineWidth = 4; 
-                this.ctx.stroke(); 
+                if (color === 'theme-ink') color = isDark ? '#ffffff' : '#000000';
+                if (color === 'theme-paper') color = isDark ? '#121212' : '#ffffff';
+                this.ctx.strokeStyle = color; this.ctx.lineWidth = 4; this.ctx.stroke(); 
             }
-            
-            stopDraw() { if(this.isDrawing) { this.isDrawing = false; this.saveToData(); } }
+            stopDraw() { if(this.isDrawing) { this.isDrawing = false; clearTimeout(this.saveTimeout); this.saveTimeout = setTimeout(() => this.image = this.canvas.toDataURL('image/png'), 400); } }
 
             renderSettings() {
-                const wrapper = document.createElement('div');
-                
-                const colorRow = document.createElement('div');
-                colorRow.className = 'ce-popover-item';
-                colorRow.innerHTML = `<div class="canvas-color-grid"></div>`;
-                const grid = colorRow.querySelector('.canvas-color-grid');
-                
-                const colors = ['theme-ink', '#EF4444', '#3B82F6', '#10B981', 'theme-paper'];
-                colors.forEach(color => {
-                    const btn = document.createElement('button');
-                    btn.className = 'canvas-color-setting';
-                    
-                    if (color === 'theme-ink') btn.style.backgroundColor = 'var(--text-color)';
-                    else if (color === 'theme-paper') btn.style.backgroundColor = 'var(--bg-color)';
-                    else btn.style.backgroundColor = color;
-                    
+                const wrap = document.createElement('div');
+                wrap.style.padding = '8px'; wrap.style.display = 'flex'; wrap.style.flexDirection = 'column'; wrap.style.gap = '8px';
+
+                const grid = document.createElement('div'); grid.className = 'canvas-color-grid';
+                ['theme-ink', '#EF4444', '#3B82F6', '#10B981', 'theme-paper'].forEach(color => {
+                    const btn = document.createElement('button'); btn.className = 'canvas-color-setting';
+                    btn.style.backgroundColor = color === 'theme-ink' ? 'var(--text-color)' : color === 'theme-paper' ? 'var(--bg-color)' : color;
                     if (this.currentColor === color) btn.classList.add('active');
                     btn.onclick = () => {
                         this.currentColor = color;
-                        grid.querySelectorAll('.canvas-color-setting').forEach(b => b.classList.remove('active'));
+                        grid.querySelectorAll('button').forEach(b => b.classList.remove('active'));
                         btn.classList.add('active');
                     };
                     grid.appendChild(btn);
                 });
-                wrapper.appendChild(colorRow);
 
-                const uploadBtn = document.createElement('div');
-                uploadBtn.className = 'ce-popover-item';
-                uploadBtn.innerHTML = `<div class="ce-popover-item__icon">${ICONS.image}</div><div class="ce-popover-item__title">Set Background Image</div>`;
-                
-                const fileInput = document.createElement('input');
-                fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.style.display = 'none';
+                const fileInput = document.createElement('input'); fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.style.display = 'none';
                 fileInput.onchange = (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
+                    if (e.target.files[0]) {
                         const reader = new FileReader();
                         reader.onload = (re) => {
-                            const img = new Image();
-                            img.onload = () => {
-                                const dynamicMaxWidth = this.wrapper.clientWidth > 0 ? this.wrapper.clientWidth : (window.innerWidth - 40);
-                                const scale = Math.min(1, dynamicMaxWidth / img.width);
-                                const offCanvas = document.createElement('canvas');
-                                offCanvas.width = img.width * scale; offCanvas.height = img.height * scale;
-                                const offCtx = offCanvas.getContext('2d');
-                                offCtx.drawImage(img, 0, 0, offCanvas.width, offCanvas.height);
-                                this.baseImage = offCanvas.toDataURL('image/jpeg', 0.85);
-                                this.data = this.baseImage; 
-                                this.canvas.width = offCanvas.width; this.canvas.height = offCanvas.height;
-                                this.ctx.lineCap = 'round'; this.ctx.lineJoin = 'round';
-                                this.ctx.drawImage(img, 0, 0, this.canvas.width, this.canvas.height);
-                                this.saveToData();
-                                this.api.toolbar.close(); 
-                            };
-                            img.src = re.target.result;
+                            this.baseImage = this.image = re.target.result;
+                            this.loadAndDraw(this.wrapper.clientWidth);
+                            this.api.toolbar.close(); 
                         };
-                        reader.readAsDataURL(file);
+                        reader.readAsDataURL(e.target.files[0]);
                     }
                 };
-                uploadBtn.onclick = () => fileInput.click();
-                wrapper.appendChild(uploadBtn); wrapper.appendChild(fileInput);
 
-                const clearBtn = document.createElement('div');
-                clearBtn.className = 'ce-popover-item';
-                clearBtn.innerHTML = `<div class="ce-popover-item__icon">${ICONS.trash}</div><div class="ce-popover-item__title">Clear Drawing</div>`;
-                clearBtn.onclick = () => {
-                    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-                    if (this.baseImage && this.baseImage !== 'blank') {
-                        const img = new Image();
-                        img.onload = () => { this.ctx.drawImage(img, 0, 0, this.canvas.width, this.canvas.height); this.saveToData(); };
-                        img.src = this.baseImage;
-                    } else { this.saveToData(); }
-                    this.api.toolbar.close();
-                };
-                wrapper.appendChild(clearBtn);
-
-                return wrapper;
+                wrap.append(grid, 
+                    this.createButton('Set Background', ICONS.image, () => fileInput.click()),
+                    this.createButton('Clear Drawing', ICONS.trash, () => {
+                        this.image = this.baseImage === 'blank' ? null : this.baseImage;
+                        this.loadAndDraw(this.wrapper.clientWidth);
+                        this.api.toolbar.close();
+                    }, 'danger'), fileInput
+                );
+                return wrap;
             }
 
             destroy() {
+                if (this.resizeObserver) this.resizeObserver.disconnect();
                 if (this.canvas) {
-                    this.canvas.removeEventListener('mousedown', this.startDraw); 
-                    this.canvas.removeEventListener('mousemove', this.draw);
-                    this.canvas.removeEventListener('mouseup', this.stopDraw); 
-                    this.canvas.removeEventListener('mouseleave', this.stopDraw);
-                    this.canvas.removeEventListener('touchstart', this.startDraw); 
-                    this.canvas.removeEventListener('touchmove', this.draw); 
-                    this.canvas.removeEventListener('touchend', this.stopDraw);
+                    this.canvas.removeEventListener('mousedown', this.startDraw); this.canvas.removeEventListener('mousemove', this.draw);
+                    this.canvas.removeEventListener('mouseup', this.stopDraw); this.canvas.removeEventListener('mouseleave', this.stopDraw);
                 }
             }
-            saveToData() { this.data = this.canvas.toDataURL('image/png'); }
-            save() { return { image: this.data, baseImage: this.baseImage }; }
+            save() { return { image: this.image, baseImage: this.baseImage }; }
         }
 
-        // --- 4. Custom Block Tool: Voice Memo ---
-        class VoiceMemo {
-            static get toolbox() { return { title: 'Voice Memo', icon: ICONS.mic }; }
-            constructor({data}) {
-                this.data = data.url || null; 
-                this.recorder = null; 
-                this.chunks = [];
-                this.isPlaying = false;
-                this.isRecording = false;
-                this.nodes = { wrapper: document.createElement('div'), button: document.createElement('button'), audio: document.createElement('audio'), status: document.createElement('div') };
-            }
+        // --- SYSTEM ENGINE ---
+        const pwaManifest = { "name": "Infinite Notes", "short_name": "Notes", "start_url": ".", "display": "standalone", "background_color": "#ffffff", "theme_color": "#ffffff", "icons": [{"src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzAwMDAwMCI+PHBhdGggZD0iTTE0IDJINmEyIDIgMCAwIDAtMiAydjE2YTIgMiAwIDAgMCAyIDJoMTJhMiAyIDAgMCAwIDItMlY4bC02LTZ6Ii8+PC9zdmc+", "sizes": "192x192", "type": "image/svg+xml"}] };
+        document.getElementById('pwa-manifest').setAttribute('href', 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify(pwaManifest)));
 
-            render() {
-                this.nodes.wrapper.className = 'custom-block-wrapper v-memo'; 
-                this.nodes.button.className = 'v-memo__btn';
-                this.nodes.status.className = 'v-memo__status';
-                
-                this.nodes.audio.style.display = 'none';
-                if (this.data) this.nodes.audio.src = this.data;
-                
-                this.nodes.audio.onplay = () => { this.isPlaying = true; this.updateUI(); };
-                this.nodes.audio.onpause = () => { this.isPlaying = false; this.updateUI(); };
-                this.nodes.audio.onended = () => { this.isPlaying = false; this.updateUI(); };
-
-                this.nodes.button.onclick = () => this.handleAction();
-                
-                this.nodes.wrapper.append(this.nodes.button, this.nodes.status, this.nodes.audio);
-                this.updateUI();
-                return this.nodes.wrapper;
-            }
-
-            updateUI() {
-                this.nodes.button.className = 'v-memo__btn'; 
-                
-                if (this.isPlaying) {
-                    this.nodes.button.innerHTML = ICONS.pause;
-                    this.nodes.status.innerText = 'Playing...';
-                    this.nodes.button.classList.add('playing');
-                } else if (this.data) {
-                    this.nodes.button.innerHTML = ICONS.play;
-                    this.nodes.status.innerText = 'Voice Memo (Ready)';
-                } else if (this.isRecording) {
-                    this.nodes.button.innerHTML = ICONS.stop;
-                    this.nodes.status.innerText = 'Recording...';
-                    this.nodes.button.classList.add('recording');
-                } else {
-                    this.nodes.button.innerHTML = ICONS.mic;
-                    this.nodes.status.innerText = 'Click to record';
-                }
-            }
-
-            async handleAction() {
-                if (this.data) {
-                    if (this.isPlaying) this.nodes.audio.pause();
-                    else this.nodes.audio.play();
-                } else {
-                    if (this.isRecording) {
-                        this.recorder.stop();
-                        this.isRecording = false;
-                        this.nodes.status.innerText = 'Processing...';
-                    } else {
-                        try {
-                            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                            this.recorder = new MediaRecorder(stream); this.chunks = [];
-                            this.recorder.ondataavailable = (e) => this.chunks.push(e.data);
-                            this.recorder.onstop = () => {
-                                const blob = new Blob(this.chunks, { type: 'audio/ogg; codecs=opus' });
-                                const reader = new FileReader();
-                                reader.onloadend = () => { 
-                                    this.data = reader.result; 
-                                    this.nodes.audio.src = this.data; 
-                                    this.updateUI(); 
-                                };
-                                reader.readAsDataURL(blob);
-                                stream.getTracks().forEach(track => track.stop());
-                            };
-                            this.recorder.start();
-                            this.isRecording = true;
-                            this.updateUI();
-                        } catch (err) { this.nodes.status.innerText = 'Mic access denied'; }
-                    }
-                }
-            }
-
-            destroy() {
-                if (this.recorder && this.recorder.state !== 'inactive') this.recorder.stop();
-                if (this.recorder && this.recorder.stream) this.recorder.stream.getTracks().forEach(track => track.stop());
-                this.nodes.audio.pause();
-            }
-            save() { return { url: this.data }; }
-        }
-
-        // --- Editor Initialization ---
-        const defaultData = {
-            blocks: [
-                { type: "header", data: { text: "Infinite Notes", level: 1 } },
-                { type: "paragraph", data: { text: "A blazing fast, 100% serverless note-taking environment. Type '/' to view the command menu." } },
-                { type: "paragraph", data: { text: "Use the new Backup feature to export all your offline data as a secure JSON file." } }
-            ]
-        };
-
-        const inlineToolbarConfig = ['emoji', 'link', 'bold', 'italic'];
-
-        function buildTools() {
-            return {
-                header: { class: Header, inlineToolbar: inlineToolbarConfig, config: { levels: [1, 2, 3], defaultLevel: 2 } },
-                list: { class: NestedList, inlineToolbar: inlineToolbarConfig },
-                checklist: { class: Checklist, inlineToolbar: inlineToolbarConfig },
-                quote: { class: Quote, inlineToolbar: inlineToolbarConfig },
-                code: CodeTool,
-                table: Table,
-                delimiter: Delimiter,
-                alert: Alert,
-                toggle: ToggleBlock,
-                calendar: CalendarTool,
-                canvas: CanvasTool,
-                voice: VoiceMemo,
-                backup: BackupTool, 
-                emoji: EmojiInlineTool
-            };
-        }
-
-        let saveTimeout; 
-
-        const editor = new EditorJS({
-            holder: 'editorjs',
-            placeholder: 'Type "/" for commands...',
-            data: localStorage.getItem(STORAGE_KEY) ? JSON.parse(localStorage.getItem(STORAGE_KEY)) : defaultData,
-            tools: buildTools(),
-            onReady: () => {
-                document.addEventListener('click', (e) => {
-                    if (!e.target.closest('.ce-inline-toolbar')) {
-                        document.querySelectorAll('.emoji-picker-wrapper').forEach(p => p.style.display = 'none');
+        if (window.visualViewport) {
+            let raf, timer;
+            const fixOffset = () => {
+                cancelAnimationFrame(raf);
+                raf = requestAnimationFrame(() => {
+                    const off = Math.max(0, window.innerHeight - window.visualViewport.height);
+                    document.documentElement.style.setProperty('--keyboard-offset', `${off}px`);
+                    if (off > 100) {
+                        clearTimeout(timer);
+                        timer = setTimeout(() => { const b = document.activeElement?.closest('.ce-block'); if(b) b.scrollIntoView({behavior:'smooth', block:'center'}); }, 100);
                     }
                 });
+            };
+            window.visualViewport.addEventListener('resize', fixOffset);
+            window.visualViewport.addEventListener('scroll', fixOffset);
+        }
+
+        setInterval(() => {
+            if (Notification.permission !== 'granted' || window.CalendarInstances.size === 0) return;
+            let dirty = false;
+            window.CalendarInstances.forEach(inst => {
+                if (inst.data.datetime && !inst.data.notified && new Date(inst.data.datetime).getTime() <= Date.now()) {
+                    new Notification('Note Reminder', { body: inst.data.title || 'Scheduled Event Reached' });
+                    inst.data.notified = dirty = true;
+                }
+            });
+            if (dirty && window.editor) window.editor.save().then(d => localStorage.setItem(STORAGE_KEY, JSON.stringify(d)));
+        }, 5000);
+
+        // --- ROBUST NATIVE SMARTLINK INTERCEPTOR ---
+        // Uses the 'capture phase' (true) to intercept the paste BEFORE Editor.js does.
+        document.addEventListener('paste', (e) => {
+            const target = e.target;
+            if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || !target.closest('.ce-block')) return;
+
+            const text = (e.clipboardData || window.clipboardData).getData('text');
+            const urlRegex = /^(https?:\/\/[^\s]+)$/i;
+
+            if (urlRegex.test(text.trim())) {
+                e.preventDefault();
+                e.stopImmediatePropagation(); // CRITICAL: Stop Editor.js from seeing the paste and doubling it!
+
+                const selection = window.getSelection();
+                if (!selection.rangeCount) return;
+                const range = selection.getRangeAt(0);
+
+                const a = document.createElement('a');
+                a.href = text.trim();
+                a.target = "_blank";
+                a.rel = "noopener noreferrer";
+
+                if (!range.collapsed) {
+                    a.appendChild(range.extractContents());
+                } else {
+                    a.textContent = text.trim();
+                }
+                
+                range.insertNode(a);
+                
+                // Move cursor directly after the newly pasted link
+                range.setStartAfter(a);
+                range.collapse(true);
+                selection.removeAllRanges();
+                selection.addRange(range);
+
+                // Notify Editor.js that the content was updated manually so it saves
+                target.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        }, true);
+
+        window.editor = new EditorJS({
+            holder: 'editorjs',
+            placeholder: 'Type "/" for commands...',
+            data: localStorage.getItem(STORAGE_KEY) ? JSON.parse(localStorage.getItem(STORAGE_KEY)) : { blocks: [{ type: "header", data: { text: "Infinite Notes", level: 1 } }] },
+            
+            // CRITICAL: Global Sanitizer explicitly allowing <a> tags so EditorJS doesn't strip them on save.
+            sanitizer: {
+                a: { href: true, target: true, rel: true }
+            },
+            
+            tools: {
+                header: { class: Header, config: { levels: [1, 2, 3], defaultLevel: 2 } },
+                list: { class: NestedList },
+                checklist: { class: Checklist },
+                code: CodeTool, table: Table, delimiter: Delimiter, alert: Alert,
+                calendar: CalendarTool, canvas: CanvasTool, voice: VoiceMemo, backup: BackupTool
+            },
+            onReady: () => {
+                new DragDrop(window.editor);
             },
             onChange: () => {
-                clearTimeout(saveTimeout);
-                saveTimeout = setTimeout(async () => {
-                    const outputData = await editor.save();
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(outputData));
-                }, 500); 
+                clearTimeout(window.saveTimer);
+                window.saveTimer = setTimeout(() => window.editor.save().then(d => localStorage.setItem(STORAGE_KEY, JSON.stringify(d))), 500); 
             }
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden' && window.editor) window.editor.save().then(d => localStorage.setItem(STORAGE_KEY, JSON.stringify(d)));
         });
     </script>
 </body>
