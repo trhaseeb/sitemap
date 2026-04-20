@@ -1116,7 +1116,7 @@
             window.editor = new EditorJS({
                 holder: 'editorjs',
                 placeholder: isToday ? 'Type "/" for commands...' : 'No notes available for this day.',
-                readOnly: !is Today,
+                readOnly: !isToday,
                 data: savedData,
                 tools: EDITOR_TOOLS_CONFIG,
                 onChange: () => { if (isToday) scheduleSave(); },
