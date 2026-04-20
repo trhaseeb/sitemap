@@ -82,6 +82,17 @@
             .ce-popover, .ce-settings, .ce-inline-toolbar { bottom: var(--keyboard-offset, 0px) !important; max-height: calc(100vh - var(--keyboard-offset, 0px) - 20px) !important; transition: bottom 0.2s cubic-bezier(0.1, 0.7, 0.1, 1), max-height 0.2s ease; }
         }
 
+        /* Global AI Status Pill */
+        .ai-global-status {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-20px);
+            background: var(--text-color); color: var(--bg-color);
+            padding: 8px 18px; border-radius: 20px; font-size: 13px; font-weight: 600;
+            z-index: 100000; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            pointer-events: none; opacity: 0; transition: opacity 0.3s, transform 0.3s;
+            display: flex; align-items: center; gap: 8px; max-width: 90vw; text-align: center;
+        }
+        .ai-global-status.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+
         /* UI Components */
         #date-header { text-align: left; font-size: clamp(60px, 18vw, 150px); font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: -0.06em; line-height: 0.8; color: var(--text-color); margin: -20px 0 40px -25px; cursor: pointer; transition: opacity 0.2s; user-select: none; white-space: nowrap; }
         #date-header:hover { opacity: 0.7; }
@@ -183,6 +194,9 @@
 </head>
 <body>
 
+    <!-- Global AI Status Indicator -->
+    <div id="ai-global-status" class="ai-global-status"></div>
+
     <div class="app-container">
         <!-- Brutalist Header -->
         <div id="date-header"></div>
@@ -278,7 +292,7 @@
         const getLocalYYYYMMDD = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
         // ============================================================================
-        // DATABASE ADAPTER & AI ENGINE
+        // DATABASE ADAPTER
         // ============================================================================
         class IndexedDBAdapter {
             constructor() { this.dbName = 'InfiniteNotesDB'; this.storeName = 'daily_notes'; this.cache = {}; this.isMemoryOnly = false; }
@@ -310,7 +324,9 @@
         }
         const appDB = new IndexedDBAdapter();
 
-        // 🧠 Invisible Background Collaborator Engine
+        // ============================================================================
+        // 🧠 ON-DEVICE AI COLLABORATOR (Invisible Engine)
+        // ============================================================================
         const AI_MODEL = 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC'; 
         const AIEngine = {
             instance: null, isInitializing: false,
@@ -329,45 +345,71 @@
                     return this.instance;
                 } catch (e) {
                     this.isInitializing = false;
-                    throw new Error("WebGPU disabled or out of memory.");
+                    throw new Error("WebGPU disabled or out of memory. Please enable WebGPU in Settings.");
                 }
             }
         };
 
         let isAITyping = false;
-        async function runAICollaborator(data) {
+        const aiStatusUI = document.getElementById('ai-global-status');
+        
+        function setAIStatus(msg, show) {
+            aiStatusUI.innerHTML = msg;
+            if (show) aiStatusUI.classList.add('visible');
+            else aiStatusUI.classList.remove('visible');
+        }
+
+        async function triggerAICollaborator(data) {
             if (!activeEditor || isAITyping) return false;
             
-            // Find any paragraph that explicitly starts with @ai
-            const aiBlock = data.blocks.find(b => b.type === 'paragraph' && b.data.text.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').trim().toLowerCase().startsWith('@ai '));
-            if (!aiBlock) return false;
+            // 1. Find a paragraph that explicitly starts with "@ai "
+            let targetIndex = -1;
+            const aiBlock = data.blocks.find((b, index) => {
+                if (b.type !== 'paragraph' && b.type !== 'header') return false;
+                const rawText = (b.data.text || '').replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').trim();
+                if (rawText.toLowerCase().startsWith('@ai ')) {
+                    targetIndex = index;
+                    return true;
+                }
+                return false;
+            });
 
+            if (!aiBlock) return false;
             isAITyping = true;
             
             const rawText = aiBlock.data.text.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ');
             const prompt = rawText.substring(rawText.toLowerCase().indexOf('@ai ') + 4).trim();
-            const prefix = `<span style="color:#8B5CF6;font-weight:bold;">✨ AI Collaborator:</span><br><i style="color:var(--muted-text);font-size:12px;">Task: ${prompt}</i><br><br>`;
             
-            let ctx = '';
-            for (const b of data.blocks) {
-                if (b.id === aiBlock.id) break; // Gather only what is above the AI prompt
-                if (b.data.text) ctx += b.data.text.replace(/<[^>]*>?/gm, '') + "\n";
-                else if (b.data.items) ctx += b.data.items.map(i=>i.content.replace(/<[^>]*>?/gm, '')).join(', ') + "\n";
-            }
+            setAIStatus('✨ Waking up Assistant...', true);
 
             try {
-                await activeEditor.blocks.update(aiBlock.id, { text: `${prefix}<i>Booting on-device engine...</i>` });
+                // 2. Rewrite the original prompt block so it never triggers the AI loop again
+                await activeEditor.blocks.update(aiBlock.id, { text: `<b style="color: var(--muted-text);">Prompt:</b> ${prompt}` });
                 
-                const engine = await AIEngine.getEngine(info => {
-                    // Update progress, but debounce highly to prevent editor crashing
-                    if (Math.random() < 0.1) activeEditor.blocks.update(aiBlock.id, { text: `${prefix}<i style="color:var(--muted-text);font-size:12px;">${info}</i>` });
-                });
+                // 3. Insert a NEW block immediately below it for the AI's response
+                // (This guarantees we don't steal the user's focus if they are typing elsewhere)
+                activeEditor.blocks.insert('paragraph', { text: `<span style="color:#8B5CF6;">✨ <i>Thinking...</i></span>` }, {}, targetIndex + 1, false);
+                const responseBlock = activeEditor.blocks.getBlockByIndex(targetIndex + 1);
+                if (!responseBlock) throw new Error("Failed to insert response block.");
+                const responseBlockId = responseBlock.id;
 
-                await activeEditor.blocks.update(aiBlock.id, { text: `${prefix}<i>thinking...</i>` });
+                // 4. Build Context (Everything above the prompt)
+                let ctx = '';
+                for (let i = 0; i < targetIndex; i++) {
+                    const b = data.blocks[i];
+                    if (b.data.text) ctx += b.data.text.replace(/<[^>]*>?/gm, '') + "\n";
+                    else if (b.data.items) ctx += b.data.items.map(it=>it.content.replace(/<[^>]*>?/gm, '')).join(', ') + "\n";
+                }
 
+                // 5. Load the Engine (Shows download progress in the sticky toast)
+                const engine = await AIEngine.getEngine(info => setAIStatus(`✨ ${info}`, true));
+
+                setAIStatus('✨ Generating response...', true);
+
+                // 6. Generate the Response
                 const chunks = await engine.chat.completions.create({
                     messages: [
-                        { role: 'system', content: 'You are a concise, helpful on-device AI collaborator co-writing a document with the user. Answer their prompt directly. Use basic HTML (<b>, <i>) for formatting if needed.' },
+                        { role: 'system', content: 'You are a concise, helpful on-device AI collaborator co-writing a document with the user. Answer their prompt directly.' },
                         { role: 'user', content: ctx ? `Context of the document so far:\n${ctx}\n\nTask: ${prompt}` : prompt }
                     ],
                     stream: true, temperature: 0.7,
@@ -375,86 +417,32 @@
 
                 let fullContent = "";
                 let updateTimer;
+                
+                // 7. Stream the result into the newly created block
                 for await (const chunk of chunks) {
                     fullContent += chunk.choices[0]?.delta?.content || '';
                     if (!updateTimer) {
                         updateTimer = setTimeout(() => {
-                            activeEditor.blocks.update(aiBlock.id, { text: prefix + fullContent.replace(/\n/g, '<br>') });
+                            activeEditor.blocks.update(responseBlockId, { text: `<span style="color:#8B5CF6;font-weight:bold;">✨ AI:</span><br>` + fullContent.replace(/\n/g, '<br>') });
                             updateTimer = null;
-                        }, 250);
+                        }, 300); // Debounce DOM updates to keep typing smooth
                     }
                 }
                 if (updateTimer) clearTimeout(updateTimer);
-                await activeEditor.blocks.update(aiBlock.id, { text: prefix + fullContent.replace(/\n/g, '<br>') });
+                
+                // Final flush
+                await activeEditor.blocks.update(responseBlockId, { text: `<span style="color:#8B5CF6;font-weight:bold;">✨ AI:</span><br>` + fullContent.replace(/\n/g, '<br>') });
+                
             } catch (e) {
-                await activeEditor.blocks.update(aiBlock.id, { text: `${prefix}<span style="color:red">Error: ${e.message}</span>` });
+                setAIStatus(`❌ AI Error: ${e.message}`, true);
+                setTimeout(() => setAIStatus('', false), 6000);
             } finally {
                 isAITyping = false;
-                scheduleSave(); // Save the final generated result
+                if (!aiStatusUI.textContent.includes('❌')) setAIStatus('', false);
+                scheduleSave(); 
             }
             return true;
         }
-
-        // ============================================================================
-        // GLOBAL UI: DATE PICKER MODAL
-        // ============================================================================
-        const DatePicker = (() => {
-            let activeDate, viewDate, onConfirm, config;
-            const modal = document.getElementById('global-calendar-modal');
-            const els = { grid: document.getElementById('dp-grid'), label: document.getElementById('dp-month-label'), timeSec: document.getElementById('dp-time-section'), timeInput: document.getElementById('dp-time-input') };
-
-            const render = () => {
-                const year = viewDate.getFullYear(), month = viewDate.getMonth();
-                els.label.textContent = viewDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-                els.grid.innerHTML = '';
-                
-                els.timeSec.style.display = config.showTime ? 'block' : 'none';
-                if (config.showTime) els.timeInput.value = `${String(activeDate.getHours()).padStart(2, '0')}:${String(activeDate.getMinutes()).padStart(2, '0')}`;
-                
-                for (let i = 0; i < new Date(year, month, 1).getDay(); i++) els.grid.appendChild(createEl('div', 'cp-day muted', {style: "opacity: 0"}));
-                const daysInMonth = new Date(year, month + 1, 0).getDate(), todayStr = getLocalYYYYMMDD(new Date());
-
-                for (let i = 1; i <= daysInMonth; i++) {
-                    const dayEl = createEl('div', 'cp-day', { textContent: i });
-                    const cellStr = getLocalYYYYMMDD(new Date(year, month, i));
-
-                    if (year === activeDate.getFullYear() && month === activeDate.getMonth() && i === activeDate.getDate()) dayEl.classList.add('active');
-                    if (cellStr === todayStr) { dayEl.style.borderBottom = "2px solid var(--text-color)"; dayEl.style.borderRadius = "4px 4px 0 0"; }
-
-                    let isMuted = (config.disableFuture && cellStr > todayStr) || (config.disablePast && cellStr < todayStr) || (config.onlyNotes && cellStr !== todayStr && (!appDB.cache[cellStr]?.blocks?.length));
-
-                    if (isMuted) dayEl.classList.add('muted'); 
-                    else {
-                        dayEl.onclick = () => { activeDate.setFullYear(year, month, i); render(); };
-                        if (!config.showTime && appDB.cache[cellStr]?.blocks?.length > 0 && cellStr !== todayStr) {
-                            dayEl.style.cssText += "font-weight:bold;text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--border-color);";
-                        }
-                    }
-                    els.grid.appendChild(dayEl);
-                }
-            };
-
-            document.getElementById('dp-prev').onclick = () => { viewDate.setMonth(viewDate.getMonth() - 1); render(); };
-            document.getElementById('dp-next').onclick = () => { viewDate.setMonth(viewDate.getMonth() + 1); render(); };
-            document.getElementById('dp-today-btn').onclick = () => { activeDate = new Date(); viewDate = new Date(activeDate); render(); };
-            document.getElementById('dp-confirm-btn').onclick = () => {
-                if (config.showTime && els.timeInput.value) {
-                    const [h, m] = els.timeInput.value.split(':'); activeDate.setHours(+h, +m, 0, 0);
-                    if (config.disablePast && activeDate < new Date()) activeDate = new Date(); 
-                }
-                modal.classList.remove('show'); setTimeout(() => modal.style.display = 'none', 200);
-                onConfirm?.(new Date(activeDate));
-            };
-            modal.onclick = e => { if (e.target === modal) { modal.classList.remove('show'); setTimeout(() => modal.style.display = 'none', 200); } };
-
-            return {
-                open(initDate, callback, opts = {}) {
-                    activeDate = new Date(initDate); viewDate = new Date(activeDate); onConfirm = callback;
-                    config = { showTime: !!opts.showTime, disableFuture: !!opts.disableFuture, disablePast: !!opts.disablePast, onlyNotes: !!opts.onlyNotes };
-                    render(); modal.style.display = 'flex'; void modal.offsetWidth; modal.classList.add('show');
-                }
-            };
-        })();
 
         // ============================================================================
         // EDITOR.JS PLUGINS
@@ -864,16 +852,17 @@
         function scheduleSave() {
             if (activeEditor && !activeEditor.readOnly) {
                 clearTimeout(saveTimeout);
+                // Increased to 1s so you have time to finish typing "@ai <prompt>" before it triggers
                 saveTimeout = setTimeout(async () => { 
                     const data = await activeEditor.save(); 
                     
-                    // Trigger background AI if "@ai " is detected
-                    const aiDidIntercept = await runAICollaborator(data);
-                    if (aiDidIntercept) return; // Prevent double-saving mid-generation
+                    // Intercept background AI requests
+                    const aiDidIntercept = await triggerAICollaborator(data);
+                    if (aiDidIntercept) return; 
 
                     data.timestamps = timestamps; 
                     appDB.save(currentDateStr, data); 
-                }, 500); // Wait 500ms after you stop typing to save or trigger AI
+                }, 1000); 
             }
         }
 
