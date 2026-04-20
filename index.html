@@ -123,15 +123,6 @@
         .compute-output { padding: 12px 16px; border-top: 1px dashed var(--border-color); font-family: monospace; font-size: 16px; font-weight: 700; color: var(--text-color); background: var(--bg-color); word-break: break-word; min-height: 20px; }
         .compute-error { color: #EF4444; font-weight: 400; font-size: 13px; }
 
-        .ai-tool-container { border: 1px solid var(--border-color); border-radius: var(--std-border-radius); background: var(--muted-bg); padding: 12px; margin: 8px 0; display: flex; flex-direction: column; gap: 8px; }
-        .ai-header { display: flex; align-items: center; gap: 8px; color: var(--text-color); font-weight: 600; font-size: 14px; margin-bottom: 4px; }
-        .ai-icon svg { width: 18px; height: 18px; color: #8B5CF6; } 
-        .ai-input { width: 100%; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; color: var(--text-color); font-family: inherit; font-size: 14px; resize: none; outline: none; box-sizing: border-box; }
-        .ai-btn { align-self: flex-end; background: var(--text-color); color: var(--bg-color); border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer; transition: opacity 0.2s; }
-        .ai-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .ai-output { background: var(--bg-color); border-left: 3px solid #8B5CF6; padding: 10px 12px; font-size: 14px; line-height: 1.5; color: var(--text-color); border-radius: 0 6px 6px 0; white-space: pre-wrap; word-break: break-word; }
-        .ai-status { font-size: 11px; font-family: monospace; color: var(--muted-text); }
-
         .scan-wrapper { margin: 8px 0; width: 100%; border: 1px dashed var(--border-color); border-radius: var(--std-border-radius); display: flex; flex-direction: column; overflow: hidden; }
         .scan-action-area { padding: 30px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; cursor: pointer; transition: background 0.2s; }
         .scan-action-area:hover { background: var(--editor-hover-bg); }
@@ -259,8 +250,7 @@
             search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>',
             recall: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline><polyline points="12 7 12 12 15 15"></polyline></svg>',
             scan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h3"></path><path d="M20 7V4h-3"></path><path d="M4 17v3h3"></path><path d="M20 17v3h-3"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>',
-            compute: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 10 14 13 8 18 8"></polyline><circle cx="20" cy="8" r="2"></circle><circle cx="2" cy="14" r="2"></circle></svg>',
-            sparkles: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path></svg>'
+            compute: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 10 14 13 8 18 8"></polyline><circle cx="20" cy="8" r="2"></circle><circle cx="2" cy="14" r="2"></circle></svg>'
         };
 
         const createEl = (tag, className = '', attrs = {}, children = []) => {
@@ -288,7 +278,7 @@
         const getLocalYYYYMMDD = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
         // ============================================================================
-        // DATABASE ADAPTER & GLOBAL MANAGERS
+        // DATABASE ADAPTER & AI ENGINE
         // ============================================================================
         class IndexedDBAdapter {
             constructor() { this.dbName = 'InfiniteNotesDB'; this.storeName = 'daily_notes'; this.cache = {}; this.isMemoryOnly = false; }
@@ -320,13 +310,12 @@
         }
         const appDB = new IndexedDBAdapter();
 
-        // LLM Singleton optimized for strictly limited iOS WebGPU memory
-        const AI_MODEL = 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC'; // Ultra-light ~350MB model to prevent iOS Jetsam crashes
+        // 🧠 Invisible Background Collaborator Engine
+        const AI_MODEL = 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC'; 
         const AIEngine = {
-            instance: null, isInitializing: false, subscribers: [],
+            instance: null, isInitializing: false,
             async getEngine(onProgress) {
                 if (this.instance) return this.instance;
-                this.subscribers.push(onProgress);
                 if (this.isInitializing) return new Promise(res => {
                     const check = setInterval(() => { if (this.instance) { clearInterval(check); res(this.instance); } }, 500);
                 });
@@ -334,17 +323,77 @@
                 try {
                     const { CreateMLCEngine } = await import('https://esm.run/@mlc-ai/web-llm');
                     this.instance = await CreateMLCEngine(AI_MODEL, {
-                        initProgressCallback: (info) => this.subscribers.forEach(cb => cb(info.text)),
-                        // CRITICAL FOR iOS SAFARI: Limits KV cache memory size to prevent out-of-memory crashes
+                        initProgressCallback: (info) => onProgress && onProgress(info.text),
                         chatOpts: { context_window_size: 1024, prefill_chunk_size: 256 }
                     });
                     return this.instance;
                 } catch (e) {
                     this.isInitializing = false;
-                    throw new Error("Initialization failed. If using Safari, ensure WebGPU is on and try closing other tabs to free up RAM.");
+                    throw new Error("WebGPU disabled or out of memory.");
                 }
             }
         };
+
+        let isAITyping = false;
+        async function runAICollaborator(data) {
+            if (!activeEditor || isAITyping) return false;
+            
+            // Find any paragraph that explicitly starts with @ai
+            const aiBlock = data.blocks.find(b => b.type === 'paragraph' && b.data.text.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').trim().toLowerCase().startsWith('@ai '));
+            if (!aiBlock) return false;
+
+            isAITyping = true;
+            
+            const rawText = aiBlock.data.text.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ');
+            const prompt = rawText.substring(rawText.toLowerCase().indexOf('@ai ') + 4).trim();
+            const prefix = `<span style="color:#8B5CF6;font-weight:bold;">✨ AI Collaborator:</span><br><i style="color:var(--muted-text);font-size:12px;">Task: ${prompt}</i><br><br>`;
+            
+            let ctx = '';
+            for (const b of data.blocks) {
+                if (b.id === aiBlock.id) break; // Gather only what is above the AI prompt
+                if (b.data.text) ctx += b.data.text.replace(/<[^>]*>?/gm, '') + "\n";
+                else if (b.data.items) ctx += b.data.items.map(i=>i.content.replace(/<[^>]*>?/gm, '')).join(', ') + "\n";
+            }
+
+            try {
+                await activeEditor.blocks.update(aiBlock.id, { text: `${prefix}<i>Booting on-device engine...</i>` });
+                
+                const engine = await AIEngine.getEngine(info => {
+                    // Update progress, but debounce highly to prevent editor crashing
+                    if (Math.random() < 0.1) activeEditor.blocks.update(aiBlock.id, { text: `${prefix}<i style="color:var(--muted-text);font-size:12px;">${info}</i>` });
+                });
+
+                await activeEditor.blocks.update(aiBlock.id, { text: `${prefix}<i>thinking...</i>` });
+
+                const chunks = await engine.chat.completions.create({
+                    messages: [
+                        { role: 'system', content: 'You are a concise, helpful on-device AI collaborator co-writing a document with the user. Answer their prompt directly. Use basic HTML (<b>, <i>) for formatting if needed.' },
+                        { role: 'user', content: ctx ? `Context of the document so far:\n${ctx}\n\nTask: ${prompt}` : prompt }
+                    ],
+                    stream: true, temperature: 0.7,
+                });
+
+                let fullContent = "";
+                let updateTimer;
+                for await (const chunk of chunks) {
+                    fullContent += chunk.choices[0]?.delta?.content || '';
+                    if (!updateTimer) {
+                        updateTimer = setTimeout(() => {
+                            activeEditor.blocks.update(aiBlock.id, { text: prefix + fullContent.replace(/\n/g, '<br>') });
+                            updateTimer = null;
+                        }, 250);
+                    }
+                }
+                if (updateTimer) clearTimeout(updateTimer);
+                await activeEditor.blocks.update(aiBlock.id, { text: prefix + fullContent.replace(/\n/g, '<br>') });
+            } catch (e) {
+                await activeEditor.blocks.update(aiBlock.id, { text: `${prefix}<span style="color:red">Error: ${e.message}</span>` });
+            } finally {
+                isAITyping = false;
+                scheduleSave(); // Save the final generated result
+            }
+            return true;
+        }
 
         // ============================================================================
         // GLOBAL UI: DATE PICKER MODAL
@@ -412,79 +461,6 @@
         // ============================================================================
         const fireChange = cfg => cfg.onChange && cfg.onChange();
 
-        class AITool {
-            static get toolbox() { return { title: 'Ask AI (On-Device)', icon: ICONS.sparkles }; }
-            constructor({data, config, readOnly}) {
-                this.config = config; this.readOnly = readOnly;
-                this.data = { prompt: data.prompt || '', response: data.response || '' };
-                this.wrapper = createEl('div', 'ai-tool-container');
-            }
-            render() {
-                this.wrapper.innerHTML = '';
-                const header = createEl('div', 'ai-header', {}, [createEl('div', 'ai-icon', {innerHTML: ICONS.sparkles}), createEl('span', '', {textContent: 'On-Device Assistant (Qwen 0.5B)'})]);
-                this.statusEl = createEl('div', 'ai-status', {style: 'display:none'});
-                this.input = createEl('textarea', 'ai-input', { placeholder: 'Ask AI (e.g. Summarize this note, rewrite formal...)', value: this.data.prompt, readOnly: this.readOnly });
-                this.output = createEl('div', 'ai-output', { innerHTML: this.data.response });
-                if (!this.data.response) this.output.style.display = 'none';
-
-                this.actionBtn = createEl('button', 'ai-btn', { textContent: 'Generate' });
-                if (this.readOnly) {
-                    this.actionBtn.style.display = 'none';
-                    if (!this.data.response) this.wrapper.innerHTML = '<div style="color:var(--muted-text);font-size:13px;padding:12px;">Empty AI Block</div>';
-                    else this.wrapper.append(header, this.input, this.output);
-                    return this.wrapper;
-                }
-
-                this.input.oninput = e => { 
-                    this.data.prompt = e.target.value; 
-                    this.input.style.height = 'auto'; this.input.style.height = this.input.scrollHeight + 'px';
-                    fireChange(this.config); 
-                };
-                setTimeout(() => { this.input.style.height = 'auto'; this.input.style.height = this.input.scrollHeight + 'px'; }, 0);
-                this.actionBtn.onclick = () => this.generate();
-
-                this.wrapper.append(header, this.statusEl, this.input, this.actionBtn, this.output); return this.wrapper;
-            }
-            async getContext() {
-                if (!activeEditor) return '';
-                const d = await activeEditor.save(); let ctx = '';
-                d.blocks.forEach(b => {
-                    if (b.type !== 'ai' && b.type !== 'compute') {
-                        if (b.data.text) ctx += b.data.text.replace(/<[^>]*>?/gm, '') + "\n";
-                        else if (b.data.items) ctx += b.data.items.map(i=>i.content.replace(/<[^>]*>?/gm, '')).join(', ') + "\n";
-                    }
-                });
-                return ctx ? `\n\n--- CURRENT NOTE CONTEXT ---\n${ctx}\n--- END CONTEXT ---\n` : '';
-            }
-            async generate() {
-                if (!this.data.prompt.trim()) return;
-                this.actionBtn.disabled = this.input.readOnly = true;
-                this.statusEl.style.display = this.output.style.display = 'block';
-                this.output.innerHTML = this.data.response = '';
-                try {
-                    this.statusEl.textContent = 'Loading Engine (Takes time on first run to download model)...';
-                    const engine = await AIEngine.getEngine(txt => this.statusEl.textContent = txt);
-                    this.statusEl.textContent = 'Generating...';
-                    const context = await this.getContext();
-                    const chunks = await engine.chat.completions.create({
-                        messages: [
-                            { role: 'system', content: 'You are a helpful, extremely concise on-device AI assistant integrated into a notes app. The user may provide current note context below.' },
-                            { role: 'user', content: this.data.prompt + context }
-                        ],
-                        stream: true, temperature: 0.7,
-                    });
-                    for await (const chunk of chunks) {
-                        this.data.response += chunk.choices[0]?.delta?.content || '';
-                        this.output.textContent = this.data.response;
-                        fireChange(this.config);
-                    }
-                    this.statusEl.style.display = 'none';
-                } catch (e) { this.statusEl.textContent = 'Error: ' + e.message; } 
-                finally { this.actionBtn.disabled = this.input.readOnly = false; fireChange(this.config); }
-            }
-            save() { return this.data; }
-        }
-
         class ScanTool {
             static get toolbox() { return { title: 'Scan Text', icon: ICONS.scan }; }
             constructor({data, config, readOnly}) { this.config = config; this.readOnly = readOnly; this.data = { text: data.text || '' }; this.wrapper = createEl('div', 'scan-wrapper'); }
@@ -543,7 +519,7 @@
             }
             async evaluateLogic() {
                 if (!this.data.code.trim()) { this.output.innerHTML = this.data.output = ''; fireChange(this.config); return; }
-                const find = q => Object.values(appDB.cache).flatMap(d => d.blocks?.filter(b => b.type !== 'compute' && b.type !== 'recall' && b.type !== 'ai' && JSON.stringify(b.data).toLowerCase().includes(q.toLowerCase())).flatMap(b => b.data.text ? b.data.text.replace(/<[^>]*>?/gm, '') : b.data.items ? b.data.items.map(i=>i.content.replace(/<[^>]*>?/gm, '')) : b.data.title || []) || []);
+                const find = q => Object.values(appDB.cache).flatMap(d => d.blocks?.filter(b => b.type !== 'compute' && b.type !== 'recall' && JSON.stringify(b.data).toLowerCase().includes(q.toLowerCase())).flatMap(b => b.data.text ? b.data.text.replace(/<[^>]*>?/gm, '') : b.data.items ? b.data.items.map(i=>i.content.replace(/<[^>]*>?/gm, '')) : b.data.title || []) || []);
                 const nums = q => find(q).flatMap(t => (t.match(/-?\d+(\.\d+)?/g) || []).map(Number));
                 const sum = q => nums(q).reduce((a,b)=>a+b, 0);
                 const avg = q => { const n = nums(q); return n.length ? sum(q)/n.length : 0; };
@@ -594,7 +570,7 @@
                         
                         let results = [];
                         Object.entries(appDB.cache).forEach(([date, d]) => d.blocks?.forEach(b => {
-                            if (b.type === 'recall' || b.type === 'ai') return;
+                            if (b.type === 'recall') return;
                             const text = `${b.type} ${b.data.text||''} ${b.data.title||''} ${(b.data.items||[]).map(i=>i.content||i.text).join(' ')}`.toLowerCase();
                             if (text.includes(q) || (q.includes('canvas') && b.type==='smartCanvas') || (q.includes('voice') && b.type==='voice')) results.push({ date, block: b, timestamp: d.timestamps?.[b.id] });
                         }));
@@ -850,7 +826,6 @@
             header: { class: Header, inlineToolbar: ['link', 'bold', 'italic'], config: { levels: [1, 2, 3], defaultLevel: 2 } },
             list: { class: NestedList, inlineToolbar: ['link', 'bold', 'italic'] },
             checklist: { class: Checklist, inlineToolbar: ['link', 'bold', 'italic'] },
-            ai: { class: AITool, config: { onChange: scheduleSave } },
             scan: { class: ScanTool, config: { onChange: scheduleSave } },
             compute: { class: ComputeTool, config: { onChange: scheduleSave } },
             smartCanvas: { class: SmartCanvasTool, config: { onChange: scheduleSave } },
@@ -889,7 +864,16 @@
         function scheduleSave() {
             if (activeEditor && !activeEditor.readOnly) {
                 clearTimeout(saveTimeout);
-                saveTimeout = setTimeout(async () => { const data = await activeEditor.save(); data.timestamps = timestamps; appDB.save(currentDateStr, data); }, 500);
+                saveTimeout = setTimeout(async () => { 
+                    const data = await activeEditor.save(); 
+                    
+                    // Trigger background AI if "@ai " is detected
+                    const aiDidIntercept = await runAICollaborator(data);
+                    if (aiDidIntercept) return; // Prevent double-saving mid-generation
+
+                    data.timestamps = timestamps; 
+                    appDB.save(currentDateStr, data); 
+                }, 500); // Wait 500ms after you stop typing to save or trigger AI
             }
         }
 
@@ -898,14 +882,14 @@
             
             const isToday = date === todayStr;
             let savedData = appDB.cache[date] || { blocks: [] };
-            if (isToday && !savedData.blocks?.length) savedData = { blocks: [{ type: "paragraph", data: { text: `Type '/' for commands or start writing...` } }] };
+            if (isToday && !savedData.blocks?.length) savedData = { blocks: [{ type: "paragraph", data: { text: `Type '@ai ' to ask the assistant...` } }] };
 
             timestamps = savedData.timestamps || {};
             document.getElementById('editorjs').innerHTML = '';
 
             activeEditor = new EditorJS({
                 holder: 'editorjs',
-                placeholder: isToday ? 'Type "/" for commands...' : 'No notes available for this day.',
+                placeholder: isToday ? 'Type "/" for commands or "@ai " for help...' : 'No notes available for this day.',
                 readOnly: !isToday, data: savedData, tools: window.EDITOR_TOOLS_CONFIG,
                 onChange: () => { if (isToday) scheduleSave(); },
                 onReady: () => { domObserver.observe(document.getElementById('editorjs'), { childList: true, subtree: true }); updateAllTimestamps(); }
