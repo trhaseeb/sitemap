@@ -15,236 +15,194 @@
     <link id="pwa-manifest" rel="manifest" href="">
     <link id="pwa-icon" rel="apple-touch-icon" href="">
 
-    <!-- Core Editor & Plugins -->
-    <script src="https://cdn.jsdelivr.net/npm/@editorjs/editorjs@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@editorjs/paragraph@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@editorjs/header@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@editorjs/nested-list@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@editorjs/checklist@latest"></script>
-
     <!-- Leaflet for Map Tool -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
-        /* --- Standardized Pure Flat Theme --- */
+        /* --- Strict Pure Flat & Brutalist Theme --- */
         :root {
-            --bg-color: #ffffff; --text-color: #000000; --border-color: #e0e0e0;
-            --muted-bg: #f5f5f5; --muted-text: #666666; --accent-color: #000000;
-            --recall-bg: #fcfcfc; --recall-border: #cccccc;
-            --editor-toolbar-bg: #ffffff; --editor-hover-bg: #ebebeb; --overlay-bg: transparent; 
+            --bg-color: #ffffff; --text-color: #000000; --border-color: #d0d0d0;
+            --muted-bg: #f9f9f9; --muted-text: #666666;
             --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            --keyboard-offset: 0px; --safe-area-top: env(safe-area-inset-top, 0px);
-            --std-border-radius: 8px; --std-icon-size: 20px; --std-control-height: 36px;
+            --safe-area-top: env(safe-area-inset-top, 0px);
         }
 
         @media (prefers-color-scheme: dark) {
             :root {
                 --bg-color: #121212; --text-color: #ffffff; --border-color: #333333;
-                --muted-bg: #1e1e1e; --muted-text: #aaaaaa; --accent-color: #ffffff;
-                --recall-bg: #1a1a1a; --recall-border: #444444;
-                --editor-toolbar-bg: #1e1e1e; --editor-hover-bg: #2a2a2a;
+                --muted-bg: #1a1a1a; --muted-text: #aaaaaa;
             }
         }
 
-        html, body { background-color: var(--bg-color); color: var(--text-color); font-family: var(--font-main); margin: 0; padding: 0; line-height: 1.6; width: 100vw; overflow-x: hidden; }
-        .app-container { max-width: 800px; width: 100%; margin: 0 auto; padding: calc(10vh + var(--safe-area-top)) 40px 65vh 40px; box-sizing: border-box; }
-        #editorjs { padding: 0; max-width: 100%; box-sizing: border-box; min-height: 50vh; }
-        ::-webkit-scrollbar { width: 0px; background: transparent; }
-        ::-webkit-scrollbar:horizontal { display: none; }
-        svg { flex-shrink: 0; }
-
-        /* Editor.js Overrides */
-        .ce-block { position: relative; z-index: auto !important; } 
-        .ce-toolbar { z-index: 10000 !important; }
-        .ce-popover, .ce-settings, .tc-popover, .cdx-settings, .ce-tooltip { z-index: 10005 !important; }
-        .ce-block__content { max-width: 100% !important; }
-        .ce-toolbar__plus, .ce-toolbar__settings-btn { background-color: var(--bg-color) !important; color: var(--text-color) !important; border: 1px solid transparent; }
-        .ce-toolbar__plus:hover, .ce-toolbar__settings-btn:hover { background-color: var(--editor-hover-bg) !important; border-color: var(--border-color); }
-        .ce-popover__overlay, .ce-popover-overlay, .cdx-overlay { background: var(--overlay-bg) !important; box-shadow: none !important; backdrop-filter: none !important; }
-        .ce-popover-item__icon svg { width: var(--std-icon-size) !important; height: var(--std-icon-size) !important; }
-        .ce-popover-item__title { font-size: 14px !important; font-weight: 500 !important; }
-
-        @media (prefers-color-scheme: dark) {
-            .ce-popover, .ce-popover__container, .ce-popover__panel, .ce-popover__items, .ce-inline-toolbar, .ce-conversion-toolbar, .ce-settings, .ce-tooltip { background: var(--editor-toolbar-bg) !important; border-color: var(--border-color) !important; box-shadow: none !important; }
-            .ce-tooltip { color: var(--text-color) !important; }
-            .ce-popover-item, .ce-inline-tool, .ce-conversion-tool, .ce-settings__button { background-color: transparent !important; color: var(--text-color) !important; }
-            .ce-popover-item__title { color: var(--text-color) !important; }
-            .ce-popover-item:hover, .ce-inline-tool:hover, .ce-conversion-tool:hover, .ce-settings__button:hover { background-color: var(--editor-hover-bg) !important; }
-            .ce-popover-item__icon, .ce-popover-item__icon--active, .ce-popover__item-icon { background-color: var(--muted-bg) !important; color: var(--text-color) !important; box-shadow: none !important; border-color: var(--border-color) !important; }
-            .cdx-search-field, .cdx-input { background-color: var(--muted-bg) !important; color: var(--text-color) !important; border: 1px solid var(--border-color) !important; box-shadow: none !important; }
-            .cdx-search-field__icon { color: var(--muted-text) !important; }
-            .ce-block--selected .ce-block__content { background-color: var(--editor-hover-bg) !important; }
-            ::selection { background: var(--border-color) !important; color: var(--text-color); }
-        }
-
-        @media (max-width: 650px) {
-            .ce-popover, .ce-settings, .ce-inline-toolbar { bottom: var(--keyboard-offset, 0px) !important; max-height: calc(100vh - var(--keyboard-offset, 0px) - 20px) !important; transition: bottom 0.2s cubic-bezier(0.1, 0.7, 0.1, 1), max-height 0.2s ease; }
-        }
-
-        /* UI Components */
-        #date-header { text-align: left; font-size: clamp(60px, 18vw, 150px); font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: -0.06em; line-height: 0.8; color: var(--text-color); margin: -20px 0 40px -25px; cursor: pointer; transition: opacity 0.2s; user-select: none; white-space: nowrap; }
-        #date-header:hover { opacity: 0.7; }
-        #date-header:active { opacity: 0.5; }
-
-        .ce-block-time { font-size: 11px; color: var(--muted-text); text-align: right; padding: 6px 2px 2px 0; user-select: none; opacity: 0.7; font-weight: 500; }
+        * { box-sizing: border-box; }
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: var(--font-main); margin: 0; padding: 0; line-height: 1.6; overflow-x: hidden; }
         
-        .cal-btn { padding: 8px 12px; background: transparent; border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-color); cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; }
-        .cal-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
-        .cal-btn:hover { background: var(--editor-hover-bg); }
-        .cal-btn.primary { background: var(--text-color); color: var(--bg-color); border-color: var(--text-color); }
-        .cal-btn.primary:hover { opacity: 0.9; }
+        /* Edge-to-edge layout with minimal safe padding */
+        .app-container { max-width: 800px; width: 100%; margin: 0 auto; padding: calc(8vh + var(--safe-area-top)) 16px 50vh 16px; }
+        
+        ::-webkit-scrollbar { display: none; }
+        ::selection { background: var(--text-color) !important; color: var(--bg-color); }
+        svg { flex-shrink: 0; width: 18px; height: 18px; }
 
-        .tool-title-input, .cal-title, .v-memo__title { width: 100%; border: none; background: transparent; color: var(--text-color); outline: none; font-family: inherit; }
-        .tool-title-input { font-size: 16px; font-weight: 600; padding: 4px 0; margin-bottom: 8px; }
-        .tool-title-input::placeholder { color: var(--muted-text); font-weight: 500; opacity: 0.6; }
+        /* --- STYLISH BRUTALIST HEADER --- */
+        #date-header { 
+            text-align: left; font-size: clamp(48px, 16vw, 150px); font-weight: 900; 
+            font-style: italic; text-transform: uppercase; letter-spacing: -0.06em; 
+            line-height: 0.8; margin: 0 0 10px 0; cursor: pointer; user-select: none; 
+            word-wrap: break-word; hyphens: auto;
+        }
+        #date-header:hover { color: var(--muted-text); }
+        
+        .header-status-row { display: flex; align-items: center; margin: 0 0 30px 0; user-select: none; font-size: 12px; font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase; }
+        .ai-inline-status { color: #a855f7; margin-right: 12px; }
+        #vector-status { color: #3b82f6; margin-right: 12px; }
+        .ai-inline-status.loading { animation: pulse 2s infinite; }
+        .ai-inline-status.error { color: #ef4444; }
+        .save-indicator { color: var(--muted-text); opacity: 0; transition: opacity 0.3s; }
+        .save-indicator.visible { opacity: 1; }
+        .storage-warning { color: #ef4444; margin-left: 12px; display: none; }
+        @keyframes pulse { 0%, 100% { opacity: 0.8; } 50% { opacity: 0.3; } }
 
-        /* Date Picker Modal */
-        .global-calendar-modal { position: fixed; inset: 0; background-color: rgba(0,0,0,0.4); z-index: 100000; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s ease; backdrop-filter: blur(2px); }
-        .global-calendar-modal.show { display: flex; opacity: 1; }
-        .cp-container { background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; width: 90%; max-width: 340px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); display: flex; flex-direction: column; gap: 12px; }
-        .cp-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
-        .cp-header button { background: var(--muted-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 6px; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .cp-header button:hover { background: var(--editor-hover-bg); }
-        .cp-weekdays, .cp-grid { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; }
-        .cp-weekdays { font-size: 12px; color: var(--muted-text); font-weight: 600; margin-bottom: 4px; }
-        .cp-grid { gap: 4px; }
-        .cp-day { padding: 8px 0; font-size: 14px; cursor: pointer; border-radius: 6px; color: var(--text-color); transition: background 0.1s; }
-        .cp-day:hover:not(.muted) { background: var(--editor-hover-bg); }
-        .cp-day.active { background: var(--text-color) !important; color: var(--bg-color) !important; font-weight: bold; }
-        .cp-day.muted { color: var(--border-color); pointer-events: none; opacity: 0.3; }
-        .cp-time { display: flex; justify-content: center; align-items: center; gap: 6px; padding-top: 16px; border-top: 1px solid var(--border-color); }
-        #dp-time-input { width: 100%; padding: 10px; font-size: 16px; text-align: center; border-radius: 6px; border: 1px solid var(--border-color); background: var(--muted-bg); color: var(--text-color); font-family: inherit; outline: none; }
+        /* --- GLOBAL FLAT UTILITIES --- */
+        .flat-input { border: none; background: transparent; color: var(--text-color); font-family: inherit; font-size: 16px; width: 100%; outline: none; padding: 4px 0; }
+        .flat-input::placeholder { color: var(--muted-text); opacity: 0.5; }
+        .flat-btn { background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 12px; font-weight: bold; font-family: inherit; font-size: 13px; text-transform: uppercase; transition: all 0.1s; }
+        .flat-btn:hover { background: var(--text-color); color: var(--bg-color); border-color: var(--text-color); }
+        .flat-row { display: flex; align-items: center; gap: 12px; width: 100%; }
+        
+        /* --- PROTRUDING BLOCK FOOTER ARCHITECTURE --- */
+        #editor-container { position: relative; width: 100%; min-height: 50vh; outline: none; display: flex; flex-direction: column; gap: 12px; }
+        
+        .block-wrapper { position: relative; padding: 0 0 16px 0; border-bottom: 1px solid transparent; transition: border-color 0.2s; group: block; }
+        .block-wrapper:hover, .block-wrapper:focus-within { border-bottom-color: var(--border-color); }
+        
+        .block-actions { position: absolute; bottom: -16px; right: 0; display: flex; background: var(--bg-color); border: 1px solid var(--text-color); z-index: 10; opacity: 0; transition: opacity 0.2s; box-shadow: 2px 2px 0 var(--text-color); }
+        .block-wrapper:hover .block-actions, .block-wrapper:focus-within .block-actions { opacity: 1; }
+        
+        .action-btn { width: 30px; height: 30px; border: none; background: transparent; color: var(--text-color); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .action-btn:hover { background: var(--text-color); color: var(--bg-color); }
+        .action-btn:not(:first-child) { border-left: 1px solid var(--text-color); }
+        
+        .block-content { flex-grow: 1; min-width: 0; outline: none; }
+        .block-time { font-size: 10px; font-weight: bold; font-family: monospace; color: var(--muted-text); position: absolute; right: 0; top: 0; user-select: none; opacity: 0.5; }
 
-        /* Block Tools */
-        .compute-tool-container { border: 1px solid var(--border-color); border-radius: var(--std-border-radius); background: var(--muted-bg); overflow: hidden; margin: 8px 0; display: flex; flex-direction: column; }
-        .compute-input { width: 100%; padding: 16px 16px 12px 16px; background: transparent; border: none; outline: none; font-family: monospace; font-size: 14px; color: var(--text-color); resize: none; box-sizing: border-box; line-height: 1.5; min-height: 50px; font-weight: bold; }
-        .compute-input::placeholder { color: var(--muted-text); opacity: 0.5; font-weight: normal; }
-        .compute-output { padding: 12px 16px; border-top: 1px dashed var(--border-color); font-family: monospace; font-size: 16px; font-weight: 700; color: var(--text-color); background: var(--bg-color); word-break: break-word; min-height: 20px; }
-        .compute-error { color: #EF4444; font-weight: 400; font-size: 13px; }
+        /* --- NATIVE TEXT STYLES --- */
+        .native-text-block { outline: none; line-height: 1.6; font-size: 16px; min-height: 24px; word-break: break-word; }
+        .native-text-block[data-placeholder]:empty::before { content: attr(data-placeholder); color: var(--muted-text); pointer-events: none; }
+        .native-header-1 { font-size: 2.2em; font-weight: 900; margin-top: 0.8em; text-transform: uppercase; letter-spacing: -1px; line-height: 1.1; }
+        .native-header-2 { font-size: 1.5em; font-weight: bold; margin-top: 0.8em; border-bottom: 2px solid var(--text-color); padding-bottom: 4px; display: inline-block; line-height: 1.2; }
+        
+        .checklist-item, .list-item-row { display: flex; align-items: flex-start; gap: 12px; margin: 8px 0; }
+        .checklist-checkbox { appearance: none; -webkit-appearance: none; width: 18px; height: 18px; border: 2px solid var(--text-color); background: transparent; cursor: pointer; margin-top: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .checklist-checkbox:checked::after { content: ''; width: 10px; height: 10px; background: var(--text-color); }
+        .checklist-text.checked { text-decoration: line-through; opacity: 0.4; }
+        .list-bullet { margin-top: 2px; font-weight: bold; font-size: 1.2em; line-height: 1; flex-shrink: 0; }
 
-        .scan-wrapper { margin: 8px 0; width: 100%; border: 1px dashed var(--border-color); border-radius: var(--std-border-radius); display: flex; flex-direction: column; overflow: hidden; }
-        .scan-action-area { padding: 30px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; cursor: pointer; transition: background 0.2s; }
-        .scan-action-area:hover { background: var(--editor-hover-bg); }
-        .scan-icon { color: var(--muted-text); }
-        .scan-icon svg { width: 32px; height: 32px; }
-        .scan-label { font-size: 14px; font-weight: 600; color: var(--text-color); letter-spacing: 1px; }
-        .scan-status { font-family: monospace; font-size: 12px; font-weight: bold; color: var(--muted-text); margin-top: 10px; }
-        .scan-output-textarea { width: 100%; min-height: 100px; padding: 16px; border: none; background: var(--muted-bg); color: var(--text-color); font-family: monospace; font-size: 13px; line-height: 1.5; resize: none; outline: none; box-sizing: border-box; }
+        /* Block Type Menu Popover */
+        .block-menu-popover { position: absolute; z-index: 10000; background: var(--bg-color); border: 1px solid var(--text-color); box-shadow: 4px 4px 0 var(--text-color); padding: 0; display: none; grid-template-columns: 1fr 1fr; width: 280px; max-width: calc(100vw - 32px); }
+        .block-menu-popover.active { display: grid; }
+        .menu-item { display: flex; align-items: center; gap: 12px; padding: 12px; cursor: pointer; border: 1px solid transparent; border-bottom: 1px solid var(--border-color); font-size: 12px; font-weight: bold; text-transform: uppercase; color: var(--text-color); }
+        .menu-item:nth-child(odd) { border-right: 1px solid var(--border-color); }
+        .menu-item:hover { background: var(--text-color); color: var(--bg-color); }
+        
+        /* --- STANDARDIZED NON-TEXT TOOL STYLES --- */
+        .tool-box { border: 1px solid var(--border-color); background: var(--bg-color); margin: 8px 0; display: flex; flex-direction: column; overflow: hidden; }
+        .tool-header { display: flex; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--border-color); background: var(--muted-bg); gap: 12px; }
+        .tool-title-input { flex: 1; font-weight: bold; letter-spacing: 1px; padding: 4px; border: none; background: transparent; color: var(--text-color); font-family: inherit; font-size: 14px; outline: none; text-transform: uppercase; }
+        .tool-title-input::placeholder { color: var(--muted-text); opacity: 0.5; }
+        .tool-controls { display: flex; align-items: center; gap: 4px; }
+        .tool-icon-btn { width: 30px; height: 30px; border: none; background: transparent; color: var(--text-color); cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 0; transition: background 0.1s; }
+        .tool-icon-btn:hover { background: var(--border-color); }
+        .tool-icon-btn.active { background: var(--text-color) !important; color: var(--bg-color) !important; }
 
-        .recall-search-wrapper { position: relative; width: 100%; margin: 8px 0; }
-        .recall-search-input { width: 100%; padding: 12px 14px 12px 40px; border-radius: var(--std-border-radius); border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); font-family: inherit; font-size: 15px; outline: none; box-sizing: border-box; transition: border-color 0.2s; }
-        .recall-search-input:focus { border-color: var(--text-color); }
-        .recall-search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--muted-text); }
-        .recall-dropdown { position: absolute; top: 100%; left: 0; width: 100%; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: var(--std-border-radius); margin-top: 4px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); z-index: 1000; max-height: 250px; overflow-y: auto; display: none; }
+        .ai-stream-wrapper { margin: 8px 0; padding-left: 12px; border-left: 4px solid #a855f7; }
+        .ai-cursor { display: inline-block; width: 10px; height: 1em; background: #a855f7; animation: blink 1s step-end infinite; vertical-align: text-bottom; margin-left: 4px; }
+
+        .compute-code { font-family: monospace; font-weight: bold; border: none; }
+        .compute-output { font-family: monospace; padding: 12px; background: var(--muted-bg); min-height: 30px; border-top: 1px dashed var(--border-color); }
+        
+        .recall-dropdown { display: none; border-top: 1px solid var(--text-color); max-height: 250px; overflow-y: auto; }
         .recall-dropdown.active { display: block; }
-        .recall-result-item { padding: 12px 14px; cursor: pointer; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 4px; }
-        .recall-result-item:last-child { border-bottom: none; }
-        .recall-result-item:hover { background: var(--editor-hover-bg); }
-        .recall-result-meta { font-size: 11px; color: var(--text-color); font-weight: 600; opacity: 0.7; }
-        .recall-result-snippet { font-size: 14px; color: var(--muted-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .recalled-block { margin: 8px 0; padding: 12px 16px; background: var(--recall-bg); border-left: 4px solid var(--recall-border); border-radius: 4px var(--std-border-radius) var(--std-border-radius) 4px; position: relative; }
-        .recalled-orig-meta { font-size: 10px; color: var(--muted-text); font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
-        .recalled-orig-meta svg { width: 12px; height: 12px; }
+        .recall-item { padding: 12px; border-bottom: 1px solid var(--border-color); cursor: pointer; }
+        .recall-item:hover { background: var(--text-color); color: var(--bg-color); }
 
-        .calendar-tool-container { display: flex; flex-direction: column; gap: 12px; width: 100%; margin: 8px 0; }
-        .cal-header { display: flex; align-items: center; gap: 10px; }
-        .cal-header svg { color: var(--muted-text); }
-        .cal-title { font-size: 18px; font-weight: 600; }
-        .cal-display-btn { border: 1px solid var(--border-color); background: var(--muted-bg); color: var(--text-color); border-radius: 6px; padding: 10px 14px; font-family: inherit; font-size: 14px; outline: none; cursor: pointer; text-align: left; display: flex; align-items: center; justify-content: space-between; }
-        .cal-display-btn:hover { background: var(--editor-hover-bg); }
-        .cal-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-        .cal-actions .cal-btn { flex: 1; min-width: 130px; }
+        .leaflet-container { z-index: 1 !important; width: 100%; height: 400px; background: var(--bg-color) !important; }
+        .drawing-mode, .drawing-mode * { cursor: crosshair !important; touch-action: none !important; }
 
-        .voice-tool-container { display: flex; align-items: center; gap: 12px; margin: 8px 0; }
-        .v-memo__btn { width: var(--std-control-height); height: var(--std-control-height); border-radius: 50%; border: 1px solid var(--border-color); background: var(--muted-bg); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-color); flex-shrink: 0; transition: all 0.2s; }
-        .v-memo__btn:hover { background: var(--editor-hover-bg); }
-        .v-memo__btn.recording { color: #ffffff; border-color: #ef4444; background: #ef4444; animation: pulse 1.5s infinite; }
-        .v-memo__btn.playing { color: #ffffff; border-color: #3B82F6; background: #3B82F6; }
-        .v-memo__title { font-size: 15px; font-weight: 600; min-width: 0; flex-grow: 1; }
-        .v-memo__status { font-size: 13px; color: var(--muted-text); white-space: nowrap; font-weight: 500; }
-        
-        .smart-canvas-selector { display: flex; gap: 12px; padding: 12px 0; justify-content: center; flex-wrap: wrap; }
-        .smart-canvas-option { flex: 1; min-width: 100px; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 24px 10px; border: 1px dashed var(--border-color); border-radius: 8px; background: transparent; color: var(--text-color); cursor: pointer; transition: all 0.2s; font-size: 13px; font-weight: 500; font-family: inherit; }
-        .smart-canvas-option:hover { background: var(--editor-hover-bg); border-style: solid; }
-        .smart-canvas-option svg { width: 32px; height: 32px; color: var(--muted-text); }
-        
-        .canvas-relative-frame { position: relative; width: 100%; border-radius: var(--std-border-radius); border: 1px solid var(--border-color); overflow: hidden; margin: 8px 0; }
-        .block-controls-stack { position: absolute; top: 10px; left: 10px; display: flex; flex-direction: column; gap: 8px; z-index: 401 !important; }
-        .canvas-action-btn { width: 32px; height: 32px; border-radius: 6px; background: var(--editor-toolbar-bg); border: 1px solid var(--border-color); color: var(--text-color); cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0.8; transition: all 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.15); }
-        .canvas-action-btn.active { background: var(--text-color); color: var(--bg-color); opacity: 1; border-color: var(--text-color); }
-        
-        .leaflet-container { background: var(--bg-color) !important; z-index: 1 !important; width: 100%; height: 400px; border: none; }
-        .leaflet-container.drawing-mode, .leaflet-container.drawing-mode .leaflet-interactive { cursor: crosshair !important; touch-action: none; }
-        .leaflet-container.locked-mode { cursor: default !important; }
-
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        .global-calendar-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100000; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s ease; padding: 16px; }
+        .global-calendar-modal.show { display: flex; opacity: 1; }
+        .cp-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 11px; font-weight: bold; margin-bottom: 8px; text-transform: uppercase; }
+        .cp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--border-color); border: 1px solid var(--border-color); }
+        .cp-day { background: var(--bg-color); padding: 12px 0; text-align: center; font-size: 14px; cursor: pointer; }
+        .cp-day:hover:not(.muted) { background: var(--text-color); color: var(--bg-color); }
+        .cp-day.active { background: var(--text-color); color: var(--bg-color); font-weight: bold; }
+        .cp-day.muted { opacity: 0.3; pointer-events: none; }
     </style>
 </head>
 <body>
 
     <div class="app-container">
-        <!-- Brutalist Header -->
         <div id="date-header"></div>
-        <div id="editorjs"></div>
+        <div class="header-status-row">
+            <div id="ai-inline-status" class="ai-inline-status loading">Starting AI...</div>
+            <div id="vector-status" class="ai-inline-status loading">VectorDB: Init</div>
+            <span id="save-indicator" class="save-indicator">SYNCED</span>
+            <span id="storage-warning" class="storage-warning">LOCAL ONLY</span>
+        </div>
+        
+        <div id="editor-container"></div>
+        <div id="block-menu" class="block-menu-popover"></div>
     </div>
 
-    <!-- UI Modal -->
+    <!-- Modals -->
     <div id="global-calendar-modal" class="global-calendar-modal">
-        <div class="cp-container" onclick="event.stopPropagation()">
-            <div class="cp-header">
-                <button id="dp-prev"><</button>
-                <span id="dp-month-label">Month Year</span>
-                <button id="dp-next">></button>
+        <div class="tool-box" style="width: 100%; max-width: 360px; box-shadow: 8px 8px 0 var(--text-color); border-color: var(--text-color); padding: 16px;" onclick="event.stopPropagation()">
+            <div class="flat-row" style="justify-content: space-between; margin-bottom: 16px;">
+                <button id="dp-prev" class="flat-btn" style="padding: 4px 12px;"><</button>
+                <span id="dp-month-label" style="font-weight: bold; text-transform: uppercase;"></span>
+                <button id="dp-next" class="flat-btn" style="padding: 4px 12px;">></button>
             </div>
-            <div class="cp-weekdays">
-                <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
-            </div>
+            <div class="cp-weekdays"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div>
             <div id="dp-grid" class="cp-grid"></div>
-            <div id="dp-time-section" class="cp-time" style="display: none;">
-                <input type="time" id="dp-time-input" required>
+            <div id="dp-time-section" style="margin-top: 16px; display: none;">
+                <input type="time" id="dp-time-input" class="flat-input tool-box" style="padding: 8px;" required>
             </div>
-            <div style="margin-top: 12px; display: flex; gap: 8px;">
-                <button id="dp-today-btn" class="cal-btn" style="flex: 1;">Today</button>
-                <button id="dp-confirm-btn" class="cal-btn primary" style="flex: 1;">Confirm</button>
+            <div class="flat-row" style="margin-top: 16px;">
+                <button id="dp-today-btn" class="flat-btn" style="flex: 1;">TODAY</button>
+                <button id="dp-confirm-btn" class="flat-btn" style="flex: 1; background: var(--text-color); color: var(--bg-color);">CONFIRM</button>
             </div>
         </div>
     </div>
 
     <script type="module">
         // ============================================================================
-        // ⚙️ CONFIGURATION & UTILS
+        // ⚙️ AI & APP CONFIGURATION
         // ============================================================================
-        const CONFIG = { PWA_LOGO_URL: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzAwMDAwMCI+PHBhdGggZD0iTTE0IDJINmEyIDIgMCAwIDAtMiAydjE2YTIgMiAwIDAgMCAyIDJoMTJhMiAyIDAgMCAwIDItMlY4bC02LTZ6Ii8+PC9zdmc+" };
-
-        const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        document.getElementById('pwa-icon').href = CONFIG.PWA_LOGO_URL;
-        document.getElementById('pwa-manifest').href = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify({
-            "name": "Infinite Notes", "short_name": "Notes", "start_url": ".", "display": "standalone",
-            "background_color": isDark ? "#121212" : "#ffffff", "theme_color": isDark ? "#121212" : "#ffffff",
-            "icons": [{"src": CONFIG.PWA_LOGO_URL, "sizes": "192x192", "type": "image/svg+xml"}]
-        }));
-
-        window.addEventListener('error', e => e.message?.includes('ResizeObserver') && e.stopImmediatePropagation());
-
-        if (window.visualViewport) {
-            const updateKeyboardOffset = () => document.documentElement.style.setProperty('--keyboard-offset', `${Math.max(0, window.innerHeight - window.visualViewport.height)}px`);
-            window.visualViewport.addEventListener('resize', updateKeyboardOffset); updateKeyboardOffset();
-        }
+        const CONFIG = {
+            AI_NAME: "bro", 
+            AI_PERSONALITY: "You are intelligent, chill, fast learning and have flawless memory.",
+            PWA_LOGO_URL: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzAwMDAwMCI+PHBhdGggZD0iTTE0IDJINmEyIDIgMCAwIDAtMiAydjE2YTIgMiAwIDAgMCAyIDJoMTJhMiAyIDAgMCAwIDItMlY4bC02LTZ6Ii8+PC9zdmc+"
+        };
 
         const ICONS = {
+            plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>',
+            trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14H5V6m3 0V4h8v2"></path></svg>',
+            text: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h16v3M9 20h6M12 4v16"></path></svg>',
+            header: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16M4 18V6M20 18V6"></path></svg>',
+            list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>',
+            check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>',
             mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>',
-            stop: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"></rect></svg>',
+            stop: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12"></rect></svg>',
             play: '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>',
-            pause: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect></svg>',
-            image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>',
+            pause: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>',
+            image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>',
             download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>',
-            lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>',
-            unlock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>',
-            calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>',
-            chevronDown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>',
+            lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>',
+            unlock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>',
+            calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>',
             bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>',
-            canvas: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg>',
+            canvas: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path></svg>',
             map: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>',
             pen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>',
             search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>',
@@ -253,272 +211,788 @@
             compute: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 10 14 13 8 18 8"></polyline><circle cx="20" cy="8" r="2"></circle><circle cx="2" cy="14" r="2"></circle></svg>'
         };
 
-        const createEl = (tag, className = '', attrs = {}, children = []) => {
-            const el = document.createElement(tag);
-            if (className) el.className = className;
-            for (const [k, v] of Object.entries(attrs)) {
-                if (k === 'style') el.style.cssText = v;
-                else if (k in el) el[k] = v;
-                else el.setAttribute(k, v);
+        function createEl(tag, classNames = '', attributes = {}, children = []) {
+            const el = document.createElement(tag); if (classNames) el.className = classNames;
+            for (const [k, v] of Object.entries(attributes)) { 
+                if (k === 'innerHTML') el.innerHTML = v; 
+                else if (k === 'textContent') el.textContent = v; 
+                else if (k === 'style') el.style.cssText = v; 
+                else el.setAttribute(k, v); 
             }
-            if (children.length) el.append(...children.filter(Boolean));
-            return el;
-        };
+            children.forEach(c => c && el.append(c)); return el;
+        }
 
         const NotificationEngine = {
             timers: new Map(),
-            schedule(id, dt, title) {
-                this.cancel(id); if (!window.Notification || Notification.permission !== 'granted') return;
+            schedule: function(id, dt, title) {
+                this.cancel(id); if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
                 const delay = new Date(dt).getTime() - Date.now();
                 if (delay > 0) this.timers.set(id, setTimeout(() => { new Notification('Note Reminder', { body: title || 'Scheduled Event' }); this.timers.delete(id); }, delay));
             },
-            cancel(id) { if (this.timers.has(id)) { clearTimeout(this.timers.get(id)); this.timers.delete(id); } }
+            cancel: function(id) { if (this.timers.has(id)) { clearTimeout(this.timers.get(id)); this.timers.delete(id); } }
         };
 
-        const getLocalYYYYMMDD = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        function getLocalYYYYMMDD(date) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; }
 
         // ============================================================================
-        // DATABASE ADAPTER
+        // 💾 ASYNCHRONOUS STORAGE ADAPTER
         // ============================================================================
         class IndexedDBAdapter {
-            constructor() { this.dbName = 'InfiniteNotesDB'; this.storeName = 'daily_notes'; this.cache = {}; this.isMemoryOnly = false; }
+            constructor() { 
+                this.dbName = 'InfiniteNotesDB'; this.storeName = 'daily_notes'; 
+                this.cache = {}; this.isMemoryOnly = false; this.saveQueue = Promise.resolve(); 
+            }
             init() {
-                return new Promise(resolve => {
+                return new Promise((resolve) => {
                     try {
                         const req = indexedDB.open(this.dbName, 1);
-                        req.onupgradeneeded = e => e.target.result.createObjectStore(this.storeName);
-                        req.onsuccess = e => { this.db = e.target.result; this.loadAll().then(data => { this.cache = data; resolve(); }); };
-                        req.onerror = () => { this.isMemoryOnly = true; resolve(); };
-                    } catch { this.isMemoryOnly = true; resolve(); }
+                        req.onupgradeneeded = (e) => { if (!e.target.result.objectStoreNames.contains(this.storeName)) e.target.result.createObjectStore(this.storeName); };
+                        req.onsuccess = (e) => { this.db = e.target.result; this.loadAll().then(data => { this.cache = data; resolve(); }); };
+                        req.onerror = () => { this.enableFallback(resolve); };
+                    } catch(e) { this.enableFallback(resolve); }
                 });
             }
-            save(dateStr, data) { 
-                this.cache[dateStr] = data; 
-                if (this.isMemoryOnly) return;
-                try { this.db.transaction(this.storeName, 'readwrite').objectStore(this.storeName).put(data, dateStr); } catch {}
+            enableFallback(resolve) { this.isMemoryOnly = true; document.getElementById('storage-warning').style.display = 'inline-block'; resolve(); }
+            save(dateStr, data) {
+                this.cache[dateStr] = data;
+                if (this.isMemoryOnly || !this.db) return Promise.resolve();
+                this.saveQueue = this.saveQueue.then(() => new Promise((res, rej) => {
+                    const req = this.db.transaction(this.storeName, 'readwrite').objectStore(this.storeName).put(data, dateStr);
+                    req.onsuccess = res; req.onerror = () => rej(req.error);
+                })).catch(err => console.error("IDB Save Error:", err));
+                return this.saveQueue;
             }
             loadAll() {
                 return new Promise(resolve => {
-                    if (this.isMemoryOnly) return resolve({});
+                    if (this.isMemoryOnly || !this.db) return resolve({});
                     try {
-                        const tx = this.db.transaction(this.storeName, 'readonly'), store = tx.objectStore(this.storeName);
-                        const valReq = store.getAll(), keyReq = store.getAllKeys();
-                        tx.oncomplete = () => { const res = {}; keyReq.result.forEach((k, i) => res[k] = valReq.result[i]); resolve(res); };
-                    } catch { resolve({}); }
+                        const tx = this.db.transaction(this.storeName, 'readonly'); const store = tx.objectStore(this.storeName);
+                        const valReq = store.getAll(); const keyReq = store.getAllKeys();
+                        tx.oncomplete = () => { const result = {}; if (keyReq.result && valReq.result) keyReq.result.forEach((k, i) => result[k] = valReq.result[i]); resolve(result); };
+                        tx.onerror = () => resolve({});
+                    } catch(e) { resolve({}); }
                 });
             }
         }
-        const appDB = new IndexedDBAdapter();
+        let appDB = new IndexedDBAdapter();
+
+        // ============================================================================
+        // 🧠 LOCAL VECTOR DATABASE (Embeddings & Semantic Search)
+        // ============================================================================
+        let embedPipeline = null;
+        let isEmbeddingLoading = false;
+        const vectorStatusEl = document.getElementById('vector-status');
+
+        async function initVectorDB() {
+            if (embedPipeline || isEmbeddingLoading) return;
+            isEmbeddingLoading = true;
+            try {
+                // Dynamically import the lightweight Transformers.js library
+                const { pipeline, env } = await import("https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1");
+                env.allowLocalModels = false; 
+                env.useBrowserCache = true; // Automatically caches the 20MB model in browser IDB
+                
+                vectorStatusEl.textContent = 'VectorDB: Loading Model...';
+                embedPipeline = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
+                    progress_callback: (x) => {
+                        if(x.status === 'downloading') vectorStatusEl.textContent = `VectorDB: DL ${Math.round(x.progress||0)}%`;
+                    }
+                });
+                vectorStatusEl.textContent = 'VectorDB: Active';
+                vectorStatusEl.className = 'ai-inline-status';
+            } catch (err) {
+                vectorStatusEl.textContent = 'VectorDB: Offline';
+                vectorStatusEl.className = 'ai-inline-status error';
+                embedPipeline = null;
+            } finally {
+                isEmbeddingLoading = false;
+            }
+        }
+        setTimeout(initVectorDB, 3000); // Stagger load so it doesn't interrupt UI or AI init
+
+        async function generateEmbedding(text) {
+            if (!embedPipeline || !text) return null;
+            try {
+                const output = await embedPipeline(text, { pooling: 'mean', normalize: true });
+                return Array.from(output.data);
+            } catch (e) { return null; }
+        }
+
+        function cosineSimilarity(vecA, vecB) {
+            let dotProduct = 0, normA = 0, normB = 0;
+            for (let i = 0; i < vecA.length; i++) {
+                dotProduct += vecA[i] * vecB[i];
+                normA += vecA[i] * vecA[i];
+                normB += vecB[i] * vecB[i];
+            }
+            if (normA === 0 || normB === 0) return 0;
+            return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+        }
+
+        function getBlockText(block) {
+            let text = block.type.toLowerCase() + " ";
+            if (block.data.text) text += block.data.text + " ";
+            if (block.data.title) text += block.data.title + " ";
+            if (block.data.items) text += block.data.items.map(i => i.content || i.text).join(' ') + " ";
+            return text.replace(/<[^>]*>?/gm, '').trim();
+        }
+
+        // BACKGROUND VECTOR SWEEPER: Secretly embeds new notes every 5s using the async queue
+        setInterval(async () => {
+            if (!embedPipeline || isSaving) return;
+            let dbUpdated = false;
+            for (const [dateStr, dayData] of Object.entries(appDB.cache)) {
+                if (!dayData.blocks) continue;
+                for (let block of dayData.blocks) {
+                    let text = getBlockText(block);
+                    // If text exists and hasn't been embedded yet (or was changed)
+                    if (text && block.data._lastEmbeddedText !== text) {
+                        const vec = await generateEmbedding(text);
+                        if (vec) {
+                            block.data._embedding = vec;
+                            block.data._lastEmbeddedText = text;
+                            dbUpdated = true;
+                        }
+                    }
+                }
+                if (dbUpdated) { appDB.save(dateStr, dayData); dbUpdated = false; }
+            }
+        }, 5000); 
 
         // ============================================================================
         // GLOBAL UI: DATE PICKER MODAL
         // ============================================================================
-        const DatePicker = (() => {
+        const DatePicker = (function() {
             let activeDate, viewDate, onConfirm, config;
             const modal = document.getElementById('global-calendar-modal');
-            const els = { grid: document.getElementById('dp-grid'), label: document.getElementById('dp-month-label'), timeSec: document.getElementById('dp-time-section'), timeInput: document.getElementById('dp-time-input') };
+            const elements = { grid: document.getElementById('dp-grid'), label: document.getElementById('dp-month-label'), timeSec: document.getElementById('dp-time-section'), timeInput: document.getElementById('dp-time-input') };
 
-            const render = () => {
+            function render() {
                 const year = viewDate.getFullYear(), month = viewDate.getMonth();
-                els.label.textContent = viewDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-                els.grid.innerHTML = '';
+                elements.label.textContent = viewDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+                elements.grid.innerHTML = '';
+                elements.timeSec.style.display = config.showTime ? 'block' : 'none';
+                if (config.showTime) elements.timeInput.value = `${String(activeDate.getHours()).padStart(2, '0')}:${String(activeDate.getMinutes()).padStart(2, '0')}`;
                 
-                els.timeSec.style.display = config.showTime ? 'block' : 'none';
-                if (config.showTime) els.timeInput.value = `${String(activeDate.getHours()).padStart(2, '0')}:${String(activeDate.getMinutes()).padStart(2, '0')}`;
-                
-                for (let i = 0; i < new Date(year, month, 1).getDay(); i++) els.grid.appendChild(createEl('div', 'cp-day muted', {style: "opacity: 0"}));
-                const daysInMonth = new Date(year, month + 1, 0).getDate(), todayStr = getLocalYYYYMMDD(new Date());
+                for (let i = 0; i < new Date(year, month, 1).getDay(); i++) elements.grid.appendChild(createEl('div', 'cp-day muted', {style: "background: transparent"}));
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const todayStr = getLocalYYYYMMDD(new Date());
 
                 for (let i = 1; i <= daysInMonth; i++) {
                     const dayEl = createEl('div', 'cp-day', { textContent: i });
                     const cellStr = getLocalYYYYMMDD(new Date(year, month, i));
 
                     if (year === activeDate.getFullYear() && month === activeDate.getMonth() && i === activeDate.getDate()) dayEl.classList.add('active');
-                    if (cellStr === todayStr) { dayEl.style.borderBottom = "2px solid var(--text-color)"; dayEl.style.borderRadius = "4px 4px 0 0"; }
+                    if (cellStr === todayStr) { dayEl.style.borderBottom = "4px solid var(--text-color)"; }
 
-                    let isMuted = (config.disableFuture && cellStr > todayStr) || (config.disablePast && cellStr < todayStr) || (config.onlyNotes && cellStr !== todayStr && (!appDB.cache[cellStr]?.blocks?.length));
-
+                    let isMuted = (config.disableFuture && cellStr > todayStr) || (config.disablePast && cellStr < todayStr) || (config.onlyNotes && cellStr !== todayStr && (!appDB.cache[cellStr] || !appDB.cache[cellStr].blocks?.length));
+                    
                     if (isMuted) dayEl.classList.add('muted'); 
                     else {
                         dayEl.onclick = () => { activeDate.setFullYear(year, month, i); render(); };
-                        if (!config.showTime && appDB.cache[cellStr]?.blocks?.length > 0 && cellStr !== todayStr) {
-                            dayEl.style.cssText += "font-weight:bold;text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--border-color);";
-                        }
+                        if (!config.showTime && appDB.cache[cellStr]?.blocks?.length > 0 && cellStr !== todayStr) { dayEl.style.textDecoration = "underline"; dayEl.style.fontWeight = "bold"; }
                     }
-                    els.grid.appendChild(dayEl);
+                    elements.grid.appendChild(dayEl);
                 }
-            };
+            }
 
             document.getElementById('dp-prev').onclick = () => { viewDate.setMonth(viewDate.getMonth() - 1); render(); };
             document.getElementById('dp-next').onclick = () => { viewDate.setMonth(viewDate.getMonth() + 1); render(); };
             document.getElementById('dp-today-btn').onclick = () => { activeDate = new Date(); viewDate = new Date(activeDate); render(); };
             document.getElementById('dp-confirm-btn').onclick = () => {
-                if (config.showTime && els.timeInput.value) {
-                    const [h, m] = els.timeInput.value.split(':'); activeDate.setHours(+h, +m, 0, 0);
-                    if (config.disablePast && activeDate < new Date()) activeDate = new Date(); 
-                }
+                if (config.showTime && elements.timeInput.value) { const [h, m] = elements.timeInput.value.split(':'); activeDate.setHours(h, m, 0, 0); }
+                if (config.disablePast && activeDate < new Date()) activeDate = new Date(); 
                 modal.classList.remove('show'); setTimeout(() => modal.style.display = 'none', 200);
-                onConfirm?.(new Date(activeDate));
+                if (onConfirm) onConfirm(new Date(activeDate));
             };
-            modal.onclick = e => { if (e.target === modal) { modal.classList.remove('show'); setTimeout(() => modal.style.display = 'none', 200); } };
+            modal.addEventListener('click', (e) => { if (e.target.id === 'global-calendar-modal') { modal.classList.remove('show'); setTimeout(() => modal.style.display = 'none', 200); } });
 
             return {
-                open(initDate, callback, opts = {}) {
-                    activeDate = new Date(initDate); viewDate = new Date(activeDate); onConfirm = callback;
-                    config = { showTime: !!opts.showTime, disableFuture: !!opts.disableFuture, disablePast: !!opts.disablePast, onlyNotes: !!opts.onlyNotes };
-                    render(); modal.style.display = 'flex'; void modal.offsetWidth; modal.classList.add('show');
+                open: function(initialDateObj, callback, options = {}) {
+                    activeDate = new Date(initialDateObj); viewDate = new Date(activeDate); onConfirm = callback;
+                    config = options; render(); modal.style.display = 'flex'; void modal.offsetWidth; modal.classList.add('show');
                 }
             };
         })();
 
         // ============================================================================
-        // EDITOR.JS PLUGINS
+        // ON-DEVICE AI COLLABORATOR SYSTEM
         // ============================================================================
-        const fireChange = cfg => cfg.onChange && cfg.onChange();
+        const AI_MODEL_ID = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC"; 
+        let aiEngine = null; let isAILoading = false; const aiStatusEl = document.getElementById('ai-inline-status');
+
+        async function initializeAI() {
+            if (aiEngine || isAILoading) return;
+            isAILoading = true; aiStatusEl.className = 'ai-inline-status loading';
+            try {
+                const { CreateMLCEngine } = await import("https://esm.run/@mlc-ai/web-llm");
+                aiEngine = await CreateMLCEngine(AI_MODEL_ID, { initProgressCallback: (progress) => { aiStatusEl.textContent = `INIT AI... ${Math.round(progress.progress * 100)}%`; } });
+                aiStatusEl.className = 'ai-inline-status'; aiStatusEl.textContent = 'ONLINE';
+            } catch (err) {
+                aiStatusEl.className = 'ai-inline-status error'; aiStatusEl.textContent = 'OFFLINE (WEBGPU REQ)'; aiEngine = null;
+            } finally { isAILoading = false; }
+        }
+        setTimeout(initializeAI, 1500);
+
+        async function getDocumentContext(queryPrompt = null) {
+            let context = "";
+            
+            // Vector RAG (Retrieval-Augmented Generation) 
+            // If semantic search is loaded and a prompt was provided, grab the 15 most mathematically relevant past blocks
+            if (embedPipeline && queryPrompt) {
+                const queryVec = await generateEmbedding(queryPrompt);
+                let allBlocks = [];
+                Object.entries(appDB.cache).forEach(([dateStr, dayData]) => {
+                    if (!dayData.blocks) return;
+                    dayData.blocks.forEach(block => {
+                        if (block.data._embedding) {
+                            allBlocks.push({
+                                date: dateStr,
+                                type: block.type,
+                                text: getBlockText(block),
+                                score: cosineSimilarity(queryVec, block.data._embedding)
+                            });
+                        }
+                    });
+                });
+                
+                allBlocks.sort((a,b) => b.score - a.score);
+                const topBlocks = allBlocks.slice(0, 15);
+                
+                context += "--- SEMANTIC RECALL (Relevant Past Notes) ---\n";
+                topBlocks.forEach(b => {
+                    if(b.score > 0.25) context += `[Date: ${b.date}] ${b.text}\n`;
+                });
+                context += "-------------------------------------------\n\n";
+            }
+
+            // Always append the CURRENT day's entire context
+            if (window.editor) {
+                context += "--- CURRENT DAY'S NOTES ---\n";
+                const data = await window.editor.save();
+                data.blocks.forEach(b => {
+                    if (['paragraph', 'header', 'scan'].includes(b.type)) context += (b.data.text||'').replace(/<[^>]*>?/gm, '') + "\n";
+                    if (['list', 'checklist'].includes(b.type)) context += (b.data.items||[]).map(i => "- " + (i.content||i.text||'').replace(/<[^>]*>?/gm, '')).join("\n") + "\n";
+                    if (b.type === 'compute') context += `[Calculation: ${b.data.code} = ${b.data.output}]\n`;
+                });
+            }
+            return context.trim();
+        }
+
+        // ============================================================================
+        // NATIVE TEXT BLOCKS
+        // ============================================================================
+
+        class ParagraphBlock {
+            constructor({ data, api, readOnly }) { this.data = data; this.api = api; this.readOnly = readOnly; }
+            render() {
+                this.el = createEl('div', 'native-text-block', { contentEditable: !this.readOnly, innerHTML: this.data.text || '', 'data-placeholder': 'Type or ask @bro...' });
+                this.el.addEventListener('keydown', this.handleKeydown.bind(this));
+                this.el.addEventListener('input', () => this.api.onChange());
+                return this.el;
+            }
+            handleKeydown(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    const text = this.el.innerText.trim(); const trigger = `@${CONFIG.AI_NAME.toLowerCase()} `;
+                    if (text.toLowerCase().startsWith(trigger)) {
+                        const prompt = text.substring(trigger.length).trim();
+                        if (!prompt || !aiEngine) return;
+                        const idx = this.api.getIndex(this);
+                        this.api.insertBlock('aiStream', { prompt: prompt }, idx + 1, true);
+                        this.api.deleteBlock(idx);
+                    } else { this.api.insertBlock('paragraph', {}, this.api.getIndex(this) + 1, true); }
+                }
+                if (e.key === 'Backspace' && this.el.innerText === '') {
+                    e.preventDefault(); const idx = this.api.getIndex(this);
+                    if (idx > 0) { this.api.deleteBlock(idx); this.api.focus(idx - 1); }
+                }
+            }
+            focus() { this.el.focus(); }
+            save() { return { text: this.el.innerHTML }; }
+        }
+
+        class HeaderBlock {
+            constructor({ data, api, readOnly }) { this.data = data; this.api = api; this.readOnly = readOnly; this.level = data.level || 2; }
+            render() {
+                this.el = createEl('div', `native-text-block native-header-${this.level}`, { contentEditable: !this.readOnly, innerHTML: this.data.text || '', 'data-placeholder': 'HEADING...' });
+                this.el.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.api.insertBlock('paragraph', {}, this.api.getIndex(this) + 1, true); }
+                    if (e.key === 'Backspace' && this.el.innerText === '') { e.preventDefault(); const idx = this.api.getIndex(this); if (idx > 0) { this.api.deleteBlock(idx); this.api.focus(idx - 1); } }
+                });
+                this.el.addEventListener('input', () => this.api.onChange());
+                return this.el;
+            }
+            focus() { this.el.focus(); }
+            save() { return { text: this.el.innerHTML, level: this.level }; }
+        }
+
+        class ChecklistBlock {
+            constructor({ data, api, readOnly }) { this.data = data; this.api = api; this.readOnly = readOnly; this.items = data.items || [{ text: '', checked: false }]; }
+            render() {
+                this.wrapper = createEl('div', 'native-checklist');
+                this.items.forEach((item, index) => this.wrapper.appendChild(this.createItemNode(item, index))); return this.wrapper;
+            }
+            createItemNode(item, index) {
+                const row = createEl('div', 'checklist-item');
+                const checkbox = createEl('input', 'checklist-checkbox', { type: 'checkbox', checked: item.checked });
+                if (this.readOnly) checkbox.disabled = true;
+                const text = createEl('div', `native-text-block checklist-text ${item.checked ? 'checked' : ''}`, { contentEditable: !this.readOnly, innerHTML: item.text });
+                
+                checkbox.addEventListener('change', () => { item.checked = checkbox.checked; text.classList.toggle('checked', item.checked); this.api.onChange(); });
+                text.addEventListener('input', () => { item.text = text.innerHTML; this.api.onChange(); });
+                text.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        if (text.innerText === '') { this.items.splice(index, 1); this.api.insertBlock('paragraph', {}, this.api.getIndex(this) + 1, true); this.rebuild(); } 
+                        else { this.items.splice(index + 1, 0, { text: '', checked: false }); this.rebuild(index + 1); }
+                    }
+                    if (e.key === 'Backspace' && text.innerText === '') {
+                        e.preventDefault();
+                        if (this.items.length === 1) { const idx = this.api.getIndex(this); this.api.deleteBlock(idx); this.api.focus(idx - 1); } 
+                        else { this.items.splice(index, 1); this.rebuild(Math.max(0, index - 1)); }
+                    }
+                });
+                row.append(checkbox, text); return row;
+            }
+            rebuild(focusIndex = -1) {
+                this.wrapper.innerHTML = ''; this.items.forEach((item, idx) => this.wrapper.appendChild(this.createItemNode(item, idx))); this.api.onChange();
+                if (focusIndex >= 0 && this.wrapper.children[focusIndex]) this.wrapper.children[focusIndex].querySelector('.checklist-text').focus();
+            }
+            focus() { const texts = this.wrapper.querySelectorAll('.checklist-text'); if(texts.length) texts[texts.length-1].focus(); }
+            save() { return { items: this.items }; }
+        }
+
+        class ListBlock {
+            constructor({ data, api, readOnly }) { this.data = data; this.api = api; this.readOnly = readOnly; this.items = data.items || [{ content: '' }]; this.style = data.style || 'unordered'; }
+            render() {
+                this.wrapper = createEl('div', 'native-list');
+                this.items.forEach((item, index) => this.wrapper.appendChild(this.createItemNode(item, index))); return this.wrapper;
+            }
+            createItemNode(item, index) {
+                const row = createEl('div', 'list-item-row');
+                const bullet = createEl('div', 'list-bullet', { innerHTML: this.style === 'ordered' ? `${index + 1}.` : '-' });
+                const text = createEl('div', 'native-text-block list-text', { contentEditable: !this.readOnly, innerHTML: item.content || item.text || '' });
+                
+                text.addEventListener('input', () => { item.content = text.innerHTML; this.api.onChange(); });
+                text.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        if (text.innerText === '') { this.items.splice(index, 1); this.api.insertBlock('paragraph', {}, this.api.getIndex(this) + 1, true); this.rebuild(); } 
+                        else { this.items.splice(index + 1, 0, { content: '' }); this.rebuild(index + 1); }
+                    }
+                    if (e.key === 'Backspace' && text.innerText === '') {
+                        e.preventDefault();
+                        if (this.items.length === 1) { const idx = this.api.getIndex(this); this.api.deleteBlock(idx); this.api.focus(idx - 1); } 
+                        else { this.items.splice(index, 1); this.rebuild(Math.max(0, index - 1)); }
+                    }
+                });
+                row.append(bullet, text); return row;
+            }
+            rebuild(focusIndex = -1) {
+                this.wrapper.innerHTML = ''; this.items.forEach((item, idx) => this.wrapper.appendChild(this.createItemNode(item, idx))); this.api.onChange();
+                if (focusIndex >= 0 && this.wrapper.children[focusIndex]) this.wrapper.children[focusIndex].querySelector('.list-text').focus();
+            }
+            focus() { const texts = this.wrapper.querySelectorAll('.list-text'); if(texts.length) texts[texts.length-1].focus(); }
+            save() { return { style: this.style, items: this.items }; }
+        }
+
+        class AIStreamBlock {
+            constructor({data, api}) { this.api = api; this.prompt = data.prompt || ""; this.fullMarkdown = ""; this.wrapper = createEl('div', 'ai-stream-wrapper'); }
+            render() {
+                this.contentEl = createEl('div', 'native-text-block'); this.cursor = createEl('span', 'ai-cursor');
+                this.contentEl.appendChild(this.cursor); this.wrapper.appendChild(this.contentEl);
+                setTimeout(() => this.generateResponse(), 50); return this.wrapper;
+            }
+            focus() {}
+            async generateResponse() {
+                if (!aiEngine) { this.contentEl.textContent = "AI Engine offline."; return; }
+                const sys = `You are ${CONFIG.AI_NAME}. ${CONFIG.AI_PERSONALITY}\nContext:\n${await getDocumentContext(this.prompt)}\nRules: Output markdown. Use '- [ ] task', '- task', or wrap math: [COMPUTE] 10*4 [/COMPUTE].`;
+                try {
+                    const chunks = await aiEngine.chat.completions.create({ messages: [{ role: "system", content: sys }, { role: "user", content: this.prompt }], stream: true });
+                    this.contentEl.innerHTML = ''; 
+                    for await (const chunk of chunks) { this.fullMarkdown += chunk.choices[0]?.delta?.content || ""; this.contentEl.textContent = this.fullMarkdown; this.contentEl.appendChild(this.cursor); }
+                    this.cursor.remove(); this.replaceWithParsedBlocks();
+                } catch (e) { this.contentEl.textContent = "Error: " + e.message; this.cursor.remove(); }
+            }
+            replaceWithParsedBlocks() {
+                const blocksToInsert = [];
+                this.fullMarkdown.split(/(?=\[COMPUTE\])|(?<=\[\/COMPUTE\])|\n\n/).forEach(section => {
+                    const trimmed = section.trim(); if (!trimmed) return;
+                    if (trimmed.startsWith('[COMPUTE]') && trimmed.endsWith('[/COMPUTE]')) { blocksToInsert.push({ type: 'compute', data: { code: trimmed.replace('[COMPUTE]', '').replace('[/COMPUTE]', '').trim() } }); return; }
+                    const headerMatch = trimmed.match(/^(#{1,6})\s+(.*)/);
+                    if (headerMatch) { blocksToInsert.push({ type: 'header', data: { text: headerMatch[2], level: Math.min(headerMatch[1].length, 3) } }); return; }
+                    if (trimmed.match(/^-\s*\[[ xX]\]/)) { blocksToInsert.push({ type: 'checklist', data: { items: trimmed.split('\n').filter(l => l.trim()).map(line => ({ text: line.replace(/^-\s*\[[ xX]\]\s*/, '').trim(), checked: line.includes('[x]') || line.includes('[X]') })) } }); return; }
+                    if (trimmed.startsWith('- ') || trimmed.startsWith('* ') || /^\d+\.\s/.test(trimmed)) { blocksToInsert.push({ type: 'list', data: { style: /^\d+\.\s/.test(trimmed) ? 'ordered' : 'unordered', items: trimmed.split('\n').filter(l => l.trim()).map(line => ({ content: line.replace(/^[-*]\s|^\d+\.\s/, '').trim() })) } }); return; }
+                    blocksToInsert.push({ type: 'paragraph', data: { text: trimmed.replace(/\n/g, '<br>') } });
+                });
+                const currentIndex = this.api.getIndex(this); this.api.deleteBlock(currentIndex);
+                blocksToInsert.forEach((block, idx) => { this.api.insertBlock(block.type, block.data, currentIndex + idx, false); });
+                this.api.onChange();
+            }
+            save() { return { prompt: this.prompt, markdown: this.fullMarkdown }; }
+        }
+
+        // ============================================================================
+        // STANDARDIZED NON-TEXT TOOLS 
+        // ============================================================================
 
         class ScanTool {
-            static get toolbox() { return { title: 'Scan Text', icon: ICONS.scan }; }
-            constructor({data, config, readOnly}) { this.config = config; this.readOnly = readOnly; this.data = { text: data.text || '' }; this.wrapper = createEl('div', 'scan-wrapper'); }
-            render() {
-                this.wrapper.innerHTML = '';
-                if (this.data.text) {
-                    this.input = createEl('textarea', 'scan-output-textarea', { value: this.data.text, readOnly: this.readOnly });
-                    if (this.readOnly) { this.input.style.background = 'transparent'; this.wrapper.style.cssText = 'border:none;border-left:4px solid var(--border-color);border-radius:0;'; } 
-                    else this.input.oninput = e => { this.data.text = e.target.value; this.adjustHeight(); fireChange(this.config); };
-                    this.wrapper.appendChild(this.input); setTimeout(() => this.adjustHeight(), 0);
-                } else if (!this.readOnly) {
-                    this.actionArea = createEl('div', 'scan-action-area', {}, [
-                        createEl('div', 'scan-icon', {innerHTML: ICONS.scan}),
-                        createEl('div', 'scan-label', {textContent: 'SCAN DOCUMENT'}),
-                        this.status = createEl('div', 'scan-status')
-                    ]);
-                    this.fileInput = createEl('input', '', { type: 'file', accept: 'image/*', capture: 'environment', style: 'display: none;' });
-                    this.actionArea.onclick = () => this.fileInput.click();
-                    this.fileInput.onchange = e => this.handleScan(e.target.files[0]);
-                    this.wrapper.append(this.actionArea, this.fileInput);
-                } else this.wrapper.innerHTML = '<div style="padding: 12px; color: var(--muted-text); font-size: 13px;">Empty Scan Block</div>';
-                return this.wrapper;
+            constructor({data, api, readOnly}) { 
+                this.api = api; this.readOnly = readOnly; 
+                this.data = { title: data.title || '', text: data.text || '' }; 
+                this.isScanning = false; this.scanProgress = '';
+                this.wrapper = createEl('div', 'tool-box');
             }
-            adjustHeight() { if (this.input) { this.input.style.height = 'auto'; this.input.style.height = this.input.scrollHeight + 'px'; } }
+            render() { this.buildUI(); return this.wrapper; }
+            buildUI() {
+                this.wrapper.innerHTML = '';
+                const header = createEl('div', 'tool-header');
+                this.titleInput = createEl('input', 'tool-title-input', { value: this.data.title, placeholder: 'DOCUMENT TITLE...' });
+                if (this.readOnly) this.titleInput.readOnly = true;
+                this.titleInput.addEventListener('input', e => { this.data.title = e.target.value; this.api.onChange(); });
+                
+                const controls = createEl('div', 'tool-controls');
+                if (!this.readOnly) {
+                    const rescanBtn = createEl('button', 'tool-icon-btn', { innerHTML: ICONS.scan });
+                    const fileInput = createEl('input', '', { type: 'file', accept: 'image/*', capture: 'environment', style: 'display: none;' });
+                    rescanBtn.onclick = () => fileInput.click();
+                    fileInput.onchange = (e) => this.handleScan(e.target.files[0]);
+                    controls.append(rescanBtn, fileInput);
+                }
+                header.append(this.titleInput, controls);
+                this.wrapper.appendChild(header);
+
+                const body = createEl('div', '', { style: 'display: flex; flex-direction: column; flex: 1;' });
+                if (this.data.text) {
+                    this.input = createEl('textarea', 'flat-input', { value: this.data.text, style: 'padding: 12px; resize: vertical; min-height: 100px;' });
+                    if (this.readOnly) this.input.readOnly = true; 
+                    else this.input.addEventListener('input', (e) => { this.data.text = e.target.value; this.adjustHeight(); this.api.onChange(); });
+                    body.appendChild(this.input); setTimeout(() => this.adjustHeight(), 0);
+                } else if (this.isScanning) {
+                    body.style.padding = '24px'; body.style.textAlign = 'center';
+                    body.appendChild(createEl('div', '', { textContent: 'SCANNING DOCUMENT...', style: 'font-weight: bold;' }));
+                    this.statusEl = createEl('div', '', { textContent: this.scanProgress, style: 'font-size: 11px; margin-top: 8px; color: var(--muted-text);' });
+                    body.appendChild(this.statusEl);
+                } else if (!this.readOnly) {
+                    body.style.padding = '24px'; body.style.cursor = 'pointer'; body.style.textAlign = 'center';
+                    body.onclick = () => this.wrapper.querySelector('input[type="file"]').click();
+                    body.append(createEl('div', '', {innerHTML: ICONS.scan, style: 'margin: 0 auto; width: 32px; height: 32px;'}), createEl('div', '', {textContent: 'TAP TO SCAN', style: 'font-weight: bold; margin-top: 8px; letter-spacing: 1px;'}));
+                }
+                this.wrapper.appendChild(body);
+            }
+            focus() { if(this.titleInput) this.titleInput.focus(); }
+            adjustHeight() { if (this.input) { this.input.style.height = 'auto'; this.input.style.height = (this.input.scrollHeight) + 'px'; } }
             async handleScan(file) {
                 if (!file) return;
-                this.actionArea.onclick = null; this.actionArea.style.cursor = 'default';
-                this.actionArea.querySelectorAll('div:not(.scan-status)').forEach(el => el.style.display = 'none');
-                this.status.textContent = 'INITIALIZING OCR...';
+                this.isScanning = true; this.scanProgress = 'INIT OCR...'; this.buildUI();
                 try {
-                    if (!window.Tesseract) {
-                        await new Promise((res, rej) => document.head.appendChild(createEl('script', '', { src: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js', onload: res, onerror: rej })));
+                    if (typeof Tesseract === 'undefined') {
+                        this.scanProgress = 'LOADING ENGINE...'; if (this.statusEl) this.statusEl.textContent = this.scanProgress;
+                        await new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
                     }
-                    const worker = await Tesseract.createWorker('eng', 1, { logger: m => { if(m.status === 'recognizing text') this.status.textContent = `ANALYZING: ${Math.round(m.progress * 100)}%`; } });
-                    const { data: { text } } = await worker.recognize(file);
-                    await worker.terminate();
-                    this.data.text = text.trim(); this.render(); fireChange(this.config);
-                } catch(e) { this.status.textContent = 'SCAN FAILED.'; this.actionArea.onclick = () => this.fileInput.click(); this.actionArea.style.cursor = 'pointer'; }
+                    const { data: { text } } = await Tesseract.recognize(file, 'eng', { 
+                        logger: m => { 
+                            if(m.status === 'recognizing text') { 
+                                this.scanProgress = `ANALYZING: ${Math.round(m.progress * 100)}%`; 
+                                if (this.statusEl) this.statusEl.textContent = this.scanProgress; 
+                            } 
+                        } 
+                    });
+                    this.data.text = text.trim(); 
+                } catch(e) { alert('Scan failed: ' + e.message); } 
+                finally { this.isScanning = false; this.buildUI(); this.api.onChange(); }
             }
             save() { return this.data; }
         }
 
         class ComputeTool {
-            static get toolbox() { return { title: 'Compute Logic', icon: ICONS.compute }; }
-            constructor({data, config, readOnly}) { this.config = config; this.readOnly = readOnly; this.data = { code: data.code || '', output: data.output || '' }; this.wrapper = createEl('div', 'compute-tool-container'); }
+            constructor({data, api, readOnly}) { this.api = api; this.readOnly = readOnly; this.data = { title: data.title || '', code: data.code || '', output: data.output || '' }; this.wrapper = createEl('div', 'tool-box'); }
             render() {
                 this.wrapper.innerHTML = '';
-                this.input = createEl('textarea', 'compute-input', { placeholder: 'Type logic: 10 * 4 or groceries / 2...', value: this.data.code, readOnly: this.readOnly });
+                const header = createEl('div', 'tool-header');
+                this.titleInput = createEl('input', 'tool-title-input', { value: this.data.title, placeholder: 'LOGIC TITLE...' });
+                if (this.readOnly) this.titleInput.readOnly = true;
+                this.titleInput.addEventListener('input', e => { this.data.title = e.target.value; this.api.onChange(); });
+                header.append(this.titleInput, createEl('div', 'tool-controls', { innerHTML: `<div style="padding: 4px; color: var(--muted-text);">${ICONS.compute}</div>` }));
+                
+                this.input = createEl('textarea', 'flat-input compute-code', { placeholder: 'Type logic: 10 * 4...', value: this.data.code, style: 'padding: 12px; resize: vertical;' });
+                if (this.readOnly) this.input.readOnly = true;
                 this.output = createEl('div', 'compute-output', { innerHTML: this.data.output });
-                const adjustHeight = () => { this.input.style.height = 'auto'; this.input.style.height = this.input.scrollHeight + 'px'; };
+                
+                const adjustHeight = () => { this.input.style.height = 'auto'; this.input.style.height = (this.input.scrollHeight) + 'px'; };
                 setTimeout(adjustHeight, 0);
 
                 let evalTimeout;
-                this.input.oninput = e => { adjustHeight(); this.data.code = e.target.value; clearTimeout(evalTimeout); evalTimeout = setTimeout(() => this.evaluateLogic(), 400); };
-                this.wrapper.append(this.input, this.output); return this.wrapper;
+                this.input.addEventListener('input', (e) => { adjustHeight(); this.data.code = e.target.value; clearTimeout(evalTimeout); evalTimeout = setTimeout(() => this.evaluateLogic(), 400); });
+                
+                this.wrapper.append(header, this.input, this.output); return this.wrapper;
             }
+            focus() { if(this.titleInput) this.titleInput.focus(); }
             async evaluateLogic() {
-                if (!this.data.code.trim()) { this.output.innerHTML = this.data.output = ''; fireChange(this.config); return; }
-                const find = q => Object.values(appDB.cache).flatMap(d => d.blocks?.filter(b => b.type !== 'compute' && b.type !== 'recall' && JSON.stringify(b.data).toLowerCase().includes(q.toLowerCase())).flatMap(b => b.data.text ? b.data.text.replace(/<[^>]*>?/gm, '') : b.data.items ? b.data.items.map(i=>i.content.replace(/<[^>]*>?/gm, '')) : b.data.title || []) || []);
-                const nums = q => find(q).flatMap(t => (t.match(/-?\d+(\.\d+)?/g) || []).map(Number));
-                const sum = q => nums(q).reduce((a,b)=>a+b, 0);
-                const avg = q => { const n = nums(q); return n.length ? sum(q)/n.length : 0; };
+                if (!this.data.code.trim()) { this.output.innerHTML = ''; this.data.output = ''; this.api.onChange(); return; }
+                const find = (query) => {
+                    let results = []; const q = query.toLowerCase();
+                    Object.values(appDB.cache).forEach(day => {
+                        if (!day.blocks) return;
+                        day.blocks.forEach(b => {
+                            if (b.type === 'compute' || b.type === 'recall') return; 
+                            let text = JSON.stringify(b.data).toLowerCase();
+                            if (text.includes(q)) {
+                                if (b.data.text) results.push(b.data.text.replace(/<[^>]*>?/gm, ''));
+                                else if (b.data.items) results.push(...b.data.items.map(i=>i.content||i.text).join(' '));
+                                else if (b.data.title) results.push(b.data.title);
+                            }
+                        });
+                    }); return results;
+                };
+                const nums = (query) => { let texts = find(query); let numbers = []; texts.forEach(t => { let matches = t.match(/-?\d+(\.\d+)?/g); if (matches) numbers.push(...matches.map(Number)); }); return numbers; };
+                const sum = (query) => nums(query).reduce((a,b)=>a+b, 0); const avg = (query) => { let n = nums(query); return n.length ? sum(query)/n.length : 0; };
                 const allowed = { Math, Date, Number, String, Array, sum, avg, nums, find };
-                const ctx = new Proxy({}, { has: () => true, get: (t, p) => p === Symbol.unscopables ? undefined : (p in allowed ? allowed[p] : (typeof p === 'string' ? sum(p) : undefined)) });
+                const ctx = new Proxy({}, { has: () => true, get: (target, prop) => { if (prop === Symbol.unscopables) return undefined; if (prop in allowed) return allowed[prop]; if (typeof prop === 'string') return sum(prop.toLowerCase()); return undefined; } });
 
                 try {
-                    const res = await new (Object.getPrototypeOf(async function(){}).constructor)('ctx', `with(ctx){return eval(${JSON.stringify(this.data.code)})}`)(ctx);
-                    if (res == null || Number.isNaN(res)) this.output.innerHTML = this.data.output = '';
-                    else {
-                        this.data.output = Array.isArray(res) && res.length > 1 && res.every(n => typeof n === 'number' && !isNaN(n)) ? this.generateSparkline(res) : (typeof res === 'object' ? JSON.stringify(res) : String(res));
-                        this.output.innerHTML = this.data.output; this.output.classList.remove('compute-error');
-                    }
-                } catch(e) { this.data.output = `<span class="compute-error">${e.message}</span>`; this.output.innerHTML = this.data.output; }
-                fireChange(this.config);
-            }
-            generateSparkline(d) {
-                const min = Math.min(...d), range = (Math.max(...d) - min) || 1, h = 40;
-                const pts = d.map((v, i) => `${(i / (d.length - 1)) * 100},${h - ((v - min) / range) * h}`).join(' ');
-                return `<div style="font-size:11px;color:var(--muted-text);margin-bottom:4px;">Array: [${d.join(', ')}]</div><svg viewBox="0 -5 100 50" style="width:100%;height:60px;overflow:visible;" preserveAspectRatio="none"><polyline fill="none" stroke="var(--text-color)" stroke-width="2" points="${pts}"></polyline><circle cx="100" cy="${h - ((d[d.length - 1] - min) / range) * h}" r="3" fill="#EF4444"></circle></svg>`;
+                    const fn = new (Object.getPrototypeOf(async function(){}).constructor)('ctx', `with (ctx) { return eval(${JSON.stringify(this.data.code)}); }`);
+                    const result = await fn(ctx);
+                    if (result === undefined || result === null || Number.isNaN(result)) { this.output.innerHTML = ''; this.data.output = ''; } 
+                    else if (Array.isArray(result) && result.length >= 2 && result.every(n => typeof n === 'number')) {
+                        const min = Math.min(...result); const max = Math.max(...result); const range = (max - min) || 1;
+                        const points = result.map((val, i) => `${(i / (result.length - 1)) * 100},${40 - ((val - min) / range) * 40}`).join(' ');
+                        this.data.output = `<div style="font-size: 11px; margin-bottom: 8px;">ARRAY: [${result.join(', ')}]</div><svg viewBox="0 -5 100 50" style="width: 100%; height: 60px; overflow: visible;" preserveAspectRatio="none"><polyline fill="none" stroke="var(--text-color)" stroke-width="2" points="${points}"></polyline></svg>`;
+                        this.output.innerHTML = this.data.output; 
+                    } else { this.data.output = typeof result === 'object' ? JSON.stringify(result) : String(result); this.output.innerHTML = this.data.output; }
+                } catch(e) { this.data.output = `<span style="color: #ef4444">${e.message}</span>`; this.output.innerHTML = this.data.output; }
+                this.api.onChange();
             }
             save() { return this.data; }
         }
 
-        class RecallTool {
-            static get toolbox() { return { title: 'Recall', icon: ICONS.recall }; }
-            constructor({data, config, api, readOnly}) { this.api = api; this.config = config; this.readOnly = readOnly; this.data = data?.recalled ? data : { recalled: false, sourceDate: null, sourceTime: null, sourceBlock: null }; this.wrapper = createEl('div'); }
+        class CalendarTool {
+            constructor({data, api, readOnly}) {
+                this.id = crypto.randomUUID(); this.api = api; this.readOnly = readOnly;
+                this.data = { title: data.title || '', datetime: data.datetime || new Date().toISOString(), notified: data.notified || false };
+                if (!this.data.notified && !this.readOnly && new Date(this.data.datetime) > new Date()) NotificationEngine.schedule(this.id, this.data.datetime, this.data.title);
+                this.wrapper = createEl('div', 'tool-box');
+            }
+            formatDisplayDate() { const d = new Date(this.data.datetime); return `${d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} @ ${d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`; }
             render() {
                 this.wrapper.innerHTML = '';
-                if (this.data.recalled) this.wrapper.appendChild(this.renderRecalledState());
-                else if (!this.readOnly) this.wrapper.appendChild(this.renderSearchState());
-                else this.wrapper.innerHTML = '<div style="color:var(--muted-text);font-size:13px;">Empty Recall Block</div>';
+                const header = createEl('div', 'tool-header');
+                this.titleInput = createEl('input', 'tool-title-input', { value: this.data.title, placeholder: 'EVENT TITLE...' });
+                if (this.readOnly) this.titleInput.readOnly = true;
+                this.titleInput.addEventListener('input', e => { this.data.title = e.target.value; NotificationEngine.schedule(this.id, this.data.datetime, this.data.title); this.api.onChange(); });
+                
+                const controls = createEl('div', 'tool-controls');
+                if (!this.readOnly) {
+                    const exportBtn = createEl('button', 'tool-icon-btn', { innerHTML: ICONS.download, title: 'Export ICS' });
+                    exportBtn.onclick = () => {
+                        const start = new Date(this.data.datetime); const formatICS = (date) => date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+                        const icsContent = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'BEGIN:VEVENT', `DTSTART:${formatICS(start)}`, `DTEND:${formatICS(new Date(start.getTime() + 3600000))}`, `SUMMARY:${this.data.title || 'Note Event'}`, 'END:VEVENT', 'END:VCALENDAR'].join('\n');
+                        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([icsContent], { type: 'text/calendar;charset=utf-8' })); a.download = `${this.data.title ? this.data.title.replace(/\s+/g, '_') : 'event'}.ics`; a.click();
+                    };
+                    
+                    const isGranted = typeof Notification !== 'undefined' && Notification.permission === 'granted';
+                    this.notifyBtn = createEl('button', 'tool-icon-btn', { innerHTML: ICONS.bell, title: 'Notify' });
+                    if (isGranted) this.notifyBtn.classList.add('active');
+                    this.notifyBtn.onclick = async () => { if (!('Notification' in window)) return alert('Notifications not supported.'); if (await Notification.requestPermission() === 'granted') { this.notifyBtn.classList.add('active'); NotificationEngine.schedule(this.id, this.data.datetime, this.data.title); } };
+                    
+                    controls.append(this.notifyBtn, exportBtn);
+                }
+                header.append(this.titleInput, controls);
+
+                const body = createEl('div', '', { style: 'padding: 12px; display: flex; flex-direction: column;' });
+                this.displayTxt = createEl('span', '', { textContent: this.formatDisplayDate() });
+                const displayBtn = createEl('button', 'flat-btn', {style: 'width: 100%; justify-content: flex-start; background: var(--muted-bg); border: none;'}, [this.displayTxt]);
+                if (!this.readOnly) {
+                    displayBtn.onclick = () => { DatePicker.open(new Date(this.data.datetime), (newDate) => { this.data.datetime = newDate.toISOString(); this.data.notified = false; this.displayTxt.textContent = this.formatDisplayDate(); NotificationEngine.schedule(this.id, this.data.datetime, this.data.title); this.api.onChange(); }, { showTime: true, disablePast: true }); };
+                } else { displayBtn.style.pointerEvents = 'none'; }
+                body.appendChild(displayBtn);
+
+                this.wrapper.append(header, body); return this.wrapper;
+            }
+            focus() { if(this.titleInput) this.titleInput.focus(); }
+            destroy() { NotificationEngine.cancel(this.id); }
+            save() { return this.data; }
+        }
+
+        class VoiceMemo {
+            constructor({data, api, readOnly}) {
+                this.api = api; this.readOnly = readOnly; 
+                this.data = { url: data.url || null, title: data.title || '' };
+                this.recorder = null; this.chunks = []; this.isPlaying = false; this.isRecording = false;
+                this.wrapper = createEl('div', 'tool-box');
+            }
+            render() {
+                this.wrapper.innerHTML = '';
+                const header = createEl('div', 'tool-header');
+                this.titleInput = createEl('input', 'tool-title-input', { value: this.data.title, placeholder: 'MEMO TITLE...' });
+                if (this.readOnly) this.titleInput.readOnly = true;
+                this.titleInput.addEventListener('input', e => { this.data.title = e.target.value; this.api.onChange(); });
+
+                const controls = createEl('div', 'tool-controls');
+                this.statusText = createEl('div', '', { style: 'font-size: 11px; font-weight: bold; color: var(--muted-text); margin-right: 8px; text-transform: uppercase;' });
+                this.btn = createEl('button', 'tool-icon-btn');
+                this.audio = createEl('audio', '', { style: 'display: none;', src: this.data.url || '' });
+                
+                this.audio.onplay = () => { this.isPlaying = true; this.updateUI(); }; 
+                this.audio.onpause = () => { this.isPlaying = false; this.updateUI(); }; 
+                this.audio.onended = () => { this.isPlaying = false; this.updateUI(); };
+                this.btn.onclick = () => this.handleAction();
+                
+                controls.append(this.statusText, this.btn, this.audio);
+                header.append(this.titleInput, controls);
+                this.wrapper.appendChild(header);
+                
+                this.updateUI(); return this.wrapper;
+            }
+            focus() { if (this.titleInput) this.titleInput.focus(); }
+            updateUI() {
+                this.btn.style.background = 'transparent'; this.btn.style.color = 'var(--text-color)';
+                if (this.isPlaying) { this.btn.innerHTML = ICONS.pause; this.statusText.innerText = 'PLAYING'; this.btn.classList.add('active'); } 
+                else if (this.data.url) { this.btn.innerHTML = ICONS.play; this.statusText.innerText = 'READY'; this.btn.classList.remove('active'); } 
+                else if (this.isRecording) { this.btn.innerHTML = ICONS.stop; this.statusText.innerText = 'REC...'; this.btn.style.background = '#ef4444'; this.btn.style.color = '#ffffff'; } 
+                else if (this.readOnly) { this.btn.style.display = 'none'; this.statusText.innerText = 'NO AUDIO'; }
+                else { this.btn.innerHTML = ICONS.mic; this.statusText.innerText = 'RECORD'; this.btn.classList.remove('active'); }
+            }
+            async handleAction() {
+                if (this.readOnly && !this.data.url) return;
+                if (this.data.url) { this.isPlaying ? this.audio.pause() : this.audio.play(); } 
+                else {
+                    if (this.isRecording) { this.recorder.stop(); this.isRecording = false; this.statusText.innerText = 'PROC...'; } 
+                    else {
+                        try {
+                            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                            this.recorder = new MediaRecorder(stream); this.chunks = []; this.recorder.ondataavailable = (e) => this.chunks.push(e.data);
+                            this.recorder.onstop = () => { const reader = new FileReader(); reader.onloadend = () => { this.data.url = reader.result; this.audio.src = this.data.url; this.updateUI(); this.api.onChange(); }; reader.readAsDataURL(new Blob(this.chunks, { type: 'audio/webm' })); stream.getTracks().forEach(track => track.stop()); };
+                            this.recorder.start(); this.isRecording = true; this.updateUI();
+                        } catch (err) { this.statusText.innerText = 'DENIED'; }
+                    }
+                }
+            }
+            destroy() { if (this.recorder && this.recorder.state !== 'inactive') this.recorder.stop(); if (this.recorder && this.recorder.stream) this.recorder.stream.getTracks().forEach(track => track.stop()); this.audio.pause(); }
+            save() { return this.data; }
+        }
+
+        class RecallTool {
+            constructor({data, api, readOnly}) { 
+                this.api = api; this.readOnly = readOnly; 
+                this.data = data && data.recalled ? data : { recalled: false, sourceDate: null, sourceTime: null, sourceBlock: null, title: data?.title || '' }; 
+                this.wrapper = createEl('div', 'tool-box'); 
+            }
+            render() {
+                this.wrapper.innerHTML = '';
+                const header = createEl('div', 'tool-header');
+                this.titleInput = createEl('input', 'tool-title-input', { value: this.data.title || '', placeholder: 'RECALL TITLE...' });
+                if (this.readOnly) this.titleInput.readOnly = true;
+                this.titleInput.addEventListener('input', e => { this.data.title = e.target.value; this.api.onChange(); });
+                header.append(this.titleInput, createEl('div', 'tool-controls', { innerHTML: `<div style="padding: 4px; color: var(--muted-text);">${ICONS.recall}</div>` }));
+                this.wrapper.appendChild(header);
+
+                const body = createEl('div', '', { style: 'display: flex; flex-direction: column;' });
+                if (this.data.recalled) { body.appendChild(this.renderRecalledState()); } 
+                else if (!this.readOnly) { body.appendChild(this.renderSearchState()); } 
+                else { body.innerHTML = '<div style="padding: 12px; color: var(--muted-text);">Empty Recall</div>'; }
+                this.wrapper.appendChild(body);
                 return this.wrapper;
             }
+            focus() { if(this.titleInput) this.titleInput.focus(); }
             renderSearchState() {
-                const searchWrapper = createEl('div', 'recall-search-wrapper');
-                const input = createEl('input', 'recall-search-input', { type: 'text', placeholder: 'Search past notes...' });
+                const searchWrapper = createEl('div');
+                const row = createEl('div', 'flat-row', {style: 'padding: 12px; gap: 8px;'});
+                const input = createEl('input', 'flat-input', { type: 'text', placeholder: 'Semantic Search your past notes...' });
                 const dropdown = createEl('div', 'recall-dropdown');
 
-                input.onfocus = async () => { if (activeEditor) appDB.cache[currentDateStr] = await activeEditor.save(); };
+                input.addEventListener('focus', async () => { if (window.editor) { appDB.cache[window.currentDateStr] = await window.editor.save(); } });
                 
-                let debounce;
-                input.oninput = e => {
-                    clearTimeout(debounce);
-                    debounce = setTimeout(() => {
-                        const q = e.target.value.toLowerCase().trim(); dropdown.innerHTML = '';
-                        if (!q) return dropdown.classList.remove('active');
-                        
+                let searchTimeout;
+                input.addEventListener('input', (e) => {
+                    clearTimeout(searchTimeout);
+                    const query = e.target.value.toLowerCase().trim(); 
+                    if (!query) { dropdown.innerHTML = ''; dropdown.classList.remove('active'); return; }
+                    
+                    searchTimeout = setTimeout(async () => {
+                        dropdown.innerHTML = '';
+                        dropdown.appendChild(createEl('div', 'recall-item', {textContent: 'Searching...', style: 'color: var(--muted-text); cursor: default;'}));
+                        dropdown.classList.add('active');
+
                         let results = [];
-                        Object.entries(appDB.cache).forEach(([date, d]) => d.blocks?.forEach(b => {
-                            if (b.type === 'recall') return;
-                            const text = `${b.type} ${b.data.text||''} ${b.data.title||''} ${(b.data.items||[]).map(i=>i.content||i.text).join(' ')}`.toLowerCase();
-                            if (text.includes(q) || (q.includes('canvas') && b.type==='smartCanvas') || (q.includes('voice') && b.type==='voice')) results.push({ date, block: b, timestamp: d.timestamps?.[b.id] });
-                        }));
+                        const isSemantic = !!embedPipeline;
+                        let queryVec = null;
                         
-                        results.sort((a, b) => new Date(b.date) - new Date(a.date) || (b.timestamp || 0) - (a.timestamp || 0));
+                        if (isSemantic) {
+                            dropdown.firstChild.textContent = 'Semantic Search...';
+                            queryVec = await generateEmbedding(query);
+                        }
+
+                        Object.entries(appDB.cache).forEach(([dateStr, dayData]) => {
+                            if (!dayData.blocks) return;
+                            dayData.blocks.forEach(block => {
+                                if (block.type === 'recall') return; 
+                                
+                                if (isSemantic && queryVec && block.data._embedding) {
+                                    const score = cosineSimilarity(queryVec, block.data._embedding);
+                                    if (score > 0.25) { // Vector similarity threshold
+                                        results.push({ date: dateStr, block: block, timestamp: dayData.timestamps?.[block.id], score: score });
+                                    }
+                                } else {
+                                    // Fallback to text matching
+                                    let searchableText = getBlockText(block).toLowerCase();
+                                    if (searchableText.includes(query)) { 
+                                        results.push({ date: dateStr, block: block, timestamp: dayData.timestamps?.[block.id], score: 1.0 }); 
+                                    }
+                                }
+                            });
+                        });
                         
-                        if (results.length) {
-                            results.forEach(res => {
-                                const item = createEl('div', 'recall-result-item', {}, [
-                                    createEl('div', 'recall-result-meta', {textContent: `${new Date(res.date + 'T00:00:00').toLocaleDateString()} ${res.timestamp ? new Date(res.timestamp).toLocaleTimeString() : ''}`}),
-                                    createEl('div', 'recall-result-snippet', {textContent: (res.block.data.text || res.block.data.title || res.block.type).replace(/<[^>]*>?/gm, '').substring(0, 60)})
-                                ]);
-                                item.onclick = () => { this.data = { recalled: true, sourceDate: res.date, sourceTime: res.timestamp, sourceBlock: res.block }; this.render(); fireChange(this.config); };
+                        // Sort by Semantic Score, then by Recency
+                        results.sort((a, b) => { 
+                            if (Math.abs(b.score - a.score) > 0.05) return b.score - a.score;
+                            const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime(); 
+                            if (dateDiff !== 0) return dateDiff; 
+                            return (b.timestamp || 0) - (a.timestamp || 0); 
+                        });
+
+                        dropdown.innerHTML = '';
+                        if (results.length > 0) {
+                            results.slice(0, 10).forEach(res => {
+                                const item = createEl('div', 'recall-item');
+                                const displayDate = new Date(res.date + 'T00:00:00').toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'});
+                                let snippet = "📄 " + res.block.type.toUpperCase();
+                                if (res.block.data.text) snippet = res.block.data.text.replace(/<[^>]*>?/gm, '');
+                                else if (res.block.data.title) snippet = res.block.data.title;
+                                else if (res.block.data.items) snippet = res.block.data.items.map(i=>i.content || i.text || '').join(', ').replace(/<[^>]*>?/gm, '');
+                                
+                                const matchType = res.score !== 1.0 ? `✨ ${Math.round(res.score * 100)}% Match` : 'Exact Match';
+
+                                item.appendChild(createEl('div', 'flat-row', {style: 'justify-content: space-between;'}, [
+                                    createEl('div', '', {textContent: `${displayDate}`, style: 'font-size: 10px; font-weight: bold;'}),
+                                    createEl('div', '', {textContent: matchType, style: 'font-size: 10px; color: var(--muted-text);'})
+                                ]));
+                                item.appendChild(createEl('div', '', {textContent: snippet.substring(0, 50) + '...', style: 'font-size: 14px;'}));
+                                item.onclick = () => { this.data = { recalled: true, sourceDate: res.date, sourceTime: res.timestamp, sourceBlock: res.block, title: this.data.title }; this.render(); this.api.onChange(); };
                                 dropdown.appendChild(item);
                             });
-                        } else dropdown.appendChild(createEl('div', 'recall-result-item', {textContent: 'No matches found', style: 'color:var(--muted-text);cursor:default;'}));
-                        dropdown.classList.add('active');
-                    }, 300);
-                };
-                document.addEventListener('click', e => { if (!searchWrapper.contains(e.target)) dropdown.classList.remove('active'); });
-                searchWrapper.append(createEl('div', 'recall-search-icon', {innerHTML: ICONS.search}), input, dropdown); 
-                setTimeout(() => input.focus(), 50); return searchWrapper;
+                        } else { dropdown.appendChild(createEl('div', 'recall-item', {textContent: 'No matches found'})); }
+                    }, 400); // Debounce to prevent lag while typing
+                });
+
+                row.append(createEl('div', '', {innerHTML: ICONS.search}), input); searchWrapper.append(row, dropdown); setTimeout(() => input.focus(), 50); return searchWrapper;
             }
             renderRecalledState() {
-                const container = createEl('div', 'recalled-block', {}, [
-                    createEl('div', 'recalled-orig-meta', {}, [createEl('div', '', {innerHTML: ICONS.recall}), createEl('span', '', {textContent: `Recalled from ${new Date(this.data.sourceDate + 'T00:00:00').toLocaleDateString()}`})])
-                ]);
-                const targetDef = window.EDITOR_TOOLS_CONFIG[this.data.sourceBlock.type];
-                if (targetDef) {
+                const container = createEl('div');
+                const displayDate = new Date(this.data.sourceDate + 'T00:00:00').toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'});
+                const meta = createEl('div', 'flat-row', {style: 'padding: 8px 12px; background: var(--text-color); color: var(--bg-color); font-size: 10px; font-weight: bold;'});
+                meta.appendChild(createEl('div', '', {innerHTML: ICONS.recall, style: 'color: var(--bg-color);'})); meta.appendChild(createEl('span', '', {textContent: `RECALLED FROM ${displayDate}`})); container.appendChild(meta);
+
+                const TargetClass = window.EDITOR_TOOLS[this.data.sourceBlock.type];
+                if (TargetClass) {
                     try {
-                        const node = new targetDef.class({ data: this.data.sourceBlock.data, readOnly: true, api: this.api, config: targetDef.config || {} }).render();
-                        node.style.pointerEvents = this.data.sourceBlock.type === 'voice' ? 'auto' : 'none'; container.appendChild(node);
-                    } catch (e) { container.appendChild(createEl('div', '', {textContent: 'Render error.'})); }
+                        const instance = new TargetClass({ data: this.data.sourceBlock.data, readOnly: true, api: this.api });
+                        const renderedNode = instance.render();
+                        renderedNode.style.pointerEvents = this.data.sourceBlock.type === 'voice' ? 'auto' : 'none'; 
+                        renderedNode.style.margin = '0'; renderedNode.style.border = 'none';
+                        container.appendChild(renderedNode);
+                    } catch (e) { container.appendChild(createEl('div', '', {textContent: 'Error rendering block.'})); }
                 }
                 return container;
             }
@@ -526,284 +1000,330 @@
         }
 
         class SmartCanvasTool {
-            static get toolbox() { return { title: 'Media Canvas', icon: ICONS.pen }; }
-            constructor({data, config, api, readOnly}) {
-                this.api = api; this.config = config; this.readOnly = readOnly;
-                this.data = { mode: data.mode || null, title: data.title || '', lat: data.lat || 51.505, lng: data.lng || -0.09, zoom: data.zoom || 13, isLocked: !!data.isLocked, baseImage: data.baseImage || null, imgWidth: data.imgWidth || null, imgHeight: data.imgHeight || null, hasInitializedView: !!data.hasInitializedView, lines: data.lines || [], isDrawingActive: !!data.isDrawingActive };
-                if (!this.data.title && !this.data.mode) this.data.title = `Canvas - ${new Date().toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'})}`;
-                this.wrapper = createEl('div'); this.relativeFrame = createEl('div', 'canvas-relative-frame'); this.controls = createEl('div', 'block-controls-stack');
+            constructor({data, api, readOnly}) {
+                this.api = api; this.readOnly = readOnly;
+                this.data = { mode: data.mode || null, title: data.title || '', lat: data.lat || 51.505, lng: data.lng || -0.09, zoom: data.zoom || 13, isLocked: data.isLocked || false, baseImage: data.baseImage || null, imgWidth: data.imgWidth || null, imgHeight: data.imgHeight || null, hasInitializedView: data.hasInitializedView || false, lines: data.lines || [], isDrawingActive: data.isDrawingActive || false };
+                this.wrapper = createEl('div', 'tool-box');
                 this.currentColor = '#EF4444'; this.lineLayers = []; this.currentPolyline = null; this.currentPoints = [];
+                this.resizeObserver = null;
             }
             render() {
                 this.wrapper.innerHTML = ''; 
+                
                 if (!this.data.mode) {
-                    if (this.readOnly) this.wrapper.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted-text);font-size:14px;">Blank Canvas</div>';
-                    else this.renderSelector();
+                    if (this.readOnly) {
+                        this.wrapper.innerHTML = '<div style="padding: 24px; text-align: center;">Empty Canvas</div>';
+                    } else this.renderSelector();
                 } else {
-                    this.titleInput = createEl('input', 'tool-title-input', { type: 'text', value: this.data.title, placeholder: 'Name canvas...', readOnly: this.readOnly });
-                    this.titleInput.oninput = e => { this.data.title = e.target.value; fireChange(this.config); };
-                    this.wrapper.appendChild(this.titleInput);
+                    const header = createEl('div', 'tool-header');
+                    this.titleInput = createEl('input', 'tool-title-input', { value: this.data.title, placeholder: 'CANVAS TITLE...' });
+                    if (this.readOnly) this.titleInput.readOnly = true;
+                    this.titleInput.addEventListener('input', (e) => { this.data.title = e.target.value; this.api.onChange(); });
+                    
+                    const controls = createEl('div', 'tool-controls');
+                    if (!this.readOnly) {
+                        this.colorPicker = createEl('input', '', { type: 'color', value: this.currentColor, style: 'width: 28px; height: 28px; border: none; padding: 0; background: transparent; cursor: pointer; display: none;' });
+                        this.colorPicker.addEventListener('input', (e) => { this.currentColor = e.target.value; });
+                        
+                        this.drawBtn = createEl('button', 'tool-icon-btn', { innerHTML: ICONS.pen, style: 'display: none;' });
+                        this.drawBtn.onclick = () => { 
+                            this.data.isDrawingActive = !this.data.isDrawingActive; 
+                            if (this.data.isDrawingActive) this.drawBtn.classList.add('active'); else this.drawBtn.classList.remove('active');
+                            this.updateInteractions(); this.api.onChange(); 
+                        };
+                        
+                        this.lockBtn = createEl('button', 'tool-icon-btn', { innerHTML: this.data.isLocked ? ICONS.lock : ICONS.unlock });
+                        this.lockBtn.onclick = () => { this.data.isLocked = !this.data.isLocked; this.updateInteractions(); this.api.onChange(); };
+                        
+                        controls.append(this.colorPicker, this.drawBtn, this.lockBtn);
+                    }
+                    header.append(this.titleInput, controls);
+                    this.wrapper.appendChild(header); 
                     this.renderUniversalCanvas();
-                    if (!this.readOnly) { this.buildControls(); this.relativeFrame.appendChild(this.controls); }
-                    this.wrapper.appendChild(this.relativeFrame);
                 }
                 return this.wrapper;
             }
+            focus() { if(this.titleInput) this.titleInput.focus(); }
             renderSelector() {
-                const setMode = mode => { this.data.mode = mode; this.data.isLocked = this.data.isDrawingActive = false; this.render(); fireChange(this.config); };
-                const selector = createEl('div', 'smart-canvas-selector', {}, [
-                    createEl('button', 'smart-canvas-option', {onclick: () => setMode('map')}, [createEl('div', '', {innerHTML: ICONS.map}), createEl('span', '', {textContent: 'Map'})]),
-                    createEl('button', 'smart-canvas-option', {onclick: () => fileInput.click()}, [createEl('div', '', {innerHTML: ICONS.image}), createEl('span', '', {textContent: 'Photo'})]),
-                    createEl('button', 'smart-canvas-option', {onclick: () => setMode('blank')}, [createEl('div', '', {innerHTML: ICONS.canvas}), createEl('span', '', {textContent: 'Blank'})])
-                ]);
-                const fileInput = createEl('input', '', { type: 'file', accept: 'image/*', style: 'display:none', onchange: e => {
-                    const f = e.target.files[0]; if (!f) return;
-                    const r = new FileReader(); r.onload = re => { 
-                        const img = new Image(); img.onload = () => { this.data.baseImage = re.target.result; this.data.imgWidth = img.width; this.data.imgHeight = img.height; setMode('image'); }; img.src = re.target.result;
-                    }; r.readAsDataURL(f);
-                }});
-                selector.appendChild(fileInput); this.wrapper.appendChild(selector);
-            }
-            buildControls() {
-                this.lockBtn = createEl('button', 'canvas-action-btn', { innerHTML: this.data.isLocked ? ICONS.lock : ICONS.unlock, onclick: () => { this.data.isLocked = !this.data.isLocked; this.updateInteractions(); fireChange(this.config); }});
-                this.colorPicker = createEl('input', '', { type: 'color', value: this.currentColor, style: 'position:absolute;opacity:0;width:0;height:0;pointer-events:none;', oninput: e => this.currentColor = e.target.value });
-                this.drawBtn = createEl('button', `canvas-action-btn draw-btn ${this.data.isDrawingActive ? 'active' : ''}`, { innerHTML: ICONS.pen });
-                this.drawBtn.ondblclick = e => { e.preventDefault(); this.colorPicker.click(); };
-                this.drawBtn.onclick = e => { e.preventDefault(); if (this.wasLongPress) return this.wasLongPress = false; this.data.isDrawingActive = !this.data.isDrawingActive; this.drawBtn.classList.toggle('active', this.data.isDrawingActive); this.updateInteractions(); fireChange(this.config); };
-                const press = e => { if (e.type === 'touchstart') e.stopPropagation(); this.wasLongPress = false; this.pressTimer = setTimeout(() => { this.wasLongPress = true; this.clearDrawing(); this.drawBtn.style.transform = 'scale(0.8)'; setTimeout(() => this.drawBtn.style.transform = '', 150); }, 600); };
-                ['mousedown','touchstart'].forEach(evt => this.drawBtn.addEventListener(evt, press, {passive: true}));
-                ['mouseup','mouseleave','touchend','touchcancel'].forEach(evt => this.drawBtn.addEventListener(evt, () => clearTimeout(this.pressTimer)));
-                this.controls.append(this.lockBtn, this.drawBtn, this.colorPicker);
+                const header = createEl('div', 'tool-header');
+                header.append(createEl('input', 'tool-title-input', { placeholder: 'SELECT CANVAS TYPE...', readOnly: true }));
+                this.wrapper.appendChild(header);
+
+                const body = createEl('div', 'flat-row', {style: 'padding: 12px; gap: 8px;'});
+                const mapBtn = createEl('button', 'flat-btn', {style: 'flex: 1; height: 60px;'}, [createEl('div', '', {innerHTML: ICONS.map}), createEl('span', '', {textContent: 'MAP'})]);
+                const photoBtn = createEl('button', 'flat-btn', {style: 'flex: 1; height: 60px;'}, [createEl('div', '', {innerHTML: ICONS.image}), createEl('span', '', {textContent: 'PHOTO'})]);
+                const blankBtn = createEl('button', 'flat-btn', {style: 'flex: 1; height: 60px;'}, [createEl('div', '', {innerHTML: ICONS.canvas}), createEl('span', '', {textContent: 'BLANK'})]);
+                const fileInput = createEl('input', '', { type: 'file', accept: 'image/*', style: 'display: none;' });
+                
+                mapBtn.onclick = () => { this.data.mode = 'map'; this.render(); this.api.onChange(); };
+                blankBtn.onclick = () => { this.data.mode = 'blank'; this.render(); this.api.onChange(); };
+                photoBtn.onclick = () => fileInput.click();
+                fileInput.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (re) => { 
+                            const img = new Image();
+                            img.onload = () => { this.data.baseImage = re.target.result; this.data.imgWidth = img.width; this.data.imgHeight = img.height; this.data.mode = 'image'; this.render(); this.api.onChange(); };
+                            img.src = re.target.result;
+                        }; reader.readAsDataURL(file);
+                    }
+                };
+                body.append(mapBtn, photoBtn, blankBtn, fileInput);
+                this.wrapper.appendChild(body);
             }
             renderUniversalCanvas() {
                 if (this.map) { this.map.remove(); this.map = null; }
-                this.mediaContainer = createEl('div', 'leaflet-container'); this.relativeFrame.appendChild(this.mediaContainer);
+                this.mediaContainer = createEl('div', 'leaflet-container', {style: 'width: 100%; min-height: 400px; display: block; z-index: 1; border: none; touch-action: none;'}); 
+                this.wrapper.appendChild(this.mediaContainer);
                 
-                const ro = new ResizeObserver(() => {
-                    ro.disconnect();
+                requestAnimationFrame(() => {
+                    if (!this.mediaContainer.isConnected) return;
                     if (this.data.mode === 'map') {
                         this.map = L.map(this.mediaContainer, { zoomControl: false, attributionControl: false }).setView([this.data.lat, this.data.lng], this.data.zoom);
-                        L.tileLayer(`https://{s}.basemaps.cartocdn.com/${isDark ? 'dark' : 'light'}_all/{z}/{x}/{y}{r}.png`, { maxZoom: 20 }).addTo(this.map);
+                        const tileUrl = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+                        L.tileLayer(tileUrl, { maxZoom: 20 }).addTo(this.map);
                     } else {
                         this.map = L.map(this.mediaContainer, { crs: L.CRS.Simple, zoomControl: false, attributionControl: false, minZoom: -4 });
                         if (this.data.mode === 'image' && this.data.baseImage) {
                             const bounds = [[0, 0], [this.data.imgHeight || 600, this.data.imgWidth || 800]];
                             L.imageOverlay(this.data.baseImage, bounds).addTo(this.map);
-                            if (!this.data.hasInitializedView && !this.readOnly) { this.map.fitBounds(bounds); this.data.hasInitializedView = true; fireChange(this.config); } 
-                            else this.map.setView([this.data.lat, this.data.lng], this.data.zoom);
-                        } else this.map.setView([this.data.lat || 0, this.data.lng || 0], this.data.zoom || 0);
+                            if (!this.data.hasInitializedView && !this.readOnly) { this.map.fitBounds(bounds); this.data.hasInitializedView = true; this.api.onChange(); } 
+                            else { this.map.setView([this.data.lat, this.data.lng], this.data.zoom); }
+                        } else { this.map.setView([this.data.lat || 0, this.data.lng || 0], this.data.zoom || 0); }
                     }
                     this.renderExistingLines(); this.initDrawingTracker(); this.updateInteractions();
-                    this.map.on('moveend', () => fireChange(this.config));
+                    this.map.on('moveend', () => this.api.onChange());
+                    
+                    const ro = new ResizeObserver(() => { if (this.map) this.map.invalidateSize(); });
+                    ro.observe(this.mediaContainer); this.resizeObserver = ro;
                 });
-                ro.observe(this.mediaContainer);
             }
             renderExistingLines() {
-                this.lineLayers.forEach(l => this.map.removeLayer(l)); this.lineLayers = [];
-                this.data.lines.forEach(l => this.lineLayers.push(L.polyline(l.points, { color: l.color, weight: l.weight, lineCap: 'round', lineJoin: 'round', smoothFactor: 1.5 }).addTo(this.map)));
+                this.lineLayers.forEach(layer => this.map.removeLayer(layer)); this.lineLayers = [];
+                this.data.lines.forEach(line => { this.lineLayers.push(L.polyline(line.points, { color: line.color, weight: line.weight, lineCap: 'round', lineJoin: 'round', smoothFactor: 1.5 }).addTo(this.map)); });
             }
             initDrawingTracker() {
-                if (this.readOnly) return; let isDown = false;
-                this.mediaContainer.onpointerdown = e => {
-                    if (!this.data.isDrawingActive) return; isDown = true; this.mediaContainer.setPointerCapture(e.pointerId);
+                if (this.readOnly) return; let isPointerDown = false;
+                
+                this.mediaContainer.addEventListener('pointerdown', (e) => {
+                    if (!this.data.isDrawingActive) return; 
+                    isPointerDown = true; 
+                    this.mediaContainer.setPointerCapture(e.pointerId);
                     this.currentPoints = [this.map.mouseEventToLatLng(e)];
                     this.currentPolyline = L.polyline(this.currentPoints, { color: this.currentColor, weight: 4, lineCap: 'round', lineJoin: 'round', smoothFactor: 1.5 }).addTo(this.map);
-                };
-                this.mediaContainer.onpointermove = e => { if (this.data.isDrawingActive && isDown && this.currentPolyline) { this.currentPoints.push(this.map.mouseEventToLatLng(e)); this.currentPolyline.setLatLngs(this.currentPoints); } };
-                const end = () => {
-                    if (!isDown) return; isDown = false; if (!this.currentPolyline || !this.data.isDrawingActive) return;
+                });
+
+                this.mediaContainer.addEventListener('pointermove', (e) => {
+                    if (!this.data.isDrawingActive || !isPointerDown || !this.currentPolyline) return;
+                    this.currentPoints.push(this.map.mouseEventToLatLng(e));
+                    this.currentPolyline.setLatLngs(this.currentPoints);
+                });
+
+                const endDraw = () => {
+                    if (!isPointerDown) return; 
+                    isPointerDown = false; 
+                    if (!this.currentPolyline || !this.data.isDrawingActive) return;
                     this.data.lines.push({ color: this.currentColor, weight: 4, points: this.currentPoints.map(p => [p.lat, p.lng]) });
-                    this.lineLayers.push(this.currentPolyline); this.currentPolyline = null; this.currentPoints = []; fireChange(this.config);
+                    this.lineLayers.push(this.currentPolyline); this.currentPolyline = null; this.currentPoints = []; this.api.onChange();
                 };
-                this.mediaContainer.onpointerup = this.mediaContainer.onpointercancel = end;
+
+                this.mediaContainer.addEventListener('pointerup', endDraw);
+                this.mediaContainer.addEventListener('pointercancel', endDraw);
             }
-            clearDrawing() { this.lineLayers.forEach(l => this.map?.removeLayer(l)); this.lineLayers = this.data.lines = []; fireChange(this.config); }
             updateInteractions() {
-                if (!this.map) return; this.mediaContainer.classList.remove('drawing-mode', 'locked-mode');
-                const t = m => ['dragging','touchZoom','doubleClickZoom','scrollWheelZoom','boxZoom','keyboard','tap'].forEach(k => this.map[k]?.[m]());
-                if (this.readOnly) { t('disable'); this.mediaContainer.classList.add('locked-mode'); if(this.lockBtn) this.lockBtn.style.display = 'none'; if(this.drawBtn) this.drawBtn.style.display = 'none'; return; }
+                if (!this.map) return; this.mediaContainer.classList.remove('drawing-mode');
+                const disableAll = () => { this.map.dragging.disable(); this.map.touchZoom.disable(); this.map.doubleClickZoom.disable(); this.map.scrollWheelZoom.disable(); this.map.boxZoom.disable(); this.map.keyboard.disable(); if (this.map.tap) this.map.tap.disable(); };
+                const enableAll = () => { this.map.dragging.enable(); this.map.touchZoom.enable(); this.map.doubleClickZoom.enable(); this.map.scrollWheelZoom.enable(); this.map.boxZoom.enable(); this.map.keyboard.enable(); if (this.map.tap) this.map.tap.enable(); };
+
+                if (this.readOnly) { disableAll(); return; }
                 if (!this.data.isLocked) {
-                    this.data.isDrawingActive = false; t('enable');
+                    this.data.isDrawingActive = false; enableAll();
                     if (this.lockBtn) this.lockBtn.innerHTML = ICONS.unlock;
-                    if (this.drawBtn) { this.drawBtn.style.display = 'none'; this.drawBtn.classList.remove('active'); }
+                    if (this.drawBtn) { this.drawBtn.style.display = 'none'; this.colorPicker.style.display = 'none'; this.drawBtn.classList.remove('active'); }
                 } else {
-                    t('disable'); this.mediaContainer.classList.add('locked-mode');
+                    disableAll();
                     if (this.lockBtn) this.lockBtn.innerHTML = ICONS.lock;
-                    if (this.drawBtn) { this.drawBtn.style.display = 'flex'; if (this.data.isDrawingActive) { this.drawBtn.classList.add('active'); this.mediaContainer.classList.add('drawing-mode'); } else this.drawBtn.classList.remove('active'); }
+                    if (this.drawBtn) { 
+                        this.drawBtn.style.display = 'flex'; 
+                        this.colorPicker.style.display = this.data.isDrawingActive ? 'block' : 'none'; 
+                        if (this.data.isDrawingActive) this.mediaContainer.classList.add('drawing-mode');
+                    }
                 }
             }
-            save() { if (this.map && this.data.mode) { const c = this.map.getCenter(); this.data.lat = c.lat; this.data.lng = c.lng; this.data.zoom = this.map.getZoom(); } return this.data; }
-            destroy() { if (this.map) this.map.remove(); }
+            save() { if (this.map && this.data.mode) { const center = this.map.getCenter(); this.data.lat = center.lat; this.data.lng = center.lng; this.data.zoom = this.map.getZoom(); } return this.data; }
+            destroy() { if (this.resizeObserver) this.resizeObserver.disconnect(); if (this.map) { this.map.remove(); this.map = null; } }
         }
 
-        class CalendarTool {
-            static get toolbox() { return { title: 'Calendar Event', icon: ICONS.calendar }; }
-            constructor({data, config, readOnly}) {
-                this.id = crypto.randomUUID(); this.config = config; this.readOnly = readOnly;
-                this.data = { title: data.title || '', datetime: data.datetime || new Date().toISOString(), notified: data.notified || false };
-                if (!this.data.notified && !this.readOnly && new Date(this.data.datetime) > new Date()) NotificationEngine.schedule(this.id, this.data.datetime, this.data.title);
-                this.wrapper = createEl('div', 'calendar-tool-container'); 
-            }
-            render() {
-                this.titleInput = createEl('input', 'cal-title', { type: 'text', placeholder: 'Event Name / Reminder...', value: this.data.title, readOnly: this.readOnly });
-                if (this.readOnly) this.titleInput.style.pointerEvents = 'none';
-                else this.titleInput.oninput = e => { this.data.title = e.target.value; NotificationEngine.schedule(this.id, this.data.datetime, this.data.title); fireChange(this.config); };
+        window.EDITOR_TOOLS = {
+            paragraph: ParagraphBlock, header: HeaderBlock, checklist: ChecklistBlock, list: ListBlock,
+            scan: ScanTool, compute: ComputeTool, smartCanvas: SmartCanvasTool, calendar: CalendarTool,
+            voice: VoiceMemo, recall: RecallTool, aiStream: AIStreamBlock
+        };
 
-                const header = createEl('div', 'cal-header', {}, [createEl('div', '', { innerHTML: ICONS.calendar }), this.titleInput]);
-                const d = new Date(this.data.datetime);
-                this.displayTxt = createEl('span', 'cal-display-text', { textContent: `${d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} at ${d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` });
-                const displayBtn = createEl('button', 'cal-display-btn', {}, [this.displayTxt]);
+        // ============================================================================
+        // CORE BLOCK MANAGER
+        // ============================================================================
+        class BlockManager {
+            constructor(containerId, options) {
+                this.container = document.getElementById(containerId);
+                this.readOnly = options.readOnly || false;
+                this.onChange = options.onChange || function(){};
+                this.blocks = []; this.menu = document.getElementById('block-menu'); this.menuTargetIndex = -1;
+                
+                this.initMenu(); this.container.innerHTML = '';
+                const dataBlocks = options.data?.blocks || [];
+                if (dataBlocks.length === 0 && !this.readOnly) { this.insertBlock('paragraph', {}, 0, false); } 
+                else { dataBlocks.forEach((b, i) => this.insertBlock(b.type, b.data, i, false)); }
+
+                document.addEventListener('click', (e) => { if (!this.menu.contains(e.target) && !e.target.closest('.add-btn')) this.closeMenu(); });
+            }
+
+            initMenu() {
+                const types = [
+                    {id: 'paragraph', icon: ICONS.text, name: 'Text'}, {id: 'header', icon: ICONS.header, name: 'Header'},
+                    {id: 'list', icon: ICONS.list, name: 'List'}, {id: 'checklist', icon: ICONS.check, name: 'Checklist'},
+                    {id: 'smartCanvas', icon: ICONS.pen, name: 'Canvas'}, {id: 'scan', icon: ICONS.scan, name: 'Scan'},
+                    {id: 'compute', icon: ICONS.compute, name: 'Compute'}, {id: 'calendar', icon: ICONS.calendar, name: 'Calendar'},
+                    {id: 'voice', icon: ICONS.mic, name: 'Voice'}, {id: 'recall', icon: ICONS.recall, name: 'Recall'}
+                ];
+                types.forEach(t => {
+                    const item = createEl('div', 'menu-item', {}, [ createEl('div', '', {innerHTML: t.icon}), createEl('span', '', {textContent: t.name}) ]);
+                    item.onclick = () => { this.insertBlock(t.id, {}, this.menuTargetIndex, true); this.closeMenu(); }; this.menu.appendChild(item);
+                });
+            }
+
+            openMenu(index, buttonEl) {
+                this.menuTargetIndex = index; const rect = buttonEl.getBoundingClientRect();
+                this.menu.style.top = `${rect.bottom + window.scrollY + 5}px`;
+                
+                let leftPos = rect.right - 280; 
+                if (leftPos < 16) leftPos = 16;
+                this.menu.style.left = `${leftPos}px`;
+                
+                this.menu.classList.add('active');
+            }
+            closeMenu() { this.menu.classList.remove('active'); }
+
+            createBlockAPI(instanceId) {
+                return {
+                    onChange: () => this.onChange(),
+                    getIndex: (instance) => { for(let i=0; i<this.blocks.length; i++) { if (this.blocks[i].instance === instance) return i; } return -1; },
+                    insertBlock: (type, data, index, focus) => {
+                        const block = this.insertBlock(type, data, index, focus);
+                        if (!['paragraph', 'header', 'list', 'checklist'].includes(type) && !this.readOnly) {
+                            this.insertBlock('paragraph', {}, index + 1, false);
+                        }
+                        return block;
+                    },
+                    deleteBlock: (index) => this.deleteBlock(index),
+                    focus: (index) => this.focus(index)
+                };
+            }
+
+            insertBlock(type, data, index = this.blocks.length, focus = true) {
+                const BlockClass = window.EDITOR_TOOLS[type]; if (!BlockClass) return;
+
+                const blockId = crypto.randomUUID(); const api = this.createBlockAPI(blockId);
+                const instance = new BlockClass({ data, api, readOnly: this.readOnly });
+                const wrapper = createEl('div', 'block-wrapper'); wrapper.dataset.id = blockId;
                 
                 if (!this.readOnly) {
-                    displayBtn.appendChild(createEl('div', '', { innerHTML: ICONS.chevronDown }));
-                    displayBtn.onclick = () => DatePicker.open(new Date(this.data.datetime), newDate => {
-                        this.data.datetime = newDate.toISOString(); this.data.notified = false;
-                        this.displayTxt.textContent = `${newDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} at ${newDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
-                        NotificationEngine.schedule(this.id, this.data.datetime, this.data.title); fireChange(this.config);
-                    }, { showTime: true, disablePast: true });
-                } else displayBtn.style.cssText = 'cursor:default;border:none;background:transparent;padding:8px 0;';
-
-                const exportBtn = createEl('button', 'cal-btn primary', { onclick: () => {
-                    const start = new Date(this.data.datetime), f = dt => dt.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-                    const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART:${f(start)}\nDTEND:${f(new Date(start.getTime() + 36e5))}\nSUMMARY:${this.data.title || 'Note Event'}\nEND:VEVENT\nEND:VCALENDAR`;
-                    Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([ics], { type: 'text/calendar' })), download: `${(this.data.title||'event').replace(/\s+/g, '_')}.ics` }).click();
-                }}, [createEl('div', '', { innerHTML: ICONS.download }), document.createTextNode(' Add to Calendar')]);
-
-                const actions = [exportBtn];
-                if (!this.readOnly) {
-                    const granted = window.Notification?.permission === 'granted';
-                    this.notifyBtn = createEl('button', `cal-btn ${granted ? 'granted' : ''}`, { onclick: async () => {
-                        if (!window.Notification) { this.notifyBtn.textContent = "Not Supported"; return; }
-                        if (await Notification.requestPermission() === 'granted') { this.notifyBtn.innerHTML = ICONS.bell + ' On'; this.notifyBtn.classList.add('granted'); NotificationEngine.schedule(this.id, this.data.datetime, this.data.title); }
-                    }}, [createEl('div', '', { innerHTML: ICONS.bell }), document.createTextNode(granted ? ' On' : ' Notify')]);
-                    actions.push(this.notifyBtn);
+                    const actions = createEl('div', 'block-actions');
+                    const addBtn = createEl('button', 'action-btn add-btn', {innerHTML: ICONS.plus, title: 'ADD BLOCK'});
+                    const delBtn = createEl('button', 'action-btn del-btn', {innerHTML: ICONS.trash, title: 'DELETE BLOCK'});
+                    addBtn.onclick = (e) => { e.stopPropagation(); this.openMenu(this.blocks.findIndex(b => b.id === blockId) + 1, addBtn); };
+                    delBtn.onclick = (e) => { e.stopPropagation(); this.deleteBlock(this.blocks.findIndex(b => b.id === blockId)); };
+                    actions.append(addBtn, delBtn); wrapper.appendChild(actions);
                 }
-                this.wrapper.append(header, displayBtn, createEl('div', 'cal-actions', {}, actions)); return this.wrapper;
-            }
-            destroy() { NotificationEngine.cancel(this.id); }
-            save() { return this.data; }
-        }
 
-        class VoiceMemo {
-            static get toolbox() { return { title: 'Voice Memo', icon: ICONS.mic }; }
-            constructor({data, config, readOnly}) {
-                this.config = config; this.readOnly = readOnly; this.data = { url: data.url || null, title: data.title || '' };
-                if (!this.data.title && !this.data.url) this.data.title = `Voice Memo - ${new Date().toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'})}`;
-                this.recorder = null; this.chunks = []; this.isPlaying = this.isRecording = false;
-                this.nodes = { 
-                    wrapper: createEl('div', 'voice-tool-container'), button: createEl('button', 'v-memo__btn', { onclick: () => this.handleAction() }), 
-                    title: createEl('input', 'v-memo__title', { type: 'text', value: this.data.title, placeholder: 'Name memo...', readOnly: this.readOnly, oninput: e => { this.data.title = e.target.value; fireChange(this.config); }}), 
-                    status: createEl('div', 'v-memo__status'), audio: createEl('audio', '', { style: 'display: none;', src: this.data.url || '' }) 
-                };
+                wrapper.append(createEl('div', 'block-content', {}, [instance.render()]), createEl('div', 'block-time'));
+                const blockDef = { id: blockId, type, instance, wrapper };
+                
+                if (index >= this.blocks.length) { this.blocks.push(blockDef); this.container.appendChild(wrapper); } 
+                else { this.blocks.splice(index, 0, blockDef); this.container.insertBefore(wrapper, this.container.children[index]); }
+
+                if (focus && typeof instance.focus === 'function') setTimeout(() => instance.focus(), 0);
+                this.onChange(); return blockDef;
             }
-            render() {
-                const update = () => this.updateUI();
-                this.nodes.audio.onplay = () => { this.isPlaying = true; update(); };
-                this.nodes.audio.onpause = this.nodes.audio.onended = () => { this.isPlaying = false; update(); };
-                this.nodes.wrapper.append(this.nodes.button, this.nodes.title, this.nodes.status, this.nodes.audio); update(); return this.nodes.wrapper;
+
+            deleteBlock(index) {
+                if (index < 0 || index >= this.blocks.length) return; const block = this.blocks[index];
+                if (typeof block.instance.destroy === 'function') block.instance.destroy();
+                block.wrapper.remove(); this.blocks.splice(index, 1);
+                if (this.blocks.length === 0 && !this.readOnly) this.insertBlock('paragraph', {}, 0, true);
+                this.onChange();
             }
-            updateUI() {
-                this.nodes.button.className = 'v-memo__btn'; 
-                if (this.isPlaying) { this.nodes.button.innerHTML = ICONS.pause; this.nodes.status.innerText = 'Playing...'; this.nodes.button.classList.add('playing'); } 
-                else if (this.data.url) { this.nodes.button.innerHTML = ICONS.play; this.nodes.status.innerText = 'Ready'; } 
-                else if (this.isRecording) { this.nodes.button.innerHTML = ICONS.stop; this.nodes.status.innerText = 'Recording...'; this.nodes.button.classList.add('recording'); } 
-                else if (this.readOnly) { this.nodes.button.style.display = 'none'; this.nodes.status.innerText = 'No audio'; }
-                else { this.nodes.button.innerHTML = ICONS.mic; this.nodes.status.innerText = 'Record'; }
+
+            focus(index) { if (index >= 0 && index < this.blocks.length && typeof this.blocks[index].instance.focus === 'function') { this.blocks[index].instance.focus(); } }
+            async save() {
+                const output = [];
+                for (let block of this.blocks) { if (typeof block.instance.save === 'function') { output.push({ id: block.id, type: block.type, data: await block.instance.save() }); } }
+                return { blocks: output };
             }
-            async handleAction() {
-                if (this.readOnly && !this.data.url) return;
-                if (this.data.url) this.isPlaying ? this.nodes.audio.pause() : this.nodes.audio.play();
-                else if (this.isRecording) { this.recorder.stop(); this.isRecording = false; this.nodes.status.innerText = 'Processing...'; } 
-                else {
-                    try {
-                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                        this.recorder = new MediaRecorder(stream); this.chunks = []; this.recorder.ondataavailable = e => this.chunks.push(e.data);
-                        this.recorder.onstop = () => { const r = new FileReader(); r.onloadend = () => { this.data.url = r.result; this.nodes.audio.src = this.data.url; this.updateUI(); fireChange(this.config); }; r.readAsDataURL(new Blob(this.chunks, { type: 'audio/ogg; codecs=opus' })); stream.getTracks().forEach(t => t.stop()); };
-                        this.recorder.start(); this.isRecording = true; this.updateUI();
-                    } catch { this.nodes.status.innerText = 'Mic denied'; }
-                }
-            }
-            destroy() { if (this.recorder?.state !== 'inactive') this.recorder?.stop(); this.recorder?.stream?.getTracks().forEach(t => t.stop()); this.nodes.audio.pause(); }
-            save() { return this.data; }
+            destroy() { this.blocks.forEach(b => { if (typeof b.instance.destroy === 'function') b.instance.destroy(); }); this.container.innerHTML = ''; this.blocks = []; }
         }
 
         // ============================================================================
-        // CORE APP INITIALIZATION
+        // CORE APP LIFECYCLE 
         // ============================================================================
-        let activeEditor = null, currentDateStr = getLocalYYYYMMDD(new Date()), timestamps = {}, updateRaf, saveTimeout;
-        const todayStr = currentDateStr;
+        window.editor = null; 
+        let timestamps = {}, updateRaf, saveTimeout, isSaving = false, hasPendingSave = false;
+        let todayStr = getLocalYYYYMMDD(new Date()); window.currentDateStr = todayStr;
 
-        const getDisplayDate = dStr => { const [y, m, d] = dStr.split('-'); const date = new Date(y, m - 1, d); return `${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}<br>${date.toLocaleDateString(undefined, { weekday: 'long' })}`; };
-        document.getElementById('date-header').innerHTML = getDisplayDate(currentDateStr);
+        function getDisplayDate(dateStr) { const [y, m, d] = dateStr.split('-'); const date = new Date(y, m - 1, d); return `${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}<br>${date.toLocaleDateString(undefined, { weekday: 'long' })}`; }
+        document.getElementById('date-header').innerHTML = getDisplayDate(window.currentDateStr);
 
-        window.EDITOR_TOOLS_CONFIG = {
-            paragraph: { class: Paragraph, inlineToolbar: ['link', 'bold', 'italic'] },
-            header: { class: Header, inlineToolbar: ['link', 'bold', 'italic'], config: { levels: [1, 2, 3], defaultLevel: 2 } },
-            list: { class: NestedList, inlineToolbar: ['link', 'bold', 'italic'] },
-            checklist: { class: Checklist, inlineToolbar: ['link', 'bold', 'italic'] },
-            scan: { class: ScanTool, config: { onChange: scheduleSave } },
-            compute: { class: ComputeTool, config: { onChange: scheduleSave } },
-            smartCanvas: { class: SmartCanvasTool, config: { onChange: scheduleSave } },
-            calendar: { class: CalendarTool, config: { onChange: scheduleSave } },
-            voice: { class: VoiceMemo, config: { onChange: scheduleSave } },
-            recall: { class: RecallTool, config: { onChange: scheduleSave } }
-        };
-
-        document.getElementById('date-header').onclick = () => {
-            const [y, m, d] = currentDateStr.split('-').map(Number);
-            DatePicker.open(new Date(y, m - 1, d), sel => {
-                const selStr = getLocalYYYYMMDD(sel);
-                if (currentDateStr !== selStr) { currentDateStr = selStr; document.getElementById('date-header').innerHTML = getDisplayDate(selStr); initEditor(selStr); }
-            }, { disableFuture: true, onlyNotes: true }); 
-        };
-
-        const domObserver = new MutationObserver(records => { 
-            if (records.some(r => Array.from(r.addedNodes).some(n => n.classList?.contains('ce-block') && !n.querySelector('.ce-block-time')))) {
-                cancelAnimationFrame(updateRaf); updateRaf = requestAnimationFrame(updateAllTimestamps); 
-            }
-        });
+        const domObserver = new MutationObserver(() => { cancelAnimationFrame(updateRaf); updateRaf = requestAnimationFrame(updateAllTimestamps); });
 
         function updateAllTimestamps() {
-            document.querySelectorAll('.ce-block').forEach(block => {
+            document.querySelectorAll('.block-wrapper').forEach(block => {
                 const id = block.getAttribute('data-id'); if (!id) return;
-                let timeEl = block.querySelector('.ce-block-time');
-                if (!timeEl) { timeEl = createEl('div', 'ce-block-time'); block.appendChild(timeEl); }
-                if (timestamps[id]) timeEl.textContent = new Date(timestamps[id]).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-                else if (currentDateStr === todayStr && activeEditor && !activeEditor.readOnly) {
-                    timestamps[id] = Date.now(); timeEl.textContent = new Date(timestamps[id]).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-                    scheduleSave(); 
-                }
+                let timeEl = block.querySelector('.block-time');
+                if (timestamps[id]) { timeEl.textContent = new Date(timestamps[id]).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }); } 
+                else if (window.currentDateStr === todayStr && window.editor) { timestamps[id] = Date.now(); timeEl.textContent = new Date(timestamps[id]).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }); scheduleSave(); }
             });
         }
 
-        function scheduleSave() {
-            if (activeEditor && !activeEditor.readOnly) {
-                clearTimeout(saveTimeout);
-                saveTimeout = setTimeout(async () => { const data = await activeEditor.save(); data.timestamps = timestamps; appDB.save(currentDateStr, data); }, 500);
-            }
+        function executeSave() {
+            if (!window.editor || window.currentDateStr !== todayStr) { isSaving = false; hasPendingSave = false; return; }
+            isSaving = true;
+            window.editor.save().then(outputData => {
+                outputData.timestamps = timestamps; return appDB.save(window.currentDateStr, outputData);
+            }).then(() => {
+                const indicator = document.getElementById('save-indicator');
+                if (indicator && !appDB.isMemoryOnly) { indicator.classList.add('visible'); setTimeout(() => indicator.classList.remove('visible'), 1500); }
+            }).catch(e => console.error("Save failed:", e)).finally(() => { isSaving = false; if (hasPendingSave) { hasPendingSave = false; executeSave(); } });
         }
 
+        function scheduleSave(immediate = false) {
+            if (appDB.isMemoryOnly) return; clearTimeout(saveTimeout);
+            if (immediate) { if (isSaving) hasPendingSave = true; else executeSave(); } else { saveTimeout = setTimeout(() => { if (isSaving) hasPendingSave = true; else executeSave(); }, 800); }
+        }
+
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') scheduleSave(true); }); window.addEventListener('pagehide', () => scheduleSave(true));
+        
+        document.getElementById('date-header').onclick = () => {
+            scheduleSave(true); const [y, m, d] = window.currentDateStr.split('-').map(Number);
+            DatePicker.open(new Date(y, m - 1, d), (selectedDate) => {
+                const selectedStr = getLocalYYYYMMDD(selectedDate);
+                if (window.currentDateStr !== selectedStr) { window.currentDateStr = selectedStr; document.getElementById('date-header').innerHTML = getDisplayDate(selectedStr); initEditor(selectedStr); }
+            }, { showTime: false, disableFuture: true, onlyNotes: true }); 
+        };
+
+        // ============================================================================
+        // EDITOR INITIALIZATION
+        // ============================================================================
         async function initEditor(date) {
-            if (activeEditor) { domObserver.disconnect(); await activeEditor.destroy(); activeEditor = null; }
-            
-            const isToday = date === todayStr;
-            let savedData = appDB.cache[date] || { blocks: [] };
-            if (isToday && !savedData.blocks?.length) savedData = { blocks: [{ type: "paragraph", data: { text: `Type '/' for commands or start writing...` } }] };
-
-            timestamps = savedData.timestamps || {};
-            document.getElementById('editorjs').innerHTML = '';
-
-            activeEditor = new EditorJS({
-                holder: 'editorjs',
-                placeholder: isToday ? 'Type "/" for commands...' : 'No notes available for this day.',
-                readOnly: !isToday, data: savedData, tools: window.EDITOR_TOOLS_CONFIG,
-                onChange: () => { if (isToday) scheduleSave(); },
-                onReady: () => { domObserver.observe(document.getElementById('editorjs'), { childList: true, subtree: true }); updateAllTimestamps(); }
-            });
+            if (window.editor) { scheduleSave(true); domObserver.disconnect(); window.editor.destroy(); window.editor = null; }
+            const isToday = date === todayStr; let cachedData = appDB.cache[date];
+            let editorData = cachedData ? { blocks: [...cachedData.blocks], timestamps: {...cachedData.timestamps} } : { blocks: [] };
+            timestamps = editorData.timestamps || {};
+            window.editor = new BlockManager('editor-container', { readOnly: !isToday, data: editorData, onChange: () => { if (isToday) scheduleSave(); } });
+            domObserver.observe(document.getElementById('editor-container'), { childList: true, subtree: true }); updateAllTimestamps();
         }
 
-        appDB.init().then(() => initEditor(currentDateStr)).catch(() => initEditor(currentDateStr));
-
+        appDB.init().then(() => { initEditor(window.currentDateStr); });
     </script>
 </body>
 </html>
