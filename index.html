@@ -320,8 +320,8 @@
         }
         const appDB = new IndexedDBAdapter();
 
-        // LLM Singleton for WebGPU On-Device AI
-        const AI_MODEL = 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
+        // LLM Singleton optimized for strictly limited iOS WebGPU memory
+        const AI_MODEL = 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC'; // Ultra-light ~350MB model to prevent iOS Jetsam crashes
         const AIEngine = {
             instance: null, isInitializing: false, subscribers: [],
             async getEngine(onProgress) {
@@ -334,12 +334,14 @@
                 try {
                     const { CreateMLCEngine } = await import('https://esm.run/@mlc-ai/web-llm');
                     this.instance = await CreateMLCEngine(AI_MODEL, {
-                        initProgressCallback: (info) => this.subscribers.forEach(cb => cb(info.text))
+                        initProgressCallback: (info) => this.subscribers.forEach(cb => cb(info.text)),
+                        // CRITICAL FOR iOS SAFARI: Limits KV cache memory size to prevent out-of-memory crashes
+                        chatOpts: { context_window_size: 1024, prefill_chunk_size: 256 }
                     });
                     return this.instance;
                 } catch (e) {
                     this.isInitializing = false;
-                    throw new Error("WebGPU initialization failed. Ensure WebGPU is enabled in iOS Settings > Apps > Safari > Advanced > Feature Flags.");
+                    throw new Error("Initialization failed. If using Safari, ensure WebGPU is on and try closing other tabs to free up RAM.");
                 }
             }
         };
@@ -419,7 +421,7 @@
             }
             render() {
                 this.wrapper.innerHTML = '';
-                const header = createEl('div', 'ai-header', {}, [createEl('div', 'ai-icon', {innerHTML: ICONS.sparkles}), createEl('span', '', {textContent: 'On-Device Assistant (Llama 3.2 1B)'})]);
+                const header = createEl('div', 'ai-header', {}, [createEl('div', 'ai-icon', {innerHTML: ICONS.sparkles}), createEl('span', '', {textContent: 'On-Device Assistant (Qwen 0.5B)'})]);
                 this.statusEl = createEl('div', 'ai-status', {style: 'display:none'});
                 this.input = createEl('textarea', 'ai-input', { placeholder: 'Ask AI (e.g. Summarize this note, rewrite formal...)', value: this.data.prompt, readOnly: this.readOnly });
                 this.output = createEl('div', 'ai-output', { innerHTML: this.data.response });
