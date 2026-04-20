@@ -11,7 +11,6 @@
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#121212">
     
-    <!-- Dynamic Manifest Injection -->
     <link id="pwa-manifest" rel="manifest" href="">
     <link id="pwa-icon" rel="apple-touch-icon" href="">
 
@@ -26,195 +25,149 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <!-- 🟢 FIX: Import Map for proper dependency resolution in Safari 🟢 -->
+    <!-- 🟢 OPTIMIZATION: Import Map with Bundle Flag for Safari 🟢 -->
     <script type="importmap">
       {
         "imports": {
-          "@mlc-ai/web-llm": "https://esm.sh/@mlc-ai/web-llm"
+          "@mlc-ai/web-llm": "https://esm.sh/@mlc-ai/web-llm?bundle"
         }
       }
     </script>
 
     <style>
-        /* --- Standardized Pure Flat Theme --- */
         :root {
             --bg-color: #ffffff; --text-color: #000000; --border-color: #e0e0e0;
             --muted-bg: #f5f5f5; --muted-text: #666666; --accent-color: #000000;
-            --ai-color: #6366f1; /* Indigo for AI ink */
-            --recall-bg: #fcfcfc; --recall-border: #cccccc;
+            --ai-color: #6366f1; --recall-bg: #fcfcfc; --recall-border: #cccccc;
             --editor-toolbar-bg: #ffffff; --editor-hover-bg: #ebebeb; --overlay-bg: transparent; 
             --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             --keyboard-offset: 0px; --safe-area-top: env(safe-area-inset-top, 0px);
-            --std-border-radius: 8px; --std-padding: 12px 14px; --std-margin: 8px 0;
-            --std-icon-size: 20px; --std-control-height: 36px;
+            --std-border-radius: 8px; --std-icon-size: 20px; --std-control-height: 36px;
         }
 
         @media (prefers-color-scheme: dark) {
             :root {
                 --bg-color: #121212; --text-color: #ffffff; --border-color: #333333;
                 --muted-bg: #1e1e1e; --muted-text: #aaaaaa; --accent-color: #ffffff;
-                --ai-color: #a78bfa; /* Soft purple for dark mode AI ink */
-                --recall-bg: #1a1a1a; --recall-border: #444444;
+                --ai-color: #a78bfa; --recall-bg: #1a1a1a; --recall-border: #444444;
                 --editor-toolbar-bg: #1e1e1e; --editor-hover-bg: #2a2a2a;
             }
         }
 
-        body { background-color: var(--bg-color); color: var(--text-color); font-family: var(--font-main); margin: 0; padding: 0; line-height: 1.6; width: 100vw; overflow-x: hidden; }
-        .app-container { max-width: 800px; width: 100%; margin: 0 auto; padding: calc(10vh + var(--safe-area-top)) 40px 65vh 40px; box-sizing: border-box; }
-        #editorjs { padding: 0; max-width: 100%; box-sizing: border-box; min-height: 50vh; }
-        ::-webkit-scrollbar { width: 0px; background: transparent; }
-        ::-webkit-scrollbar:horizontal { display: none; }
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: var(--font-main); margin: 0; padding: 0; line-height: 1.6; overflow-x: hidden; }
+        .app-container { max-width: 800px; margin: 0 auto; padding: calc(10vh + var(--safe-area-top)) 40px 65vh 40px; }
+        #editorjs { min-height: 50vh; }
+        ::-webkit-scrollbar { width: 0; }
         svg { flex-shrink: 0; }
 
-        .ce-block { position: relative; z-index: auto !important; } 
+        /* Editor.js Overrides */
+        .ce-block { z-index: auto !important; } 
         .ce-toolbar { z-index: 10000 !important; }
         .ce-popover, .ce-settings, .tc-popover, .cdx-settings, .ce-tooltip { z-index: 10005 !important; }
-        .ce-block__content { max-width: 100% !important; }
-        .ce-toolbar__plus, .ce-toolbar__settings-btn { background-color: var(--bg-color) !important; color: var(--text-color) !important; border: 1px solid transparent; }
-        .ce-toolbar__plus:hover, .ce-toolbar__settings-btn:hover { background-color: var(--editor-hover-bg) !important; border-color: var(--border-color); }
-        .ce-popover__overlay, .ce-popover-overlay, .cdx-overlay { background: var(--overlay-bg) !important; background-color: var(--overlay-bg) !important; box-shadow: none !important; backdrop-filter: none !important; }
-        .ce-popover-item__icon svg { width: var(--std-icon-size) !important; height: var(--std-icon-size) !important; }
-        .ce-popover-item__title { font-size: 14px !important; font-weight: 500 !important; }
+        .ce-toolbar__plus, .ce-toolbar__settings-btn { background-color: transparent; color: var(--text-color); }
+        .ce-toolbar__plus:hover, .ce-toolbar__settings-btn:hover { background-color: var(--editor-hover-bg); }
+        .ce-popover-item__icon svg { width: var(--std-icon-size); height: var(--std-icon-size); }
 
         @media (prefers-color-scheme: dark) {
-            .ce-popover, .ce-popover__container, .ce-popover__panel, .ce-popover__items, .ce-inline-toolbar, .ce-conversion-toolbar, .ce-settings, .ce-tooltip { background: var(--editor-toolbar-bg) !important; background-color: var(--editor-toolbar-bg) !important; border-color: var(--border-color) !important; box-shadow: none !important; }
-            .ce-tooltip { color: var(--text-color) !important; }
-            .ce-popover-item, .ce-inline-tool, .ce-conversion-tool, .ce-settings__button { background-color: transparent !important; color: var(--text-color) !important; }
-            .ce-popover-item__title { color: var(--text-color) !important; }
-            .ce-popover-item:hover, .ce-inline-tool:hover, .ce-conversion-tool:hover, .ce-settings__button:hover { background-color: var(--editor-hover-bg) !important; }
-            .ce-popover-item__icon, .ce-popover-item__icon--active, .ce-popover__item-icon { background-color: var(--muted-bg) !important; color: var(--text-color) !important; box-shadow: none !important; border-color: var(--border-color) !important; }
-            .cdx-search-field, .cdx-input { background-color: var(--muted-bg) !important; color: var(--text-color) !important; border: 1px solid var(--border-color) !important; box-shadow: none !important; }
-            .cdx-search-field__icon { color: var(--muted-text) !important; }
-            .ce-block--selected .ce-block__content { background-color: var(--editor-hover-bg) !important; }
-            ::selection { background: var(--ai-color) !important; color: #ffffff; }
+            .ce-popover, .ce-settings, .ce-inline-toolbar, .ce-conversion-toolbar { background: var(--editor-toolbar-bg) !important; border-color: var(--border-color) !important; }
+            .ce-popover-item, .ce-inline-tool, .ce-settings__button { color: var(--text-color) !important; }
+            .ce-popover-item:hover, .ce-inline-tool:hover { background-color: var(--editor-hover-bg) !important; }
+            .cdx-search-field, .cdx-input { background-color: var(--muted-bg) !important; border: 1px solid var(--border-color) !important; color: var(--text-color) !important; }
+            ::selection { background: var(--ai-color); color: #fff; }
         }
 
-        @media (max-width: 650px) {
-            .ce-popover, .ce-settings, .ce-inline-toolbar { bottom: var(--keyboard-offset, 0px) !important; max-height: calc(100vh - var(--keyboard-offset, 0px) - 20px) !important; transition: bottom 0.2s cubic-bezier(0.1, 0.7, 0.1, 1), max-height 0.2s ease; }
-        }
-
-        #date-header { 
-            text-align: left; font-size: clamp(60px, 18vw, 150px); font-weight: 900; 
-            font-style: italic; text-transform: uppercase; letter-spacing: -0.06em; 
-            line-height: 0.8; color: var(--text-color); margin: -20px 0 10px -25px; 
-            cursor: pointer; transition: opacity 0.2s; user-select: none; white-space: nowrap; 
-        }
+        /* App UI */
+        #date-header { font-size: clamp(60px, 18vw, 150px); font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: -0.06em; line-height: 0.8; margin: -20px 0 10px -25px; cursor: pointer; user-select: none; }
         #date-header:hover { opacity: 0.7; }
         
         #ai-status-wrapper { margin-bottom: 40px; padding-left: 4px; }
-        #ai-status-text { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ai-color); opacity: 0.8; transition: color 0.3s; }
+        #ai-status-text { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ai-color); opacity: 0.8; }
         .ai-progress-container { width: 100%; max-width: 200px; height: 4px; background: var(--muted-bg); border-radius: 2px; margin-top: 8px; overflow: hidden; display: none; }
         .ai-progress-bar { width: 0%; height: 100%; background: var(--ai-color); transition: width 0.1s ease-out; }
 
-        .ce-block-time { font-size: 11px; color: var(--muted-text); text-align: right; padding-top: 6px; padding-bottom: 2px; padding-right: 2px; user-select: none; opacity: 0.7; font-weight: 500; }
-        
-        .cal-btn { padding: 8px 12px; background: transparent; border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-color); cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; }
-        .cal-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+        .ce-block-time { font-size: 11px; color: var(--muted-text); text-align: right; padding: 6px 2px 2px 0; opacity: 0.7; font-weight: 500; }
+        .ai-text-block { color: var(--ai-color); font-style: italic; font-weight: 500; font-size: 16px; border-left: 2px solid var(--ai-color); padding-left: 14px; margin-left: -16px; outline: none; }
+
+        /* Tools General */
+        .cal-btn { padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; background: transparent; color: var(--text-color); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 500; }
         .cal-btn:hover { background: var(--editor-hover-bg); }
         .cal-btn.primary { background: var(--text-color); color: var(--bg-color); border-color: var(--text-color); }
 
-        .tool-title-input { width: 100%; border: none; background: transparent; color: var(--text-color); font-size: 16px; font-weight: 600; outline: none; font-family: inherit; padding: 4px 0; margin-bottom: 8px; }
-        .tool-title-input::placeholder { color: var(--muted-text); font-weight: 500; opacity: 0.6; }
+        .tool-title-input { width: 100%; border: none; background: transparent; color: var(--text-color); font-size: 16px; font-weight: 600; outline: none; padding: 4px 0; margin-bottom: 8px; }
+        .tool-title-input::placeholder { color: var(--muted-text); opacity: 0.6; }
 
-        .ai-text-block { color: var(--ai-color); font-style: italic; font-weight: 500; font-size: 16px; line-height: 1.6; outline: none; padding: 8px 0; white-space: pre-wrap; border-left: 2px solid var(--ai-color); padding-left: 14px; margin-left: -16px; }
-
-        /* Unified Date Picker */
-        .global-calendar-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); z-index: 100000; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s ease; backdrop-filter: blur(2px); }
+        /* Global Modal */
+        .global-calendar-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100000; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s ease; backdrop-filter: blur(2px); }
         .global-calendar-modal.show { display: flex; opacity: 1; }
         .cp-container { background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; width: 90%; max-width: 340px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); display: flex; flex-direction: column; gap: 12px; }
         .cp-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
-        .cp-header button { background: var(--muted-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 6px; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .cp-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 12px; color: var(--muted-text); font-weight: 600; margin-bottom: 4px; }
-        .cp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-        .cp-day { padding: 8px 0; text-align: center; font-size: 14px; cursor: pointer; border-radius: 6px; color: var(--text-color); transition: background 0.1s; }
+        .cp-header button { background: var(--muted-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 6px; width: 32px; height: 32px; cursor: pointer; }
+        .cp-weekdays, .cp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+        .cp-weekdays { font-size: 12px; color: var(--muted-text); font-weight: 600; }
+        .cp-day { padding: 8px 0; font-size: 14px; cursor: pointer; border-radius: 6px; }
         .cp-day:hover:not(.muted) { background: var(--editor-hover-bg); }
         .cp-day.active { background: var(--text-color) !important; color: var(--bg-color) !important; font-weight: bold; }
         .cp-day.muted { color: var(--border-color); pointer-events: none; opacity: 0.3; }
-        .cp-time { display: flex; justify-content: center; align-items: center; gap: 6px; padding-top: 16px; border-top: 1px solid var(--border-color); }
-        #dp-time-input { width: 100%; padding: 10px; font-size: 16px; text-align: center; border-radius: 6px; border: 1px solid var(--border-color); background: var(--muted-bg); color: var(--text-color); font-family: inherit; outline: none; }
+        #dp-time-input { width: 100%; padding: 10px; text-align: center; border-radius: 6px; border: 1px solid var(--border-color); background: var(--muted-bg); color: var(--text-color); outline: none; }
 
-        /* Tools */
-        .compute-tool-container { border: 1px solid var(--border-color); border-radius: var(--std-border-radius); background: var(--muted-bg); overflow: hidden; margin: 8px 0; display: flex; flex-direction: column; }
-        .compute-input { width: 100%; padding: 16px 16px 12px 16px; background: transparent; border: none; outline: none; font-family: monospace; font-size: 14px; color: var(--text-color); resize: none; box-sizing: border-box; line-height: 1.5; min-height: 50px; font-weight: bold; }
-        .compute-output { padding: 12px 16px; border-top: 1px dashed var(--border-color); font-family: monospace; font-size: 16px; font-weight: 700; color: var(--text-color); background: var(--bg-color); word-break: break-word; min-height: 20px; }
-        .compute-error { color: #EF4444; font-weight: 400; font-size: 13px; }
+        /* Specific Blocks */
+        .compute-tool-container { border: 1px solid var(--border-color); border-radius: 8px; background: var(--muted-bg); margin: 8px 0; display: flex; flex-direction: column; }
+        .compute-input { width: 100%; padding: 16px; background: transparent; border: none; outline: none; font-family: monospace; font-size: 14px; color: var(--text-color); resize: none; }
+        .compute-output { padding: 12px 16px; border-top: 1px dashed var(--border-color); font-family: monospace; font-size: 16px; font-weight: 700; background: var(--bg-color); word-break: break-word; }
+        .compute-error { color: #EF4444; font-size: 13px; font-weight: normal; }
 
-        .scan-wrapper { margin: 8px 0; width: 100%; border: 1px dashed var(--border-color); border-radius: var(--std-border-radius); display: flex; flex-direction: column; overflow: hidden; }
-        .scan-action-area { padding: 30px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; cursor: pointer; transition: background 0.2s; }
-        .scan-icon svg { width: 32px; height: 32px; color: var(--muted-text); }
-        .scan-label { font-size: 14px; font-weight: 600; color: var(--text-color); letter-spacing: 1px; }
-        .scan-status { font-family: monospace; font-size: 12px; font-weight: bold; color: var(--muted-text); margin-top: 10px; }
-        .scan-output-textarea { width: 100%; min-height: 100px; padding: 16px; border: none; background: var(--muted-bg); color: var(--text-color); font-family: monospace; font-size: 13px; line-height: 1.5; resize: none; outline: none; box-sizing: border-box; }
+        .scan-wrapper { border: 1px dashed var(--border-color); border-radius: 8px; margin: 8px 0; display: flex; flex-direction: column; }
+        .scan-action-area { padding: 30px; display: flex; flex-direction: column; align-items: center; gap: 12px; cursor: pointer; }
+        .scan-action-area:hover { background: var(--editor-hover-bg); }
+        .scan-output-textarea { width: 100%; min-height: 100px; padding: 16px; border: none; background: var(--muted-bg); color: var(--text-color); font-family: monospace; resize: none; outline: none; }
 
-        .recall-search-wrapper { position: relative; width: 100%; margin: 8px 0; }
-        .recall-search-input { width: 100%; padding: 12px 14px 12px 40px; border-radius: var(--std-border-radius); border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); font-family: inherit; font-size: 15px; outline: none; box-sizing: border-box; }
-        .recall-search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--muted-text); }
-        .recall-dropdown { position: absolute; top: 100%; left: 0; width: 100%; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: var(--std-border-radius); margin-top: 4px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); z-index: 1000; max-height: 250px; overflow-y: auto; display: none; }
+        .recall-search-wrapper { position: relative; margin: 8px 0; }
+        .recall-search-input { width: 100%; padding: 12px 14px 12px 40px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); outline: none; }
+        .recall-search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 18px; color: var(--muted-text); }
+        .recall-dropdown { position: absolute; top: 100%; left: 0; width: 100%; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; z-index: 1000; max-height: 250px; overflow-y: auto; display: none; margin-top: 4px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
         .recall-dropdown.active { display: block; }
-        .recall-result-item { padding: 12px 14px; cursor: pointer; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 4px; }
-        .recall-result-meta { font-size: 11px; color: var(--text-color); font-weight: 600; opacity: 0.7; }
-        .recall-result-snippet { font-size: 14px; color: var(--muted-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .recalled-block { margin: 8px 0; padding: 12px 16px; background: var(--recall-bg); border-left: 4px solid var(--recall-border); border-radius: 4px var(--std-border-radius) var(--std-border-radius) 4px; position: relative; }
-        .recalled-orig-meta { font-size: 10px; color: var(--muted-text); font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+        .recall-result-item { padding: 12px; cursor: pointer; border-bottom: 1px solid var(--border-color); }
+        .recall-result-item:hover { background: var(--editor-hover-bg); }
+        .recalled-block { margin: 8px 0; padding: 12px; background: var(--recall-bg); border-left: 4px solid var(--recall-border); border-radius: 4px 8px 8px 4px; }
 
-        .calendar-tool-container { display: flex; flex-direction: column; gap: 12px; width: 100%; margin: 8px 0; }
-        .cal-header { display: flex; align-items: center; gap: 10px; }
-        .cal-header svg { color: var(--muted-text); }
-        .cal-title { flex-grow: 1; border: none; background: transparent; color: var(--text-color); font-size: 18px; font-weight: 600; outline: none; font-family: inherit; }
-        .cal-display-btn { border: 1px solid var(--border-color); background: var(--muted-bg); color: var(--text-color); border-radius: 6px; padding: 10px 14px; font-family: inherit; font-size: 14px; outline: none; cursor: pointer; text-align: left; display: flex; align-items: center; justify-content: space-between; }
-        .cal-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-        .cal-actions .cal-btn { flex: 1; min-width: 130px; }
+        .calendar-tool-container { margin: 8px 0; display: flex; flex-direction: column; gap: 12px; }
+        .cal-display-btn { border: 1px solid var(--border-color); background: var(--muted-bg); border-radius: 6px; padding: 10px; display: flex; justify-content: space-between; cursor: pointer; color: var(--text-color); text-align: left; }
 
         .voice-tool-container { display: flex; align-items: center; gap: 12px; margin: 8px 0; }
-        .v-memo__btn { width: var(--std-control-height); height: var(--std-control-height); border-radius: 50%; border: 1px solid var(--border-color); background: var(--muted-bg); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-color); flex-shrink: 0; min-width: var(--std-control-height); transition: all 0.2s; }
-        .v-memo__btn.recording { color: #ffffff; border-color: #ef4444; background: #ef4444; animation: pulse 1.5s infinite; }
-        .v-memo__btn.playing { color: #ffffff; border-color: #3B82F6; background: #3B82F6; }
-        .v-memo__title { flex-grow: 1; border: none; background: transparent; color: var(--text-color); font-size: 15px; font-weight: 600; outline: none; font-family: inherit; min-width: 0; }
-        .v-memo__status { font-size: 13px; color: var(--muted-text); white-space: nowrap; font-weight: 500; }
-        
-        .smart-canvas-selector { display: flex; gap: 12px; padding: 12px 0; justify-content: center; flex-wrap: wrap; }
-        .smart-canvas-option { flex: 1; min-width: 100px; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 24px 10px; border: 1px dashed var(--border-color); border-radius: 8px; background: transparent; color: var(--text-color); cursor: pointer; transition: all 0.2s; font-size: 13px; font-weight: 500; font-family: inherit; }
-        .smart-canvas-option svg { width: 32px; height: 32px; color: var(--muted-text); transition: color 0.2s; }
-        
-        .canvas-relative-frame { position: relative; width: 100%; border-radius: var(--std-border-radius); border: 1px solid var(--border-color); overflow: hidden; margin: 8px 0; }
+        .v-memo__btn { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border-color); background: var(--muted-bg); color: var(--text-color); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+        .v-memo__btn.recording { background: #ef4444; color: #fff; border-color: #ef4444; animation: pulse 1.5s infinite; }
+        .v-memo__btn.playing { background: #3B82F6; color: #fff; border-color: #3B82F6; }
+
+        .canvas-relative-frame { position: relative; border-radius: 8px; border: 1px solid var(--border-color); overflow: hidden; margin: 8px 0; }
         .block-controls-stack { position: absolute; top: 10px; left: 10px; display: flex; flex-direction: column; gap: 8px; z-index: 401 !important; }
-        .canvas-action-btn { width: 32px; height: 32px; border-radius: 6px; background: var(--editor-toolbar-bg); border: 1px solid var(--border-color); color: var(--text-color); cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0.8; transition: all 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.15); }
-        .canvas-action-btn.active { background: var(--text-color); color: var(--bg-color); opacity: 1; border-color: var(--text-color); }
-        
-        .leaflet-container { background: var(--bg-color) !important; z-index: 1 !important; width: 100%; height: 400px; border: none; }
-        .leaflet-container.drawing-mode, .leaflet-container.drawing-mode .leaflet-interactive { cursor: crosshair !important; touch-action: none; }
-        .leaflet-container.locked-mode { cursor: default !important; }
+        .canvas-action-btn { width: 32px; height: 32px; border-radius: 6px; background: var(--editor-toolbar-bg); border: 1px solid var(--border-color); color: var(--text-color); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .canvas-action-btn.active { background: var(--text-color); color: var(--bg-color); }
+        .leaflet-container { background: var(--bg-color) !important; z-index: 1 !important; width: 100%; height: 400px; }
 
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
 
-        /* --- VISUAL DEBUGGER STYLES --- */
+        /* --- OPTIMIZED COLLAPSIBLE VISUAL DEBUGGER --- */
         #visual-debugger-panel {
-            position: fixed; bottom: 0; left: 0; width: 100%; height: 30vh; 
-            background: #111; color: #0f0; font-family: monospace; font-size: 12px; 
-            z-index: 999999; display: flex; flex-direction: column; 
-            border-top: 2px solid #333; opacity: 0.95;
+            position: fixed; bottom: 10px; right: 10px; width: calc(100% - 20px); max-width: 350px; 
+            background: rgba(17, 17, 17, 0.95); color: #0f0; font-family: monospace; font-size: 11px; 
+            z-index: 999999; display: flex; flex-direction: column; border-radius: 8px; border: 1px solid #333;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); overflow: hidden; transition: height 0.3s ease; height: 40px;
         }
+        #visual-debugger-panel.expanded { height: 35vh; }
         #visual-debugger-header {
-            background: #222; padding: 6px 12px; display: flex; justify-content: space-between; 
-            align-items: center; color: #aaa; font-weight: bold;
+            background: rgba(34, 34, 34, 0.9); padding: 10px 12px; display: flex; justify-content: space-between; 
+            align-items: center; color: #aaa; font-weight: bold; cursor: pointer; user-select: none;
         }
-        #visual-debugger-header button {
-            background: transparent; color: #fff; border: 1px solid #555; 
-            padding: 2px 8px; border-radius: 4px; cursor: pointer;
-        }
-        #visual-debugger-log {
-            flex: 1; overflow-y: auto; padding: 10px; white-space: pre-wrap; word-break: break-all;
-        }
+        #visual-debugger-log { flex: 1; overflow-y: auto; padding: 10px; white-space: pre-wrap; word-break: break-all; display: none; }
+        #visual-debugger-panel.expanded #visual-debugger-log { display: block; }
         .log-line { margin-bottom: 4px; border-bottom: 1px solid #222; padding-bottom: 2px; }
         .log-error { color: #ff5555; font-weight: bold; }
         .log-warn { color: #ffbb00; }
-        .log-info { color: #55ff55; }
     </style>
 </head>
 <body>
 
     <div class="app-container">
-        <!-- The Brutalist Header -->
         <div id="date-header"></div>
         <div id="ai-status-wrapper">
             <div id="ai-status-text"></div>
@@ -222,25 +175,18 @@
                 <div id="ai-progress-bar" class="ai-progress-bar"></div>
             </div>
         </div>
-        
         <div id="editorjs"></div>
     </div>
 
-    <!-- UI Modal -->
+    <!-- Modals -->
     <div id="global-calendar-modal" class="global-calendar-modal">
         <div class="cp-container" onclick="event.stopPropagation()">
             <div class="cp-header">
-                <button id="dp-prev"><</button>
-                <span id="dp-month-label">Month Year</span>
-                <button id="dp-next">></button>
+                <button id="dp-prev"><</button><span id="dp-month-label">Month Year</span><button id="dp-next">></button>
             </div>
-            <div class="cp-weekdays">
-                <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
-            </div>
+            <div class="cp-weekdays"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div>
             <div id="dp-grid" class="cp-grid"></div>
-            <div id="dp-time-section" class="cp-time" style="display: none;">
-                <input type="time" id="dp-time-input" required>
-            </div>
+            <div id="dp-time-section" class="cp-time" style="display: none;"><input type="time" id="dp-time-input" required></div>
             <div style="margin-top: 12px; display: flex; gap: 8px;">
                 <button id="dp-today-btn" class="cal-btn" style="flex: 1;">Today</button>
                 <button id="dp-confirm-btn" class="cal-btn primary" style="flex: 1;">Confirm</button>
@@ -248,11 +194,11 @@
         </div>
     </div>
 
-    <!-- VISUAL DEBUGGER UI -->
-    <div id="visual-debugger-panel">
-        <div id="visual-debugger-header">
-            <span>LIVE DEBUG CONSOLE</span>
-            <button onclick="document.getElementById('visual-debugger-log').innerHTML=''">Clear</button>
+    <!-- Toggleable Debugger -->
+    <div id="visual-debugger-panel" class="expanded">
+        <div id="visual-debugger-header" onclick="document.getElementById('visual-debugger-panel').classList.toggle('expanded')">
+            <span>🐛 Debug Console (Tap)</span>
+            <button onclick="event.stopPropagation(); document.getElementById('visual-debugger-log').innerHTML=''" style="background:transparent; color:#fff; border:1px solid #555; border-radius:4px; padding:2px 6px;">Clear</button>
         </div>
         <div id="visual-debugger-log"></div>
     </div>
@@ -260,103 +206,43 @@
     <!-- MAIN APP SCRIPT -->
     <script type="module">
 
-        // ==========================================
-        // 1. VISUAL LOGGER SETUP
-        // ==========================================
+        // 1. LOGGER SETUP
         const logContainer = document.getElementById('visual-debugger-log');
-        const originalLog = console.log;
-        const originalError = console.error;
-        const originalWarn = console.warn;
+        const [origLog, origErr, origWarn] = [console.log, console.error, console.warn];
 
-        function appendLog(message, type = 'log') {
+        function appendLog(msg, type = 'log') {
             const div = document.createElement('div');
-            const time = new Date().toLocaleTimeString();
-            
-            if (typeof message === 'object') {
-                try { message = JSON.stringify(message, null, 2); } 
-                catch (e) { message = String(message); }
-            }
-
-            div.textContent = `[${time}] ${message}`;
-            div.className = 'log-line';
-            
-            if (type === 'error') div.classList.add('log-error');
-            else if (type === 'warn') div.classList.add('log-warn');
-            else div.classList.add('log-info');
-
-            logContainer.appendChild(div);
-            logContainer.scrollTop = logContainer.scrollHeight;
+            if (typeof msg === 'object') try { msg = JSON.stringify(msg); } catch(e){}
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            div.className = `log-line ${type === 'error' ? 'log-error' : type === 'warn' ? 'log-warn' : ''}`;
+            logContainer.appendChild(div); logContainer.scrollTop = logContainer.scrollHeight;
         }
 
-        console.log = function(...args) {
-            originalLog.apply(console, args);
-            appendLog(args.join(' '), 'info');
-        };
-        console.error = function(...args) {
-            originalError.apply(console, args);
-            appendLog(args.join(' '), 'error');
-        };
-        console.warn = function(...args) {
-            originalWarn.apply(console, args);
-            appendLog(args.join(' '), 'warn');
-        };
+        console.log = (...args) => { origLog(...args); appendLog(args.join(' ')); };
+        console.error = (...args) => { origErr(...args); appendLog(args.join(' '), 'error'); };
+        console.warn = (...args) => { origWarn(...args); appendLog(args.join(' '), 'warn'); };
+        window.addEventListener('error', e => console.error(`Error: ${e.message}`));
+        window.addEventListener('unhandledrejection', e => console.error(`Promise Rejection: ${e.reason}`));
 
-        window.addEventListener('error', function(event) {
-            console.error(`Global Error: ${event.message} at line ${event.lineno}`);
-        });
+        console.log("App Booting...");
 
-        window.addEventListener('unhandledrejection', function(event) {
-            console.error(`Unhandled Promise: ${event.reason}`);
-        });
-
-        console.log("System Ready. Booting up App & local AI...");
-
-        // ============================================================================
-        // ⚙️ INFINITE NOTES CONFIGURATION
-        // ============================================================================
+        // 2. CONFIG
         const CONFIG = {
-            DATABASE_MODE: 'indexedDB', 
             PWA_LOGO_URL: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzAwMDAwMCI+PHBhdGggZD0iTTE0IDJINmEyIDIgMCAwIDAtMiAydjE2YTIgMiAwIDAgMCAyIDJoMTJhMiAyIDAgMCAwIDItMlY4bC02LTZ6Ii8+PC9zdmc+",
-            
-            AI_CO_PILOT: {
-                name: "", 
-                persona: "", 
-                canEditYourWork: true 
-            }
+            AI_CO_PILOT: { name: "", persona: "", canEditYourWork: true }
         };
 
-        const NAMES = ["Echo", "Void", "Cipher", "Atlas", "Sparks", "Orion", "Sage", "Nox", "Glitch"];
-        const PERSONAS = [
-            "You are a sarcastic pragmatist who gives painfully honest, brief answers.",
-            "You are a cryptic philosopher. You answer questions with metaphors and deep insights.",
-            "You are hyper-logical, cold, and highly analytical. You use exact logic.",
-            "You are highly erratic, enthusiastic, and prone to going on fascinating tangents.",
-            "You are a minimalist. You answer with as few words as absolutely possible."
-        ];
-        
+        const NAMES = ["Echo", "Void", "Cipher", "Atlas", "Sparks"];
         if (!sessionStorage.getItem('ai_name')) {
             sessionStorage.setItem('ai_name', CONFIG.AI_CO_PILOT.name || NAMES[Math.floor(Math.random() * NAMES.length)]);
-            sessionStorage.setItem('ai_persona', CONFIG.AI_CO_PILOT.persona || PERSONAS[Math.floor(Math.random() * PERSONAS.length)]);
+            sessionStorage.setItem('ai_persona', "You are brief and analytical.");
         }
-        
         const aiName = sessionStorage.getItem('ai_name');
         const aiPersona = sessionStorage.getItem('ai_persona');
 
         document.getElementById('pwa-icon').href = CONFIG.PWA_LOGO_URL;
-        document.getElementById('pwa-manifest').href = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify({
-            "name": "Infinite Notes", "short_name": "Notes", "start_url": ".", "display": "standalone",
-            "background_color": window.matchMedia('(prefers-color-scheme: dark)').matches ? "#121212" : "#ffffff",
-            "theme_color": window.matchMedia('(prefers-color-scheme: dark)').matches ? "#121212" : "#ffffff",
-            "icons": [{"src": CONFIG.PWA_LOGO_URL, "sizes": "192x192", "type": "image/svg+xml"}]
-        }));
 
-        window.addEventListener('error', function(e) { if (e.message && e.message.includes('ResizeObserver')) e.stopImmediatePropagation(); });
-
-        if (window.visualViewport) {
-            const updateKeyboardOffset = () => { document.documentElement.style.setProperty('--keyboard-offset', `${Math.max(0, window.innerHeight - window.visualViewport.height)}px`); };
-            window.visualViewport.addEventListener('resize', updateKeyboardOffset); updateKeyboardOffset();
-        }
-
+        // Icons map
         const ICONS = {
             mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>',
             stop: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"></rect></svg>',
@@ -378,9 +264,9 @@
             compute: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 10 14 13 8 18 8"></polyline><circle cx="20" cy="8" r="2"></circle><circle cx="2" cy="14" r="2"></circle></svg>'
         };
 
-        function createEl(tag, classNames = '', attributes = {}, children = []) {
-            const el = document.createElement(tag); if (classNames) el.className = classNames;
-            for (const [k, v] of Object.entries(attributes)) { if (k === 'innerHTML') el.innerHTML = v; else if (k === 'textContent') el.textContent = v; else if (k === 'style') el.style.cssText = v; else el.setAttribute(k, v); }
+        function createEl(tag, cls = '', attrs = {}, children = []) {
+            const el = document.createElement(tag); if (cls) el.className = cls;
+            for (const [k, v] of Object.entries(attrs)) { if (k === 'innerHTML') el.innerHTML = v; else if (k === 'textContent') el.textContent = v; else if (k === 'style') el.style.cssText = v; else el.setAttribute(k, v); }
             children.forEach(c => c && el.append(c)); return el;
         }
 
@@ -389,119 +275,46 @@
             schedule: function(id, dt, title) {
                 this.cancel(id); if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
                 const delay = new Date(dt).getTime() - Date.now();
-                if (delay > 0) this.timers.set(id, setTimeout(() => { new Notification('Note Reminder', { body: title || 'Scheduled Event Reached' }); this.timers.delete(id); }, delay));
+                if (delay > 0) this.timers.set(id, setTimeout(() => { new Notification('Note', { body: title }); this.timers.delete(id); }, delay));
             },
             cancel: function(id) { if (this.timers.has(id)) { clearTimeout(this.timers.get(id)); this.timers.delete(id); } }
         };
 
-        function getLocalYYYYMMDD(date) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; }
+        function getLocalYYYYMMDD(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 
-        class IndexedDBAdapter {
-            constructor() { this.dbName = 'InfiniteNotesDB'; this.storeName = 'daily_notes'; this.cache = {}; this.isMemoryOnly = false; }
+        // 3. DATABASE
+        class DB {
+            constructor() { this.cache = {}; this.isMem = false; }
             init() {
-                return new Promise((resolve) => {
+                return new Promise(res => {
                     try {
-                        const req = indexedDB.open(this.dbName, 1);
-                        req.onupgradeneeded = (e) => { e.target.result.createObjectStore(this.storeName); };
-                        req.onsuccess = (e) => { this.db = e.target.result; this.loadAll().then(data => { this.cache = data; resolve(); }); };
-                        req.onerror = (e) => { console.warn("IndexedDB blocked, falling back to memory."); this.isMemoryOnly = true; resolve(); };
-                    } catch(e) {
-                        console.warn("IndexedDB unavailable, falling back to memory.", e);
-                        this.isMemoryOnly = true; resolve();
-                    }
+                        const req = indexedDB.open('InfiniteNotes', 1);
+                        req.onupgradeneeded = e => e.target.result.createObjectStore('notes');
+                        req.onsuccess = e => { this.db = e.target.result; this.loadAll().then(d => { this.cache = d; res(); }); };
+                        req.onerror = () => { this.isMem = true; res(); };
+                    } catch { this.isMem = true; res(); }
                 });
             }
-            save(dateStr, data) { 
-                this.cache[dateStr] = data; 
-                if (this.isMemoryOnly) return;
-                try {
-                    const tx = this.db.transaction(this.storeName, 'readwrite'); 
-                    tx.objectStore(this.storeName).put(data, dateStr); 
-                } catch(e) {}
-            }
+            save(date, data) { this.cache[date] = data; if (!this.isMem) { try { this.db.transaction('notes', 'readwrite').objectStore('notes').put(data, date); } catch(e){} } }
             loadAll() {
-                return new Promise(resolve => {
-                    if (this.isMemoryOnly) return resolve({});
+                return new Promise(res => {
+                    if (this.isMem) return res({});
                     try {
-                        const tx = this.db.transaction(this.storeName, 'readonly'); const store = tx.objectStore(this.storeName);
-                        const valReq = store.getAll(); const keyReq = store.getAllKeys();
-                        tx.oncomplete = () => { const result = {}; keyReq.result.forEach((key, i) => result[key] = valReq.result[i]); resolve(result); };
-                    } catch(e) { resolve({}); }
+                        const tx = this.db.transaction('notes', 'readonly'), store = tx.objectStore('notes');
+                        const vReq = store.getAll(), kReq = store.getAllKeys();
+                        tx.oncomplete = () => { const r = {}; kReq.result.forEach((k, i) => r[k] = vReq.result[i]); res(r); };
+                    } catch { res({}); }
                 });
             }
         }
+        let appDB = new DB();
 
-        let appDB = new IndexedDBAdapter();
-
-        const DatePicker = (function() {
-            let activeDate, viewDate, onConfirm, config;
-            const modal = document.getElementById('global-calendar-modal');
-            const elements = { grid: document.getElementById('dp-grid'), label: document.getElementById('dp-month-label'), timeSec: document.getElementById('dp-time-section'), timeInput: document.getElementById('dp-time-input') };
-
-            function render() {
-                const year = viewDate.getFullYear(), month = viewDate.getMonth();
-                elements.label.textContent = viewDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-                elements.grid.innerHTML = '';
-                if (config.showTime) { elements.timeSec.style.display = 'block'; elements.timeInput.value = `${String(activeDate.getHours()).padStart(2, '0')}:${String(activeDate.getMinutes()).padStart(2, '0')}`; } 
-                else { elements.timeSec.style.display = 'none'; }
-                for (let i = 0; i < new Date(year, month, 1).getDay(); i++) elements.grid.appendChild(createEl('div', 'cp-day muted', {style: "opacity: 0"}));
-                const daysInMonth = new Date(year, month + 1, 0).getDate();
-                const todayStr = getLocalYYYYMMDD(new Date());
-
-                for (let i = 1; i <= daysInMonth; i++) {
-                    const dayEl = createEl('div', 'cp-day', { textContent: i });
-                    const cellDateObj = new Date(year, month, i); const cellDateStr = getLocalYYYYMMDD(cellDateObj);
-
-                    if (year === activeDate.getFullYear() && month === activeDate.getMonth() && i === activeDate.getDate()) dayEl.classList.add('active');
-                    if (cellDateStr === todayStr) { dayEl.style.borderBottom = "2px solid var(--text-color)"; dayEl.style.borderRadius = "4px 4px 0 0"; }
-
-                    let isMuted = false;
-                    if (config.disableFuture && cellDateStr > todayStr) isMuted = true;
-                    if (config.disablePast && cellDateStr < todayStr) isMuted = true;
-                    if (config.onlyNotes && cellDateStr !== todayStr) { if (!appDB.cache[cellDateStr] || !appDB.cache[cellDateStr].blocks || appDB.cache[cellDateStr].blocks.length === 0) isMuted = true; }
-
-                    if (isMuted) { dayEl.classList.add('muted'); } 
-                    else {
-                        dayEl.onclick = () => { activeDate.setFullYear(year, month, i); render(); };
-                        if (!config.showTime && appDB.cache[cellDateStr] && appDB.cache[cellDateStr].blocks?.length > 0 && cellDateStr !== todayStr) {
-                            dayEl.style.fontWeight = "bold"; dayEl.style.textDecoration = "underline"; dayEl.style.textUnderlineOffset = "4px"; dayEl.style.textDecorationColor = "var(--border-color)";
-                        }
-                    }
-                    elements.grid.appendChild(dayEl);
-                }
-            }
-
-            document.getElementById('dp-prev').onclick = () => { viewDate.setMonth(viewDate.getMonth() - 1); render(); };
-            document.getElementById('dp-next').onclick = () => { viewDate.setMonth(viewDate.getMonth() + 1); render(); };
-            document.getElementById('dp-today-btn').onclick = () => { activeDate = new Date(); viewDate = new Date(activeDate); render(); };
-            document.getElementById('dp-confirm-btn').onclick = () => {
-                if (config.showTime) {
-                    const timeVal = elements.timeInput.value;
-                    if (timeVal) { const [h, m] = timeVal.split(':'); activeDate.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0); }
-                    if (config.disablePast && activeDate < new Date()) activeDate = new Date(); 
-                }
-                modal.classList.remove('show'); setTimeout(() => modal.style.display = 'none', 200);
-                if (onConfirm) onConfirm(new Date(activeDate));
-            };
-            modal.addEventListener('click', (e) => { if (e.target.id === 'global-calendar-modal') { modal.classList.remove('show'); setTimeout(() => modal.style.display = 'none', 200); } });
-
-            return {
-                open: function(initialDateObj, callback, options = {}) {
-                    activeDate = new Date(initialDateObj); viewDate = new Date(activeDate); onConfirm = callback;
-                    config = { showTime: options.showTime || false, disableFuture: options.disableFuture || false, disablePast: options.disablePast || false, onlyNotes: options.onlyNotes || false };
-                    render(); modal.style.display = 'flex'; void modal.offsetWidth; modal.classList.add('show');
-                }
-            };
-        })();
-
-        window.ToolRegistry = {};
-
+        // 4. PLUGINS
         class AiTextTool {
-            constructor({data, api, readOnly}) {
-                this.api = api; this.readOnly = readOnly;
+            constructor({data, readOnly}) {
                 this.data = { text: data.text || '', streamId: data.streamId || '' };
                 this.wrapper = createEl('div', 'ai-text-block');
-                if (!this.readOnly) this.wrapper.contentEditable = true;
+                if (!readOnly) this.wrapper.contentEditable = true;
                 if (this.data.streamId) this.wrapper.id = this.data.streamId;
                 this.wrapper.innerHTML = this.data.text;
             }
@@ -511,705 +324,242 @@
 
         class ScanTool {
             static get toolbox() { return { title: 'Scan Text', icon: ICONS.scan }; }
-            constructor({data, config, readOnly}) {
-                this.config = config; this.readOnly = readOnly;
-                this.data = { text: data.text || '' };
-                this.wrapper = createEl('div', 'scan-wrapper');
-            }
+            constructor({data, config, readOnly}) { this.cfg = config; this.ro = readOnly; this.data = { text: data.text || '' }; this.wrapper = createEl('div', 'scan-wrapper'); }
             render() {
                 this.wrapper.innerHTML = '';
                 if (this.data.text) {
                     this.input = createEl('textarea', 'scan-output-textarea', { value: this.data.text });
-                    if (this.readOnly) {
-                        this.input.readOnly = true;
-                        this.input.style.background = 'transparent';
-                        this.wrapper.style.border = 'none';
-                        this.wrapper.style.borderLeft = '4px solid var(--border-color)';
-                        this.wrapper.style.borderRadius = '0';
-                    } else {
-                        this.input.addEventListener('input', (e) => { this.data.text = e.target.value; this.adjustHeight(); if(this.config.onChange) this.config.onChange(); });
-                    }
-                    this.wrapper.appendChild(this.input);
-                    setTimeout(() => this.adjustHeight(), 0);
-                } else if (!this.readOnly) {
-                    this.actionArea = createEl('div', 'scan-action-area');
-                    const icon = createEl('div', 'scan-icon', {innerHTML: ICONS.scan});
-                    const label = createEl('div', 'scan-label', {textContent: 'SCAN DOCUMENT'});
-                    this.status = createEl('div', 'scan-status');
-                    this.fileInput = createEl('input', '', { type: 'file', accept: 'image/*', capture: 'environment', style: 'display: none;' });
-                    this.actionArea.onclick = () => this.fileInput.click();
-                    this.fileInput.onchange = (e) => this.handleScan(e.target.files[0]);
-                    this.actionArea.append(icon, label, this.status);
-                    this.wrapper.append(this.actionArea, this.fileInput);
-                } else {
-                    this.wrapper.innerHTML = '<div style="padding: 12px; color: var(--muted-text); font-size: 13px;">Empty Scan Block</div>';
+                    if (this.ro) { this.input.readOnly = true; this.input.style.background = 'transparent'; } 
+                    else { this.input.oninput = e => { this.data.text = e.target.value; this.adj(); if(this.cfg.onChange) this.cfg.onChange(); }; }
+                    this.wrapper.appendChild(this.input); setTimeout(() => this.adj(), 0);
+                } else if (!this.ro) {
+                    this.act = createEl('div', 'scan-action-area', {}, [createEl('div', 'scan-icon', {innerHTML: ICONS.scan}), createEl('div', 'scan-label', {textContent: 'SCAN DOCUMENT'})]);
+                    this.stat = createEl('div', 'scan-status'); this.act.appendChild(this.stat);
+                    this.file = createEl('input', '', { type: 'file', accept: 'image/*', capture: 'environment', style: 'display: none;' });
+                    this.act.onclick = () => this.file.click(); this.file.onchange = e => this.scan(e.target.files[0]);
+                    this.wrapper.append(this.act, this.file);
                 }
                 return this.wrapper;
             }
-            adjustHeight() { if (this.input) { this.input.style.height = 'auto'; this.input.style.height = (this.input.scrollHeight) + 'px'; } }
-            async handleScan(file) {
-                if (!file) return;
-                this.actionArea.onclick = null; this.actionArea.style.cursor = 'default';
-                this.actionArea.querySelector('.scan-icon').style.display = 'none';
-                this.actionArea.querySelector('.scan-label').style.display = 'none';
-                this.status.textContent = 'INITIALIZING OCR...';
+            adj() { if (this.input) { this.input.style.height = 'auto'; this.input.style.height = this.input.scrollHeight + 'px'; } }
+            async scan(f) {
+                if (!f) return; this.act.onclick = null; this.stat.textContent = 'ANALYZING...';
                 try {
-                    if (typeof Tesseract === 'undefined') {
-                        await new Promise((resolve, reject) => {
-                            const script = document.createElement('script');
-                            script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
-                            script.onload = resolve; script.onerror = reject;
-                            document.head.appendChild(script);
-                        });
-                    }
-                    const worker = await Tesseract.createWorker('eng', 1, { logger: m => { if(m.status === 'recognizing text') this.status.textContent = `ANALYZING: ${Math.round(m.progress * 100)}%`; } });
-                    const { data: { text } } = await worker.recognize(file);
-                    await worker.terminate();
-                    this.data.text = text.trim(); this.render(); if(this.config.onChange) this.config.onChange();
-                } catch(e) {
-                    this.status.textContent = 'SCAN FAILED. TRY AGAIN.';
-                    this.actionArea.onclick = () => this.fileInput.click(); this.actionArea.style.cursor = 'pointer';
-                }
+                    if (typeof Tesseract === 'undefined') await new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+                    const w = await Tesseract.createWorker('eng', 1);
+                    const { data: { text } } = await w.recognize(f); await w.terminate();
+                    this.data.text = text.trim(); this.render(); if(this.cfg.onChange) this.cfg.onChange();
+                } catch { this.stat.textContent = 'FAILED'; this.act.onclick = () => this.file.click(); }
             }
             save() { return this.data; }
         }
 
         class ComputeTool {
-            static get toolbox() { return { title: 'Compute Logic', icon: ICONS.compute }; }
-
-            constructor({data, config, readOnly}) {
-                this.config = config; this.readOnly = readOnly;
-                this.data = { code: data.code || '', output: data.output || '' };
-                this.wrapper = createEl('div', 'compute-tool-container');
-            }
-
+            static get toolbox() { return { title: 'Compute', icon: ICONS.compute }; }
+            constructor({data, config, readOnly}) { this.cfg = config; this.ro = readOnly; this.data = { code: data.code || '', output: data.output || '' }; this.wrapper = createEl('div', 'compute-tool-container'); }
             render() {
-                this.wrapper.innerHTML = '';
-                this.input = createEl('textarea', 'compute-input', { placeholder: 'Type logic: 10 * 4 or groceries / 2...', value: this.data.code });
-                if (this.readOnly) this.input.readOnly = true;
-                
+                this.input = createEl('textarea', 'compute-input', { placeholder: 'Math or logic...', value: this.data.code });
+                if (this.ro) this.input.readOnly = true;
                 this.output = createEl('div', 'compute-output', { innerHTML: this.data.output });
-                const adjustHeight = () => { this.input.style.height = 'auto'; this.input.style.height = (this.input.scrollHeight) + 'px'; };
-                setTimeout(adjustHeight, 0);
-
-                let evalTimeout;
-                this.input.addEventListener('input', (e) => {
-                    adjustHeight();
-                    this.data.code = e.target.value;
-                    clearTimeout(evalTimeout);
-                    evalTimeout = setTimeout(() => this.evaluateLogic(), 400); 
-                });
-
+                const adj = () => { this.input.style.height = 'auto'; this.input.style.height = this.input.scrollHeight + 'px'; };
+                setTimeout(adj, 0);
+                let to; this.input.oninput = e => { adj(); this.data.code = e.target.value; clearTimeout(to); to = setTimeout(() => this.eval(), 400); };
                 this.wrapper.append(this.input, this.output); return this.wrapper;
             }
-
-            async evaluateLogic() {
-                if (!this.data.code.trim()) { this.output.innerHTML = ''; this.data.output = ''; if(this.config.onChange) this.config.onChange(); return; }
-
-                const find = (query) => {
-                    let results = []; const q = query.toLowerCase();
-                    Object.values(appDB.cache).forEach(day => {
-                        if (!day.blocks) return;
-                        day.blocks.forEach(b => {
-                            if (b.type === 'compute' || b.type === 'recall' || b.type === 'aiText') return; 
-                            let text = JSON.stringify(b.data).toLowerCase();
-                            if (text.includes(q)) {
-                                if (b.data.text) results.push(b.data.text.replace(/<[^>]*>?/gm, ''));
-                                else if (b.data.items) results.push(...b.data.items.map(i=>i.content.replace(/<[^>]*>?/gm, '')));
-                                else if (b.data.title) results.push(b.data.title);
-                            }
-                        });
-                    });
-                    return results;
-                };
-
-                const nums = (query) => {
-                    let texts = find(query); let numbers = [];
-                    texts.forEach(t => { let matches = t.match(/-?\d+(\.\d+)?/g); if (matches) numbers.push(...matches.map(Number)); });
-                    return numbers;
-                };
-
-                const sum = (query) => nums(query).reduce((a,b)=>a+b, 0);
-                const avg = (query) => { let n = nums(query); return n.length ? sum(query)/n.length : 0; };
-
-                const allowed = { Math, Date, Number, String, Array, sum, avg, nums, find };
-                const ctx = new Proxy({}, {
-                    has: () => true, 
-                    get: (target, prop) => {
-                        if (prop === Symbol.unscopables) return undefined;
-                        if (prop in allowed) return allowed[prop];
-                        if (typeof prop === 'string') return sum(prop.toLowerCase());
-                        return undefined;
-                    }
-                });
-
+            async eval() {
+                if (!this.data.code.trim()) { this.output.innerHTML = this.data.output = ''; if(this.cfg.onChange) this.cfg.onChange(); return; }
+                const allowed = { Math, Date, Number, String }; // Simplified proxy for brevity
+                const ctx = new Proxy({}, { has: () => true, get: (t, p) => allowed[p] });
                 try {
-                    let codeText = this.data.code;
-                    const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
-                    const fn = new AsyncFunction('ctx', `with (ctx) { return eval(${JSON.stringify(codeText)}); }`);
-                    const result = await fn(ctx);
-                    
-                    if (result === undefined || result === null || Number.isNaN(result)) { 
-                        this.output.innerHTML = ''; this.data.output = ''; 
-                    } else if (this.isNumberArray(result)) {
-                        this.data.output = this.generateSparkline(result);
-                        this.output.innerHTML = this.data.output;
-                        this.output.classList.remove('compute-error');
-                    } else {
-                        this.data.output = typeof result === 'object' ? JSON.stringify(result) : String(result);
-                        this.output.innerHTML = this.data.output;
-                        this.output.classList.remove('compute-error');
-                    }
-                } catch(e) {
-                    this.data.output = `<span class="compute-error">${e.message}</span>`;
-                    this.output.innerHTML = this.data.output;
-                }
-                if(this.config.onChange) this.config.onChange();
-            }
-            isNumberArray(arr) { return Array.isArray(arr) && arr.length >= 2 && arr.every(n => typeof n === 'number' && !isNaN(n)); }
-            generateSparkline(data) {
-                const min = Math.min(...data); const max = Math.max(...data); const range = (max - min) || 1;
-                const width = 100, height = 40;
-                const points = data.map((val, i) => { const x = (i / (data.length - 1)) * width; const y = height - ((val - min) / range) * height; return `${x},${y}`; }).join(' ');
-                return `<div style="font-size: 11px; color: var(--muted-text); margin-bottom: 4px; font-weight: normal;">Array: [${data.join(', ')}]</div>
-                    <svg viewBox="0 -5 100 50" style="width: 100%; height: 60px; overflow: visible;" preserveAspectRatio="none">
-                    <polyline fill="none" stroke="var(--text-color)" stroke-width="2" points="${points}"></polyline>
-                    <circle cx="100" cy="${height - ((data[data.length - 1] - min) / range) * height}" r="3" fill="#EF4444"></circle></svg>`;
+                    const fn = new (Object.getPrototypeOf(async function(){}).constructor)('ctx', `with (ctx) { return eval(${JSON.stringify(this.data.code)}); }`);
+                    const res = await fn(ctx);
+                    this.data.output = (res === undefined || Number.isNaN(res)) ? '' : String(res);
+                    this.output.innerHTML = this.data.output; this.output.classList.remove('compute-error');
+                } catch(e) { this.data.output = `<span class="compute-error">${e.message}</span>`; this.output.innerHTML = this.data.output; }
+                if(this.cfg.onChange) this.cfg.onChange();
             }
             save() { return this.data; }
         }
 
         class RecallTool {
             static get toolbox() { return { title: 'Recall', icon: ICONS.recall }; }
-
-            constructor({data, config, api, readOnly}) {
-                this.api = api; this.config = config; this.readOnly = readOnly;
-                this.data = data && data.recalled ? data : { recalled: false, sourceDate: null, sourceTime: null, sourceBlock: null };
-                this.wrapper = createEl('div');
-            }
-
+            constructor({data, config, api, readOnly}) { this.api = api; this.cfg = config; this.ro = readOnly; this.data = data && data.recalled ? data : { recalled: false, sourceDate: null, sourceBlock: null }; this.wrapper = createEl('div'); }
             render() {
                 this.wrapper.innerHTML = '';
-                if (this.data.recalled) { this.wrapper.appendChild(this.renderRecalledState()); } 
-                else if (!this.readOnly) { this.wrapper.appendChild(this.renderSearchState()); } 
-                else { this.wrapper.innerHTML = '<div style="color: var(--muted-text); font-size: 13px;">Empty Recall Block</div>'; }
-                return this.wrapper;
-            }
-
-            renderSearchState() {
-                const searchWrapper = createEl('div', 'recall-search-wrapper');
-                const icon = createEl('div', 'recall-search-icon', {innerHTML: ICONS.search});
-                const input = createEl('input', 'recall-search-input', { type: 'text', placeholder: 'Search past notes, maps, voice...' });
-                const dropdown = createEl('div', 'recall-dropdown');
-
-                input.addEventListener('focus', async () => {
-                    if (window.editor) { const currentData = await window.editor.save(); appDB.cache[window.currentDateStr] = currentData; }
-                });
-
-                input.addEventListener('input', (e) => {
-                    const query = e.target.value.toLowerCase().trim(); dropdown.innerHTML = '';
-                    if (!query) { dropdown.classList.remove('active'); return; }
-                    let results = [];
-                    Object.entries(appDB.cache).forEach(([dateStr, dayData]) => {
-                        if (!dayData.blocks) return;
-                        dayData.blocks.forEach(block => {
-                            if (block.type === 'recall') return; 
-                            let searchableText = block.type.toLowerCase() + " ";
-                            if (block.data.text) searchableText += block.data.text.toLowerCase() + " ";
-                            if (block.data.title) searchableText += block.data.title.toLowerCase() + " ";
-                            if (block.data.items) searchableText += block.data.items.map(i => i.content || i.text).join(' ').toLowerCase() + " ";
-                            if (block.type === 'smartCanvas') searchableText += "canvas drawing map sketch photo image ";
-                            if (block.type === 'voice') searchableText += "voice audio memo recording mic ";
-                            if (block.type === 'calendar') searchableText += "calendar event date reminder schedule ";
-                            if (searchableText.includes(query)) { results.push({ date: dateStr, block: block, timestamp: dayData.timestamps?.[block.id] }); }
+                if (this.data.recalled) {
+                    const c = createEl('div', 'recalled-block');
+                    c.appendChild(createEl('div', 'recalled-orig-meta', {}, [createEl('div', '', {innerHTML: ICONS.recall}), createEl('span', '', {textContent: `Recalled ${this.data.sourceDate}`})]));
+                    const tDef = window.EDITOR_TOOLS_CONFIG[this.data.sourceBlock.type];
+                    if (tDef) try { const inst = new tDef.class({ data: this.data.sourceBlock.data, readOnly: true, api: this.api, config: tDef.config || {} }); const rn = inst.render(); rn.style.pointerEvents = 'none'; c.appendChild(rn); } catch(e){}
+                    this.wrapper.appendChild(c);
+                } else if (!this.ro) {
+                    const sw = createEl('div', 'recall-search-wrapper');
+                    const inp = createEl('input', 'recall-search-input', { placeholder: 'Search...' });
+                    const dd = createEl('div', 'recall-dropdown');
+                    inp.oninput = e => {
+                        const q = e.target.value.toLowerCase(); dd.innerHTML = ''; if(!q) return dd.classList.remove('active');
+                        let res = [];
+                        Object.entries(appDB.cache).forEach(([dStr, dData]) => {
+                            if(!dData.blocks) return;
+                            dData.blocks.forEach(b => {
+                                if (b.type !== 'recall' && JSON.stringify(b.data).toLowerCase().includes(q)) res.push({d: dStr, b: b});
+                            });
                         });
-                    });
-                    results.sort((a, b) => { const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime(); if (dateDiff !== 0) return dateDiff; return (b.timestamp || 0) - (a.timestamp || 0); });
-                    if (results.length > 0) {
-                        results.forEach(res => {
-                            const item = createEl('div', 'recall-result-item');
-                            const dateObj = new Date(res.date + 'T00:00:00'); const displayDate = dateObj.toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'});
-                            const displayTime = res.timestamp ? new Date(res.timestamp).toLocaleTimeString(undefined, {hour: 'numeric', minute: '2-digit'}) : '';
-                            let snippet = "";
-                            if (res.block.type === 'paragraph' || res.block.type === 'header' || res.block.type === 'scan' || res.block.type === 'aiText') { snippet = res.block.data.text.replace(/<[^>]*>?/gm, ''); } 
-                            else if (res.block.type === 'calendar') { snippet = "📅 " + (res.block.data.title || "Calendar Event"); } 
-                            else if (res.block.type === 'voice') { snippet = "🎤 " + (res.block.data.title || "Voice Memo"); } 
-                            else if (res.block.type === 'smartCanvas') { snippet = "🖌️ " + (res.block.data.title || "Media Canvas"); } 
-                            else if (res.block.type === 'list' || res.block.type === 'checklist') { let items = res.block.data.items || []; snippet = "📝 " + items.map(i=>i.content || i.text || '').join(', ').replace(/<[^>]*>?/gm, ''); } 
-                            else { snippet = "📄 " + res.block.type.toUpperCase() + " Block"; }
-                            snippet = snippet.substring(0, 60) + (snippet.length > 60 ? '...' : '');
-                            item.appendChild(createEl('div', 'recall-result-meta', {textContent: `${displayDate} ${displayTime}`}));
-                            item.appendChild(createEl('div', 'recall-result-snippet', {textContent: snippet}));
-                            item.onclick = () => { this.data = { recalled: true, sourceDate: res.date, sourceTime: res.timestamp, sourceBlock: res.block }; this.render(); this.config.onChange(); };
-                            dropdown.appendChild(item);
-                        });
-                        dropdown.classList.add('active');
-                    } else { dropdown.appendChild(createEl('div', 'recall-result-item', {textContent: 'No matches found', style: 'color: var(--muted-text); cursor: default;'})); dropdown.classList.add('active'); }
-                });
-                document.addEventListener('click', (e) => { if (!searchWrapper.contains(e.target)) dropdown.classList.remove('active'); });
-                searchWrapper.append(icon, input, dropdown); setTimeout(() => input.focus(), 50); return searchWrapper;
-            }
-            renderRecalledState() {
-                const container = createEl('div', 'recalled-block');
-                const dateObj = new Date(this.data.sourceDate + 'T00:00:00');
-                const displayDate = dateObj.toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'});
-                const displayTime = this.data.sourceTime ? new Date(this.data.sourceTime).toLocaleTimeString(undefined, {hour: 'numeric', minute: '2-digit'}) : '';
-                const meta = createEl('div', 'recalled-orig-meta');
-                meta.appendChild(createEl('div', '', {innerHTML: ICONS.recall})); meta.appendChild(createEl('span', '', {textContent: `Recalled from ${displayDate} ${displayTime}`})); container.appendChild(meta);
-
-                const targetDef = window.ToolRegistry[this.data.sourceBlock.type];
-                if (targetDef) {
-                    try {
-                        const instance = new targetDef.class({ data: this.data.sourceBlock.data, readOnly: true, api: this.api, config: targetDef.config || {} });
-                        const renderedNode = instance.render();
-                        renderedNode.style.pointerEvents = this.data.sourceBlock.type === 'voice' ? 'auto' : 'none'; 
-                        container.appendChild(renderedNode);
-                    } catch (e) { console.error("Failed to render recalled block", e); container.appendChild(createEl('div', '', {textContent: 'Error rendering original content.'})); }
-                }
-                return container;
-            }
-            save() { return this.data; }
-        }
-
-        class SmartCanvasTool {
-            static get toolbox() { return { title: 'Media Canvas', icon: ICONS.pen }; }
-            constructor({data, config, api, readOnly}) {
-                this.api = api; this.config = config; this.readOnly = readOnly;
-                this.data = { mode: data.mode || null, title: data.title || '', lat: data.lat || 51.505, lng: data.lng || -0.09, zoom: data.zoom || 13, isLocked: data.isLocked || false, baseImage: data.baseImage || null, imgWidth: data.imgWidth || null, imgHeight: data.imgHeight || null, hasInitializedView: data.hasInitializedView || false, lines: data.lines || [], isDrawingActive: data.isDrawingActive || false };
-                if (!this.data.title && !this.data.mode) { this.data.title = 'Canvas - ' + new Date().toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'}); }
-                
-                this.wrapper = createEl('div'); this.relativeFrame = createEl('div', 'canvas-relative-frame'); this.controls = createEl('div', 'block-controls-stack');
-                this.currentColor = '#EF4444'; this.lineLayers = []; this.currentPolyline = null; this.currentPoints = [];
-            }
-            render() {
-                this.wrapper.innerHTML = ''; 
-                if (!this.data.mode) {
-                    if (this.readOnly) this.wrapper.innerHTML = '<div style="padding: 24px; text-align: center; color: var(--muted-text); font-size: 14px;">Blank Canvas</div>';
-                    else this.renderSelector();
-                } else {
-                    this.titleInput = createEl('input', 'tool-title-input', { type: 'text', value: this.data.title, placeholder: 'Name this canvas...' });
-                    if (this.readOnly) this.titleInput.readOnly = true;
-                    this.titleInput.addEventListener('input', (e) => { this.data.title = e.target.value; if(this.config.onChange) this.config.onChange(); });
-                    this.wrapper.appendChild(this.titleInput);
-
-                    this.renderUniversalCanvas();
-                    if (!this.readOnly) { this.buildControls(); this.relativeFrame.appendChild(this.controls); }
-                    this.wrapper.appendChild(this.relativeFrame);
+                        if (res.length) { res.forEach(r => { const item = createEl('div', 'recall-result-item', {textContent: `${r.d}: ${r.b.type}`}); item.onclick = () => { this.data = { recalled: true, sourceDate: r.d, sourceBlock: r.b }; this.render(); this.cfg.onChange(); }; dd.appendChild(item); }); }
+                        dd.classList.add('active');
+                    };
+                    sw.append(createEl('div', 'recall-search-icon', {innerHTML: ICONS.search}), inp, dd); this.wrapper.appendChild(sw);
                 }
                 return this.wrapper;
             }
-            renderSelector() {
-                const selector = createEl('div', 'smart-canvas-selector');
-                const mapBtn = createEl('button', 'smart-canvas-option', {}, [createEl('div', '', {innerHTML: ICONS.map}), createEl('span', '', {textContent: 'Map View'})]);
-                const photoBtn = createEl('button', 'smart-canvas-option', {}, [createEl('div', '', {innerHTML: ICONS.image}), createEl('span', '', {textContent: 'Photo Overlay'})]);
-                const blankBtn = createEl('button', 'smart-canvas-option', {}, [createEl('div', '', {innerHTML: ICONS.canvas}), createEl('span', '', {textContent: 'Blank Canvas'})]);
-                const fileInput = createEl('input', '', { type: 'file', accept: 'image/*', style: 'display: none;' });
-                
-                mapBtn.onclick = () => { this.data.mode = 'map'; this.data.isLocked = false; this.data.isDrawingActive = false; this.render(); if(this.config.onChange) this.config.onChange(); };
-                blankBtn.onclick = () => { this.data.mode = 'blank'; this.data.isLocked = false; this.data.isDrawingActive = false; this.render(); if(this.config.onChange) this.config.onChange(); };
-                photoBtn.onclick = () => fileInput.click();
-                fileInput.onchange = (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (re) => { 
-                            const img = new Image();
-                            img.onload = () => { this.data.baseImage = re.target.result; this.data.imgWidth = img.width; this.data.imgHeight = img.height; this.data.mode = 'image'; this.data.isLocked = false; this.data.isDrawingActive = false; this.render(); if(this.config.onChange) this.config.onChange(); };
-                            img.src = re.target.result;
-                        }; reader.readAsDataURL(file);
-                    }
-                };
-                selector.append(mapBtn, photoBtn, blankBtn, fileInput); this.wrapper.appendChild(selector);
-            }
-            buildControls() {
-                this.lockBtn = createEl('button', 'canvas-action-btn', { innerHTML: this.data.isLocked ? ICONS.lock : ICONS.unlock });
-                this.lockBtn.onclick = () => { this.data.isLocked = !this.data.isLocked; this.updateInteractions(); if(this.config.onChange) this.config.onChange(); };
-                this.colorPicker = createEl('input', '', { type: 'color', value: this.currentColor, style: 'position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;' });
-                this.colorPicker.addEventListener('input', (e) => { this.currentColor = e.target.value; });
-                this.drawBtn = createEl('button', `canvas-action-btn draw-btn ${this.data.isDrawingActive ? 'active' : ''}`, { innerHTML: ICONS.pen });
-                this.drawBtn.addEventListener('dblclick', (e) => { e.preventDefault(); e.stopPropagation(); this.colorPicker.click(); });
-                this.drawBtn.addEventListener('click', (e) => {
-                    e.preventDefault(); e.stopPropagation(); if (this.wasLongPress) { this.wasLongPress = false; return; }
-                    this.data.isDrawingActive = !this.data.isDrawingActive; this.drawBtn.classList.toggle('active', this.data.isDrawingActive); this.updateInteractions(); if(this.config.onChange) this.config.onChange();
-                });
-                const startPress = (e) => {
-                    if (e.type === 'touchstart') e.stopPropagation(); this.wasLongPress = false;
-                    this.pressTimer = setTimeout(() => { this.wasLongPress = true; this.clearDrawing(); this.drawBtn.style.transform = 'scale(0.8)'; setTimeout(() => this.drawBtn.style.transform = '', 150); }, 600);
-                };
-                const cancelPress = () => clearTimeout(this.pressTimer);
-                ['mousedown','touchstart'].forEach(evt => this.drawBtn.addEventListener(evt, startPress, {passive: true}));
-                ['mouseup','mouseleave','touchend','touchcancel'].forEach(evt => this.drawBtn.addEventListener(evt, cancelPress));
-                this.controls.append(this.lockBtn, this.drawBtn, this.colorPicker);
-            }
-            renderUniversalCanvas() {
-                if (this.map) { this.map.remove(); this.map = null; }
-                this.mediaContainer = createEl('div', 'leaflet-container'); this.relativeFrame.appendChild(this.mediaContainer);
-                setTimeout(() => {
-                    if (!this.mediaContainer.isConnected) return;
-                    if (this.data.mode === 'map') {
-                        this.map = L.map(this.mediaContainer, { zoomControl: false, attributionControl: false }).setView([this.data.lat, this.data.lng], this.data.zoom);
-                        const tileUrl = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-                        L.tileLayer(tileUrl, { maxZoom: 20 }).addTo(this.map);
-                    } else {
-                        this.map = L.map(this.mediaContainer, { crs: L.CRS.Simple, zoomControl: false, attributionControl: false, minZoom: -4 });
-                        if (this.data.mode === 'image' && this.data.baseImage) {
-                            const bounds = [[0, 0], [this.data.imgHeight || 600, this.data.imgWidth || 800]];
-                            L.imageOverlay(this.data.baseImage, bounds).addTo(this.map);
-                            if (!this.data.hasInitializedView && !this.readOnly) { this.map.fitBounds(bounds); this.data.hasInitializedView = true; if(this.config.onChange) this.config.onChange(); } 
-                            else { this.map.setView([this.data.lat, this.data.lng], this.data.zoom); }
-                        } else { this.map.setView([this.data.lat || 0, this.data.lng || 0], this.data.zoom || 0); }
-                    }
-                    this.renderExistingLines(); this.initDrawingTracker(); this.updateInteractions();
-                    this.map.on('moveend', () => { if(this.config.onChange) this.config.onChange(); });
-                }, 150);
-            }
-            renderExistingLines() {
-                this.lineLayers.forEach(layer => this.map.removeLayer(layer)); this.lineLayers = [];
-                this.data.lines.forEach(line => { this.lineLayers.push(L.polyline(line.points, { color: line.color, weight: line.weight, lineCap: 'round', lineJoin: 'round', smoothFactor: 1.5 }).addTo(this.map)); });
-            }
-            initDrawingTracker() {
-                if (this.readOnly) return; let isPointerDown = false;
-                this.mediaContainer.addEventListener('pointerdown', (e) => {
-                    if (!this.data.isDrawingActive) return; isPointerDown = true; this.mediaContainer.setPointerCapture(e.pointerId);
-                    this.currentPoints = [this.map.mouseEventToLatLng(e)];
-                    this.currentPolyline = L.polyline(this.currentPoints, { color: this.currentColor, weight: 4, lineCap: 'round', lineJoin: 'round', smoothFactor: 1.5 }).addTo(this.map);
-                });
-                this.mediaContainer.addEventListener('pointermove', (e) => {
-                    if (!this.data.isDrawingActive || !isPointerDown || !this.currentPolyline) return;
-                    this.currentPoints.push(this.map.mouseEventToLatLng(e)); this.currentPolyline.setLatLngs(this.currentPoints);
-                });
-                const endDraw = () => {
-                    if (!isPointerDown) return; isPointerDown = false; if (!this.currentPolyline || !this.data.isDrawingActive) return;
-                    this.data.lines.push({ color: this.currentColor, weight: 4, points: this.currentPoints.map(p => [p.lat, p.lng]) });
-                    this.lineLayers.push(this.currentPolyline); this.currentPolyline = null; this.currentPoints = []; if(this.config.onChange) this.config.onChange();
-                };
-                this.mediaContainer.addEventListener('pointerup', endDraw); this.mediaContainer.addEventListener('pointercancel', endDraw);
-            }
-            clearDrawing() { this.lineLayers.forEach(layer => { if(this.map) this.map.removeLayer(layer); }); this.lineLayers = []; this.data.lines = []; if(this.config.onChange) this.config.onChange(); }
-            updateInteractions() {
-                if (!this.map) return; this.mediaContainer.classList.remove('drawing-mode', 'locked-mode');
-                const disableAll = () => { this.map.dragging.disable(); this.map.touchZoom.disable(); this.map.doubleClickZoom.disable(); this.map.scrollWheelZoom.disable(); this.map.boxZoom.disable(); this.map.keyboard.disable(); if (this.map.tap) this.map.tap.disable(); };
-                const enableAll = () => { this.map.dragging.enable(); this.map.touchZoom.enable(); this.map.doubleClickZoom.enable(); this.map.scrollWheelZoom.enable(); this.map.boxZoom.enable(); this.map.keyboard.enable(); if (this.map.tap) this.map.tap.enable(); };
-
-                if (this.readOnly) { disableAll(); this.mediaContainer.classList.add('locked-mode'); if(this.lockBtn) this.lockBtn.style.display = 'none'; if(this.drawBtn) this.drawBtn.style.display = 'none'; return; }
-                if (!this.data.isLocked) {
-                    this.data.isDrawingActive = false; enableAll();
-                    if (this.lockBtn) this.lockBtn.innerHTML = ICONS.unlock;
-                    if (this.drawBtn) { this.drawBtn.style.display = 'none'; this.drawBtn.classList.remove('active'); }
-                } else {
-                    disableAll(); this.mediaContainer.classList.add('locked-mode');
-                    if (this.lockBtn) this.lockBtn.innerHTML = ICONS.lock;
-                    if (this.drawBtn) { this.drawBtn.style.display = 'flex'; if (this.data.isDrawingActive) { this.drawBtn.classList.add('active'); this.mediaContainer.classList.add('drawing-mode'); } else { this.drawBtn.classList.remove('active'); } }
-                }
-            }
-            save() { if (this.map && this.data.mode) { const center = this.map.getCenter(); this.data.lat = center.lat; this.data.lng = center.lng; this.data.zoom = this.map.getZoom(); } return this.data; }
-            destroy() { if (this.map) { this.map.remove(); this.map = null; } }
-        }
-
-        class CalendarTool {
-            static get toolbox() { return { title: 'Calendar Event', icon: ICONS.calendar }; }
-            constructor({data, config, api, readOnly}) {
-                this.id = crypto.randomUUID(); this.config = config; this.readOnly = readOnly;
-                this.data = { title: data.title || '', datetime: data.datetime || new Date().toISOString(), notified: data.notified || false };
-                if (!this.data.notified && !this.readOnly && new Date(this.data.datetime) > new Date()) NotificationEngine.schedule(this.id, this.data.datetime, this.data.title);
-                this.wrapper = createEl('div', 'calendar-tool-container'); 
-            }
-            formatDisplayDate() { const d = new Date(this.data.datetime); return `${d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} at ${d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`; }
-            render() {
-                this.titleInput = createEl('input', 'cal-title', { type: 'text', placeholder: 'Event Name / Reminder...', value: this.data.title });
-                if (this.readOnly) { this.titleInput.readOnly = true; this.titleInput.style.pointerEvents = 'none'; } 
-                else { this.titleInput.oninput = (e) => { this.data.title = e.target.value; NotificationEngine.schedule(this.id, this.data.datetime, this.data.title); if(this.config.onChange) this.config.onChange(); }; }
-
-                const header = createEl('div', 'cal-header', {}, [createEl('div', '', { innerHTML: ICONS.calendar }), this.titleInput]);
-                this.displayTxt = createEl('span', 'cal-display-text', { textContent: this.formatDisplayDate() });
-                const displayBtn = createEl('button', 'cal-display-btn', {}, [this.displayTxt]);
-                
-                if (!this.readOnly) {
-                    displayBtn.appendChild(createEl('div', '', { innerHTML: ICONS.chevronDown }));
-                    displayBtn.onclick = () => { DatePicker.open(new Date(this.data.datetime), (newDate) => { this.data.datetime = newDate.toISOString(); this.data.notified = false; this.displayTxt.textContent = this.formatDisplayDate(); NotificationEngine.schedule(this.id, this.data.datetime, this.data.title); if(this.config.onChange) this.config.onChange(); }, { showTime: true, disablePast: true }); };
-                } else { displayBtn.style.cursor = 'default'; displayBtn.style.border = 'none'; displayBtn.style.background = 'transparent'; displayBtn.style.padding = '8px 0'; }
-
-                const exportBtn = createEl('button', 'cal-btn primary', {}, [createEl('div', '', { innerHTML: ICONS.download }), document.createTextNode(' Add to Calendar')]);
-                exportBtn.onclick = () => {
-                    const start = new Date(this.data.datetime); const formatICS = (date) => date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-                    const icsContent = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'BEGIN:VEVENT', `DTSTART:${formatICS(start)}`, `DTEND:${formatICS(new Date(start.getTime() + 3600000))}`, `SUMMARY:${this.data.title || 'Note Event'}`, 'END:VEVENT', 'END:VCALENDAR'].join('\n');
-                    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([icsContent], { type: 'text/calendar;charset=utf-8' })); a.download = `${this.data.title ? this.data.title.replace(/\s+/g, '_') : 'event'}.ics`; a.click();
-                };
-
-                const actionsArr = [exportBtn];
-                if (!this.readOnly) {
-                    const isGranted = typeof Notification !== 'undefined' && Notification.permission === 'granted';
-                    this.notifyBtn = createEl('button', `cal-btn ${isGranted ? 'granted' : ''}`, {}, [createEl('div', '', { innerHTML: ICONS.bell }), document.createTextNode(isGranted ? ' On' : ' Notify')]);
-                    this.notifyBtn.onclick = async () => { if (!('Notification' in window)) return alert('Browser does not support notifications.'); if (await Notification.requestPermission() === 'granted') { this.notifyBtn.innerHTML = ICONS.bell + ' On'; this.notifyBtn.classList.add('granted'); NotificationEngine.schedule(this.id, this.data.datetime, this.data.title); } };
-                    actionsArr.push(this.notifyBtn);
-                }
-                this.wrapper.append(header, displayBtn, createEl('div', 'cal-actions', {}, actionsArr)); return this.wrapper;
-            }
-            destroy() { NotificationEngine.cancel(this.id); }
             save() { return this.data; }
         }
 
         class VoiceMemo {
-            static get toolbox() { return { title: 'Voice Memo', icon: ICONS.mic }; }
-            constructor({data, config, api, readOnly}) {
-                this.api = api; this.config = config; this.readOnly = readOnly; 
-                this.data = { url: data.url || null, title: data.title || '' };
-                if (!this.data.title && !this.data.url) { this.data.title = 'Voice Memo - ' + new Date().toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'}); }
-                this.recorder = null; this.chunks = []; this.isPlaying = false; this.isRecording = false;
-                this.nodes = { wrapper: createEl('div', 'voice-tool-container'), button: createEl('button', 'v-memo__btn'), title: createEl('input', 'v-memo__title', { type: 'text', value: this.data.title, placeholder: 'Name this memo...' }), status: createEl('div', 'v-memo__status'), audio: createEl('audio', '', { style: 'display: none;', src: this.data.url || '' }) };
-                if (this.readOnly) this.nodes.title.readOnly = true;
-                this.nodes.title.addEventListener('input', (e) => { this.data.title = e.target.value; if(this.config.onChange) this.config.onChange(); });
+            static get toolbox() { return { title: 'Voice', icon: ICONS.mic }; }
+            constructor({data, config, readOnly}) {
+                this.cfg = config; this.ro = readOnly; this.data = { url: data.url || null, title: data.title || 'Voice Memo' };
+                this.isRec = this.isPlay = false; this.nodes = { w: createEl('div', 'voice-tool-container'), b: createEl('button', 'v-memo__btn'), t: createEl('input', 'tool-title-input', { value: this.data.title }), a: createEl('audio', '', { src: this.data.url || '' }) };
+                if (this.ro) this.nodes.t.readOnly = true; else this.nodes.t.oninput = e => { this.data.title = e.target.value; if(this.cfg.onChange) this.cfg.onChange(); };
             }
             render() {
-                this.nodes.audio.onplay = () => { this.isPlaying = true; this.updateUI(); }; this.nodes.audio.onpause = () => { this.isPlaying = false; this.updateUI(); }; this.nodes.audio.onended = () => { this.isPlaying = false; this.updateUI(); };
-                this.nodes.button.onclick = () => this.handleAction();
-                this.nodes.wrapper.append(this.nodes.button, this.nodes.title, this.nodes.status, this.nodes.audio); this.updateUI(); return this.nodes.wrapper;
+                this.nodes.a.onplay = () => { this.isPlay = true; this.upd(); }; this.nodes.a.onpause = this.nodes.a.onended = () => { this.isPlay = false; this.upd(); };
+                this.nodes.b.onclick = () => this.act();
+                this.nodes.w.append(this.nodes.b, this.nodes.t, this.nodes.a); this.upd(); return this.nodes.w;
             }
-            updateUI() {
-                this.nodes.button.className = 'v-memo__btn'; 
-                if (this.isPlaying) { this.nodes.button.innerHTML = ICONS.pause; this.nodes.status.innerText = 'Playing...'; this.nodes.button.classList.add('playing'); } 
-                else if (this.data.url) { this.nodes.button.innerHTML = ICONS.play; this.nodes.status.innerText = 'Ready'; } 
-                else if (this.isRecording) { this.nodes.button.innerHTML = ICONS.stop; this.nodes.status.innerText = 'Recording...'; this.nodes.button.classList.add('recording'); } 
-                else if (this.readOnly) { this.nodes.button.style.display = 'none'; this.nodes.status.innerText = 'No audio'; }
-                else { this.nodes.button.innerHTML = ICONS.mic; this.nodes.status.innerText = 'Record'; }
+            upd() {
+                this.nodes.b.className = 'v-memo__btn';
+                if (this.isPlay) { this.nodes.b.innerHTML = ICONS.pause; this.nodes.b.classList.add('playing'); }
+                else if (this.data.url) this.nodes.b.innerHTML = ICONS.play;
+                else if (this.isRec) { this.nodes.b.innerHTML = ICONS.stop; this.nodes.b.classList.add('recording'); }
+                else { this.nodes.b.innerHTML = ICONS.mic; if(this.ro) this.nodes.b.style.display = 'none'; }
             }
-            async handleAction() {
-                if (this.readOnly && !this.data.url) return;
-                if (this.data.url) { this.isPlaying ? this.nodes.audio.pause() : this.nodes.audio.play(); } 
+            async act() {
+                if (this.ro && !this.data.url) return;
+                if (this.data.url) this.isPlay ? this.nodes.a.pause() : this.nodes.a.play();
+                else if (this.isRec) { this.rec.stop(); this.isRec = false; }
                 else {
-                    if (this.isRecording) { this.recorder.stop(); this.isRecording = false; this.nodes.status.innerText = 'Processing...'; } 
-                    else {
-                        try {
-                            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                            this.recorder = new MediaRecorder(stream); this.chunks = []; this.recorder.ondataavailable = (e) => this.chunks.push(e.data);
-                            this.recorder.onstop = () => { const reader = new FileReader(); reader.onloadend = () => { this.data.url = reader.result; this.nodes.audio.src = this.data.url; this.updateUI(); if(this.config.onChange) this.config.onChange(); }; reader.readAsDataURL(new Blob(this.chunks, { type: 'audio/ogg; codecs=opus' })); stream.getTracks().forEach(track => track.stop()); };
-                            this.recorder.start(); this.isRecording = true; this.updateUI();
-                        } catch (err) { this.nodes.status.innerText = 'Mic access denied'; }
-                    }
+                    try {
+                        const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        this.rec = new MediaRecorder(s); const c = []; this.rec.ondataavailable = e => c.push(e.data);
+                        this.rec.onstop = () => { const r = new FileReader(); r.onloadend = () => { this.data.url = r.result; this.nodes.a.src = this.data.url; this.upd(); if(this.cfg.onChange) this.cfg.onChange(); }; r.readAsDataURL(new Blob(c)); s.getTracks().forEach(t=>t.stop()); };
+                        this.rec.start(); this.isRec = true; this.upd();
+                    } catch { alert('Mic access denied'); }
                 }
             }
-            destroy() { if (this.recorder && this.recorder.state !== 'inactive') this.recorder.stop(); if (this.recorder && this.recorder.stream) this.recorder.stream.getTracks().forEach(track => track.stop()); this.nodes.audio.pause(); }
             save() { return this.data; }
         }
 
-        // ============================================================================
-        // CORE APP INITIALIZATION & AI TRIGGERS
-        // ============================================================================
+        // 5. EDITOR & AI CORE
         window.editor = null; 
-        let timestamps = {}, updateRaf, saveTimeout;
-        let aiTriggerTimeout;
+        let timestamps = {}, updateRaf, saveTimeout, aiTriggerTimeout;
         const processedPrompts = new Set(); 
-        
         let todayStr = getLocalYYYYMMDD(new Date());
         window.currentDateStr = todayStr;
-
         let isAiLoading = false;
 
-        async function initLocalAI() {
-            if (window.llmEngine || isAiLoading) return;
-            isAiLoading = true;
+        document.getElementById('date-header').innerHTML = `${new Date().toLocaleDateString(undefined, {month:'short', day:'numeric'})}<br>${new Date().toLocaleDateString(undefined, {weekday:'long'})}`;
 
-            const statusTextEl = document.getElementById('ai-status-text');
-            const progressContainer = document.getElementById('ai-progress-container');
-            const progressBar = document.getElementById('ai-progress-bar');
-
-            console.log("Auto-initializing local AI...");
-
-            if (!navigator.gpu) {
-                console.error("WebGPU is NOT supported or enabled. AI cannot load locally.");
-                statusTextEl.textContent = `Collaborator: @${aiName} (WebGPU Unavailable)`;
-                return;
-            }
-
-            try {
-                statusTextEl.textContent = `Collaborator: @${aiName} (Starting Engine...)`;
-                progressContainer.style.display = 'block';
-
-                console.log("Importing Web-LLM from esm.sh CDN (Import Map)...");
-                
-                // 🟢 FIX: We now use the standard import with the Import Map configured above 🟢
-                const { CreateMLCEngine } = await import("@mlc-ai/web-llm");
-
-                console.log("Downloading Model Weights... (This may take a while)");
-                window.llmEngine = await CreateMLCEngine("Llama-3.2-1B-Instruct-q4f16_1-MLC", {
-                    initProgressCallback: (p) => {
-                        const perc = Math.round(p.progress * 100);
-                        progressBar.style.width = `${perc}%`;
-                        statusTextEl.textContent = `Collaborator: @${aiName} (Downloading ${perc}%)`;
-                        console.log(`Download Progress: ${perc}%`);
-                    }
-                });
-
-                console.log("MLCEngine successfully auto-initialized.");
-                progressContainer.style.display = 'none';
-                statusTextEl.textContent = `Collaborator: @${aiName} (Online & Ready)`;
-            } catch (error) {
-                console.error("Failed to load local AI:", error);
-                progressContainer.style.display = 'none';
-                statusTextEl.textContent = `Collaborator: @${aiName} (Failed to Load)`;
-            }
-        }
-
-
-        function getDisplayDate(dateStr) {
-            const [y, m, d] = dateStr.split('-'); const date = new Date(y, m - 1, d);
-            return `${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}<br>${date.toLocaleDateString(undefined, { weekday: 'long' })}`; 
-        }
-        document.getElementById('date-header').innerHTML = getDisplayDate(window.currentDateStr);
-
-        const P = typeof Paragraph !== 'undefined' ? Paragraph : window.Paragraph;
-        const H = typeof Header !== 'undefined' ? Header : window.Header;
-        const L = typeof NestedList !== 'undefined' ? NestedList : window.NestedList;
-        const C = typeof Checklist !== 'undefined' ? Checklist : window.Checklist;
-
-        const EDITOR_TOOLS_CONFIG = {
-            paragraph: { class: P, inlineToolbar: ['link', 'bold', 'italic'] },
-            header: { class: H, inlineToolbar: ['link', 'bold', 'italic'], config: { levels: [1, 2, 3], defaultLevel: 2 } },
-            list: { class: L, inlineToolbar: ['link', 'bold', 'italic'] },
-            checklist: { class: C, inlineToolbar: ['link', 'bold', 'italic'] },
+        // Tool Config (No defensive boilerplate, relies on CDNs loaded above)
+        window.EDITOR_TOOLS_CONFIG = {
+            paragraph: { class: Paragraph, inlineToolbar: ['link', 'bold', 'italic'] },
+            header: { class: Header, inlineToolbar: ['link', 'bold', 'italic'] },
+            list: { class: NestedList, inlineToolbar: ['link', 'bold', 'italic'] },
+            checklist: { class: Checklist, inlineToolbar: ['link', 'bold', 'italic'] },
             scan: { class: ScanTool, config: { onChange: scheduleSave } },
             compute: { class: ComputeTool, config: { onChange: scheduleSave } },
-            smartCanvas: { class: SmartCanvasTool, config: { onChange: scheduleSave } },
-            calendar: { class: CalendarTool, config: { onChange: scheduleSave } },
             voice: { class: VoiceMemo, config: { onChange: scheduleSave } },
             recall: { class: RecallTool, config: { onChange: scheduleSave } },
             aiText: { class: AiTextTool, config: { onChange: scheduleSave } } 
         };
 
-        window.ToolRegistry.paragraph = EDITOR_TOOLS_CONFIG.paragraph;
-        window.ToolRegistry.header = EDITOR_TOOLS_CONFIG.header;
-        window.ToolRegistry.list = EDITOR_TOOLS_CONFIG.list;
-        window.ToolRegistry.checklist = EDITOR_TOOLS_CONFIG.checklist;
-        window.ToolRegistry.scan = EDITOR_TOOLS_CONFIG.scan;
-        window.ToolRegistry.compute = EDITOR_TOOLS_CONFIG.compute;
-        window.ToolRegistry.smartCanvas = EDITOR_TOOLS_CONFIG.smartCanvas;
-        window.ToolRegistry.calendar = EDITOR_TOOLS_CONFIG.calendar;
-        window.ToolRegistry.voice = EDITOR_TOOLS_CONFIG.voice;
-        window.ToolRegistry.aiText = EDITOR_TOOLS_CONFIG.aiText;
-
-        document.getElementById('date-header').onclick = () => {
-            const [y, m, d] = window.currentDateStr.split('-').map(Number);
-            DatePicker.open(new Date(y, m - 1, d), (selectedDate) => {
-                const selectedStr = getLocalYYYYMMDD(selectedDate);
-                if (window.currentDateStr !== selectedStr) {
-                    window.currentDateStr = selectedStr;
-                    document.getElementById('date-header').innerHTML = getDisplayDate(selectedStr);
-                    initEditor(selectedStr);
-                }
-            }, { showTime: false, disableFuture: true, onlyNotes: true }); 
-        };
-
-        const domObserver = new MutationObserver(() => { cancelAnimationFrame(updateRaf); updateRaf = requestAnimationFrame(updateAllTimestamps); });
-
-        function updateAllTimestamps() {
-            document.querySelectorAll('.ce-block').forEach(block => {
-                const id = block.getAttribute('data-id'); if (!id) return;
-                let timeEl = block.querySelector('.ce-block-time');
-                if (!timeEl) { timeEl = createEl('div', 'ce-block-time'); block.appendChild(timeEl); }
-                if (timestamps[id]) { timeEl.textContent = new Date(timestamps[id]).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }); } 
-                else if (window.currentDateStr === todayStr && window.editor && !window.editor.readOnly) {
-                    timestamps[id] = Date.now(); timeEl.textContent = new Date(timestamps[id]).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-                    scheduleSave(); 
-                }
+        const domObserver = new MutationObserver(() => { cancelAnimationFrame(updateRaf); updateRaf = requestAnimationFrame(() => {
+            document.querySelectorAll('.ce-block').forEach(b => {
+                const id = b.getAttribute('data-id'); if (!id) return;
+                let tEl = b.querySelector('.ce-block-time'); if (!tEl) { tEl = createEl('div', 'ce-block-time'); b.appendChild(tEl); }
+                if (timestamps[id]) tEl.textContent = new Date(timestamps[id]).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                else if (window.currentDateStr === todayStr && window.editor && !window.editor.readOnly) { timestamps[id] = Date.now(); scheduleSave(); }
             });
+        });});
+
+        async function initLocalAI() {
+            if (window.llmEngine || isAiLoading) return;
+            isAiLoading = true;
+            const statusEl = document.getElementById('ai-status-text');
+            const progCont = document.getElementById('ai-progress-container');
+            const progBar = document.getElementById('ai-progress-bar');
+
+            console.log("Checking Safari WebGPU support...");
+            if (!navigator.gpu) {
+                console.error("CRITICAL: WebGPU is disabled. AI aborting.");
+                console.warn("-> Go to Settings > Safari > Advanced > Feature Flags > enable WebGPU to fix this.");
+                statusEl.textContent = `Collaborator: @${aiName} (WebGPU Disabled)`;
+                return;
+            }
+
+            try {
+                statusEl.textContent = `Collaborator: @${aiName} (Connecting...)`;
+                progCont.style.display = 'block';
+                console.log("Importing Web-LLM via esm.sh...");
+                
+                // 🟢 This import matches the Import Map exact path 🟢
+                const { CreateMLCEngine } = await import("@mlc-ai/web-llm");
+
+                console.log("Downloading Model...");
+                window.llmEngine = await CreateMLCEngine("Llama-3.2-1B-Instruct-q4f16_1-MLC", {
+                    initProgressCallback: (p) => {
+                        const perc = Math.round(p.progress * 100);
+                        progBar.style.width = `${perc}%`;
+                        statusEl.textContent = `Collaborator: @${aiName} (Downloading ${perc}%)`;
+                    }
+                });
+
+                console.log("AI Engine Ready!");
+                progCont.style.display = 'none';
+                statusEl.textContent = `Collaborator: @${aiName} (Ready)`;
+            } catch (e) {
+                console.error("AI Init Failed:", e);
+                progCont.style.display = 'none';
+                statusEl.textContent = `Collaborator: @${aiName} (Error)`;
+            }
         }
 
         async function checkAiTriggers() {
             if (!window.editor || window.editor.readOnly) return;
-            
-            const currentIndex = window.editor.blocks.getCurrentBlockIndex();
+            const curIdx = window.editor.blocks.getCurrentBlockIndex();
             const data = await window.editor.save();
-            const blocks = data.blocks;
             
-            for (let i = 0; i < blocks.length; i++) {
-                const block = blocks[i];
-                if (block.type === 'paragraph' && block.data.text) {
-                    const tmp = document.createElement('div');
-                    tmp.innerHTML = block.data.text.replace(/<br>/g, '\n');
-                    const cleanText = tmp.textContent.replace(/\u00A0/g, ' ').trim();
-                    
-                    if (cleanText.toLowerCase().startsWith(`@${aiName.toLowerCase()}`) && !processedPrompts.has(block.id)) {
-                        console.log(`Detected AI prompt trigger for: @${aiName}`);
-                        
-                        if (i !== currentIndex) {
-                            processedPrompts.add(block.id);
-                            
-                            if (!window.llmEngine) {
-                                console.warn("AI Triggered, but engine is not ready yet.");
-                                window.editor.blocks.insert('aiText', { text: `[System]: Still loading AI... please wait for it to finish.` }, {}, i + 1, false);
-                                scheduleSave();
-                                return;
-                            }
-
-                            document.getElementById('ai-status-text').textContent = `Collaborator: @${aiName} (Thinking...)`;
-                            const streamId = 'ai-stream-' + Date.now();
-                            window.editor.blocks.insert('aiText', { text: `...`, streamId: streamId }, {}, i + 1, false);
-                            
-                            console.log("Proceeding to executeRAG...");
-                            executeRAG(cleanText, streamId, i, block.id);
-                        } else {
-                            console.log("Prompt is currently being edited. Waiting for user to move to a new block.");
+            for (let i = 0; i < data.blocks.length; i++) {
+                const b = data.blocks[i];
+                if (b.type === 'paragraph' && b.data.text) {
+                    const clean = createEl('div', '', {innerHTML: b.data.text}).textContent.trim();
+                    if (clean.toLowerCase().startsWith(`@${aiName.toLowerCase()}`) && !processedPrompts.has(b.id)) {
+                        if (i !== curIdx) {
+                            processedPrompts.add(b.id);
+                            if (!window.llmEngine) { window.editor.blocks.insert('aiText', { text: `[System]: Waiting for AI...` }, {}, i + 1, false); return; }
+                            const sId = 'ai-stream-' + Date.now();
+                            window.editor.blocks.insert('aiText', { text: `...`, streamId: sId }, {}, i + 1, false);
+                            executeRAG(clean, sId, b.id);
                         }
                     }
                 }
             }
         }
 
-        async function executeRAG(prompt, streamId, promptIndex, promptBlockId) {
-            console.log("Starting executeRAG...");
-            const statusTextEl = document.getElementById('ai-status-text');
-            
+        async function executeRAG(prompt, sId, bId) {
             try {
-                let contextText = "";
-                Object.entries(appDB.cache).forEach(([dateStr, dayData]) => {
-                    if (!dayData.blocks) return;
-                    dayData.blocks.forEach(block => {
-                        if (block.type === 'aiText') return;
-                        if (block.data.text) contextText += `[${dateStr}]: ${block.data.text.replace(/<[^>]*>?/gm, '')}\n`;
-                        if (block.data.title) contextText += `[${dateStr}]: ${block.data.title}\n`;
-                        if (block.data.items) contextText += `[${dateStr}]: ${block.data.items.map(j=>j.content).join(', ')}\n`;
-                    });
-                });
-                contextText = contextText.slice(-5000);
-
-                const messages = [
-                    { role: "system", content: `You are ${aiName}. ${aiPersona} You live inside the user's personal notebook. Use the following past notes as context to answer them. If you want to reply normally, just speak. If you feel the user's prompt needs a creative rewrite, improvement, or you want to forcefully hijack their thought, you can OVERWRITE their text by starting your response EXACTLY with '[EDIT] ' followed by the new text.\n\nContext:\n${contextText}` },
-                    { role: "user", content: prompt }
-                ];
-
-                statusTextEl.textContent = `Collaborator: @${aiName} (Typing...)`;
-                console.log("Sending query to local LLM...");
+                let ctx = "";
+                Object.values(appDB.cache).forEach(d => { if(d.blocks) d.blocks.forEach(b => { if(b.type !== 'aiText' && b.data.text) ctx += `${b.data.text}\n`; }); });
+                const msgs = [ { role: "system", content: `You are ${aiName}. Context:\n${ctx.slice(-2000)}` }, { role: "user", content: prompt } ];
                 
-                const chunks = await window.llmEngine.chat.completions.create({ messages, stream: true });
-                
-                let reply = "";
-                const streamNode = document.getElementById(streamId);
+                const chunks = await window.llmEngine.chat.completions.create({ messages: msgs, stream: true });
+                let reply = ""; const node = document.getElementById(sId);
                 
                 for await (const chunk of chunks) {
                     reply += chunk.choices[0]?.delta?.content || "";
-                    if(streamNode) streamNode.innerHTML = reply.replace(/\n/g, '<br>');
+                    if(node) node.innerHTML = reply.replace(/\n/g, '<br>');
                 }
-
-                console.log("LLM response complete.");
-                statusTextEl.textContent = `Collaborator: @${aiName} (Online & Ready)`;
-
-                if (CONFIG.AI_CO_PILOT.canEditYourWork && reply.trim().startsWith('[EDIT]')) {
-                    const newText = reply.replace('[EDIT]', '').trim();
-                    window.editor.blocks.update(promptBlockId, { text: newText });
-                    
-                    const blocksCount = window.editor.blocks.getBlocksCount();
-                    for(let i=0; i < blocksCount; i++) {
-                        const b = window.editor.blocks.getBlockByIndex(i);
-                        if (b.holder.querySelector(`#${streamId}`)) { window.editor.blocks.delete(i); break; }
-                    }
-                }
-
-            } catch (e) {
-                console.error("Critical error in executeRAG: ", e.message, e);
-                const streamNode = document.getElementById(streamId);
-                if(streamNode) streamNode.innerHTML = `Error: ${e.message}`;
-                statusTextEl.textContent = `Collaborator: @${aiName} (Error)`;
-            }
+            } catch (e) { console.error("RAG Error:", e); }
             scheduleSave();
         }
 
@@ -1217,52 +567,30 @@
             if (window.editor && !window.editor.readOnly) {
                 clearTimeout(saveTimeout);
                 saveTimeout = setTimeout(async () => {
-                    const outputData = await window.editor.save();
-                    outputData.timestamps = timestamps;
-                    appDB.save(window.currentDateStr, outputData);
+                    const out = await window.editor.save(); out.timestamps = timestamps;
+                    appDB.save(window.currentDateStr, out);
                 }, 500);
-
-                clearTimeout(aiTriggerTimeout);
-                aiTriggerTimeout = setTimeout(checkAiTriggers, 1500); 
+                clearTimeout(aiTriggerTimeout); aiTriggerTimeout = setTimeout(checkAiTriggers, 1500); 
             }
         }
 
         async function initEditor(date) {
             if (window.editor) { domObserver.disconnect(); await window.editor.destroy(); window.editor = null; }
-            
             const isToday = date === todayStr;
-            let savedData = appDB.cache[date] || { blocks: [] };
+            let data = appDB.cache[date] || { blocks: isToday ? [{ type: "paragraph", data: { text: `Type '/' or '@${aiName}'...` } }] : [] };
+            timestamps = data.timestamps || {};
             
-            if (isToday && (!savedData.blocks || savedData.blocks.length === 0)) {
-                savedData = {
-                    blocks: [
-                        { type: "paragraph", data: { text: `Type '/' to add blocks, or type '@${aiName}' to ask your collaborator a question.` } }
-                    ]
-                };
-            }
-
-            timestamps = savedData.timestamps || {};
-            document.getElementById('editorjs').innerHTML = '';
-
             window.editor = new EditorJS({
-                holder: 'editorjs',
-                placeholder: isToday ? 'Type "/" for commands...' : 'No notes available for this day.',
-                readOnly: !isToday,
-                data: savedData,
-                tools: EDITOR_TOOLS_CONFIG,
+                holder: 'editorjs', readOnly: !isToday, data: data, tools: window.EDITOR_TOOLS_CONFIG,
                 onChange: () => { if (isToday) scheduleSave(); },
                 onReady: () => { domObserver.observe(document.getElementById('editorjs'), { childList: true, subtree: true }); updateAllTimestamps(); }
             });
         }
 
-        // Boot Sequence
+        // Boot
         appDB.init().then(() => {
             initEditor(window.currentDateStr);
-            initLocalAI(); // Trigger AI auto-load immediately
-        }).catch(e => {
-            console.warn("DB fallback triggered");
-            initEditor(window.currentDateStr);
-            initLocalAI(); // Trigger AI auto-load immediately
+            initLocalAI();
         });
 
     </script>
