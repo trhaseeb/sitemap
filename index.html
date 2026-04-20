@@ -26,6 +26,15 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
+    <!-- 🟢 FIX: Import Map for proper dependency resolution in Safari 🟢 -->
+    <script type="importmap">
+      {
+        "imports": {
+          "@mlc-ai/web-llm": "https://esm.sh/@mlc-ai/web-llm"
+        }
+      }
+    </script>
+
     <style>
         /* --- Standardized Pure Flat Theme --- */
         :root {
@@ -50,18 +59,13 @@
             }
         }
 
-        /* Body hides horizontal overflow so the brutalist header doesn't cause page scrolling */
         body { background-color: var(--bg-color); color: var(--text-color); font-family: var(--font-main); margin: 0; padding: 0; line-height: 1.6; width: 100vw; overflow-x: hidden; }
-        
         .app-container { max-width: 800px; width: 100%; margin: 0 auto; padding: calc(10vh + var(--safe-area-top)) 40px 65vh 40px; box-sizing: border-box; }
-        
         #editorjs { padding: 0; max-width: 100%; box-sizing: border-box; min-height: 50vh; }
-        
         ::-webkit-scrollbar { width: 0px; background: transparent; }
         ::-webkit-scrollbar:horizontal { display: none; }
         svg { flex-shrink: 0; }
 
-        /* Editor.js Overrides */
         .ce-block { position: relative; z-index: auto !important; } 
         .ce-toolbar { z-index: 10000 !important; }
         .ce-popover, .ce-settings, .tc-popover, .cdx-settings, .ce-tooltip { z-index: 10005 !important; }
@@ -89,57 +93,18 @@
             .ce-popover, .ce-settings, .ce-inline-toolbar { bottom: var(--keyboard-offset, 0px) !important; max-height: calc(100vh - var(--keyboard-offset, 0px) - 20px) !important; transition: bottom 0.2s cubic-bezier(0.1, 0.7, 0.1, 1), max-height 0.2s ease; }
         }
 
-        /* --- STYLISH BRUTALIST HEADER --- */
         #date-header { 
-            text-align: left; 
-            font-size: clamp(60px, 18vw, 150px); 
-            font-weight: 900; 
-            font-style: italic; 
-            text-transform: uppercase; 
-            letter-spacing: -0.06em; 
-            line-height: 0.8; 
-            color: var(--text-color); 
-            margin: -20px 0 10px -25px; 
-            cursor: pointer; 
-            transition: opacity 0.2s; 
-            user-select: none; 
-            white-space: nowrap; 
+            text-align: left; font-size: clamp(60px, 18vw, 150px); font-weight: 900; 
+            font-style: italic; text-transform: uppercase; letter-spacing: -0.06em; 
+            line-height: 0.8; color: var(--text-color); margin: -20px 0 10px -25px; 
+            cursor: pointer; transition: opacity 0.2s; user-select: none; white-space: nowrap; 
         }
         #date-header:hover { opacity: 0.7; }
-        #date-header:active { opacity: 0.5; }
         
-        #ai-status-wrapper {
-            margin-bottom: 40px;
-            padding-left: 4px;
-        }
-
-        #ai-status-text {
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            color: var(--ai-color);
-            opacity: 0.8;
-            transition: color 0.3s;
-        }
-        
-        /* The sleek progress bar */
-        .ai-progress-container {
-            width: 100%;
-            max-width: 200px;
-            height: 4px;
-            background: var(--muted-bg);
-            border-radius: 2px;
-            margin-top: 8px;
-            overflow: hidden;
-            display: none;
-        }
-        .ai-progress-bar {
-            width: 0%;
-            height: 100%;
-            background: var(--ai-color);
-            transition: width 0.1s ease-out;
-        }
+        #ai-status-wrapper { margin-bottom: 40px; padding-left: 4px; }
+        #ai-status-text { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ai-color); opacity: 0.8; transition: color 0.3s; }
+        .ai-progress-container { width: 100%; max-width: 200px; height: 4px; background: var(--muted-bg); border-radius: 2px; margin-top: 8px; overflow: hidden; display: none; }
+        .ai-progress-bar { width: 0%; height: 100%; background: var(--ai-color); transition: width 0.1s ease-out; }
 
         .ce-block-time { font-size: 11px; color: var(--muted-text); text-align: right; padding-top: 6px; padding-bottom: 2px; padding-right: 2px; user-select: none; opacity: 0.7; font-weight: 500; }
         
@@ -147,33 +112,18 @@
         .cal-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
         .cal-btn:hover { background: var(--editor-hover-bg); }
         .cal-btn.primary { background: var(--text-color); color: var(--bg-color); border-color: var(--text-color); }
-        .cal-btn.primary:hover { opacity: 0.9; }
 
         .tool-title-input { width: 100%; border: none; background: transparent; color: var(--text-color); font-size: 16px; font-weight: 600; outline: none; font-family: inherit; padding: 4px 0; margin-bottom: 8px; }
         .tool-title-input::placeholder { color: var(--muted-text); font-weight: 500; opacity: 0.6; }
 
-        /* --- THE INVISIBLE AI INK --- */
-        .ai-text-block {
-            color: var(--ai-color);
-            font-style: italic;
-            font-weight: 500;
-            font-size: 16px;
-            line-height: 1.6;
-            outline: none;
-            padding: 8px 0;
-            white-space: pre-wrap;
-            border-left: 2px solid var(--ai-color);
-            padding-left: 14px;
-            margin-left: -16px;
-        }
+        .ai-text-block { color: var(--ai-color); font-style: italic; font-weight: 500; font-size: 16px; line-height: 1.6; outline: none; padding: 8px 0; white-space: pre-wrap; border-left: 2px solid var(--ai-color); padding-left: 14px; margin-left: -16px; }
 
-        /* --- UNIFIED DATE PICKER MODAL --- */
+        /* Unified Date Picker */
         .global-calendar-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); z-index: 100000; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s ease; backdrop-filter: blur(2px); }
         .global-calendar-modal.show { display: flex; opacity: 1; }
         .cp-container { background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; width: 90%; max-width: 340px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); display: flex; flex-direction: column; gap: 12px; }
         .cp-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
         .cp-header button { background: var(--muted-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 6px; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .cp-header button:hover { background: var(--editor-hover-bg); }
         .cp-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 12px; color: var(--muted-text); font-weight: 600; margin-bottom: 4px; }
         .cp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
         .cp-day { padding: 8px 0; text-align: center; font-size: 14px; cursor: pointer; border-radius: 6px; color: var(--text-color); transition: background 0.1s; }
@@ -183,53 +133,40 @@
         .cp-time { display: flex; justify-content: center; align-items: center; gap: 6px; padding-top: 16px; border-top: 1px solid var(--border-color); }
         #dp-time-input { width: 100%; padding: 10px; font-size: 16px; text-align: center; border-radius: 6px; border: 1px solid var(--border-color); background: var(--muted-bg); color: var(--text-color); font-family: inherit; outline: none; }
 
-        /* --- COMPUTE BLOCK STYLES --- */
+        /* Tools */
         .compute-tool-container { border: 1px solid var(--border-color); border-radius: var(--std-border-radius); background: var(--muted-bg); overflow: hidden; margin: 8px 0; display: flex; flex-direction: column; }
         .compute-input { width: 100%; padding: 16px 16px 12px 16px; background: transparent; border: none; outline: none; font-family: monospace; font-size: 14px; color: var(--text-color); resize: none; box-sizing: border-box; line-height: 1.5; min-height: 50px; font-weight: bold; }
-        .compute-input::placeholder { color: var(--muted-text); opacity: 0.5; font-weight: normal; }
         .compute-output { padding: 12px 16px; border-top: 1px dashed var(--border-color); font-family: monospace; font-size: 16px; font-weight: 700; color: var(--text-color); background: var(--bg-color); word-break: break-word; min-height: 20px; }
         .compute-error { color: #EF4444; font-weight: 400; font-size: 13px; }
 
-        /* --- SCAN BLOCK STYLES --- */
         .scan-wrapper { margin: 8px 0; width: 100%; border: 1px dashed var(--border-color); border-radius: var(--std-border-radius); display: flex; flex-direction: column; overflow: hidden; }
         .scan-action-area { padding: 30px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; cursor: pointer; transition: background 0.2s; }
-        .scan-action-area:hover { background: var(--editor-hover-bg); }
-        .scan-icon { color: var(--muted-text); }
-        .scan-icon svg { width: 32px; height: 32px; }
+        .scan-icon svg { width: 32px; height: 32px; color: var(--muted-text); }
         .scan-label { font-size: 14px; font-weight: 600; color: var(--text-color); letter-spacing: 1px; }
         .scan-status { font-family: monospace; font-size: 12px; font-weight: bold; color: var(--muted-text); margin-top: 10px; }
         .scan-output-textarea { width: 100%; min-height: 100px; padding: 16px; border: none; background: var(--muted-bg); color: var(--text-color); font-family: monospace; font-size: 13px; line-height: 1.5; resize: none; outline: none; box-sizing: border-box; }
 
-        /* --- RECALL BLOCK STYLES --- */
         .recall-search-wrapper { position: relative; width: 100%; margin: 8px 0; }
-        .recall-search-input { width: 100%; padding: 12px 14px 12px 40px; border-radius: var(--std-border-radius); border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); font-family: inherit; font-size: 15px; outline: none; box-sizing: border-box; transition: border-color 0.2s; }
-        .recall-search-input:focus { border-color: var(--text-color); }
+        .recall-search-input { width: 100%; padding: 12px 14px 12px 40px; border-radius: var(--std-border-radius); border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); font-family: inherit; font-size: 15px; outline: none; box-sizing: border-box; }
         .recall-search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--muted-text); }
         .recall-dropdown { position: absolute; top: 100%; left: 0; width: 100%; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: var(--std-border-radius); margin-top: 4px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); z-index: 1000; max-height: 250px; overflow-y: auto; display: none; }
         .recall-dropdown.active { display: block; }
         .recall-result-item { padding: 12px 14px; cursor: pointer; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 4px; }
-        .recall-result-item:last-child { border-bottom: none; }
-        .recall-result-item:hover { background: var(--editor-hover-bg); }
         .recall-result-meta { font-size: 11px; color: var(--text-color); font-weight: 600; opacity: 0.7; }
         .recall-result-snippet { font-size: 14px; color: var(--muted-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        
         .recalled-block { margin: 8px 0; padding: 12px 16px; background: var(--recall-bg); border-left: 4px solid var(--recall-border); border-radius: 4px var(--std-border-radius) var(--std-border-radius) 4px; position: relative; }
         .recalled-orig-meta { font-size: 10px; color: var(--muted-text); font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
-        .recalled-orig-meta svg { width: 12px; height: 12px; }
 
-        /* Other Plugin Tool Styles */
         .calendar-tool-container { display: flex; flex-direction: column; gap: 12px; width: 100%; margin: 8px 0; }
         .cal-header { display: flex; align-items: center; gap: 10px; }
         .cal-header svg { color: var(--muted-text); }
         .cal-title { flex-grow: 1; border: none; background: transparent; color: var(--text-color); font-size: 18px; font-weight: 600; outline: none; font-family: inherit; }
         .cal-display-btn { border: 1px solid var(--border-color); background: var(--muted-bg); color: var(--text-color); border-radius: 6px; padding: 10px 14px; font-family: inherit; font-size: 14px; outline: none; cursor: pointer; text-align: left; display: flex; align-items: center; justify-content: space-between; }
-        .cal-display-btn:hover { background: var(--editor-hover-bg); }
         .cal-actions { display: flex; gap: 8px; flex-wrap: wrap; }
         .cal-actions .cal-btn { flex: 1; min-width: 130px; }
 
         .voice-tool-container { display: flex; align-items: center; gap: 12px; margin: 8px 0; }
         .v-memo__btn { width: var(--std-control-height); height: var(--std-control-height); border-radius: 50%; border: 1px solid var(--border-color); background: var(--muted-bg); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-color); flex-shrink: 0; min-width: var(--std-control-height); transition: all 0.2s; }
-        .v-memo__btn:hover { background: var(--editor-hover-bg); }
         .v-memo__btn.recording { color: #ffffff; border-color: #ef4444; background: #ef4444; animation: pulse 1.5s infinite; }
         .v-memo__btn.playing { color: #ffffff; border-color: #3B82F6; background: #3B82F6; }
         .v-memo__title { flex-grow: 1; border: none; background: transparent; color: var(--text-color); font-size: 15px; font-weight: 600; outline: none; font-family: inherit; min-width: 0; }
@@ -237,7 +174,6 @@
         
         .smart-canvas-selector { display: flex; gap: 12px; padding: 12px 0; justify-content: center; flex-wrap: wrap; }
         .smart-canvas-option { flex: 1; min-width: 100px; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 24px 10px; border: 1px dashed var(--border-color); border-radius: 8px; background: transparent; color: var(--text-color); cursor: pointer; transition: all 0.2s; font-size: 13px; font-weight: 500; font-family: inherit; }
-        .smart-canvas-option:hover { background: var(--editor-hover-bg); border-style: solid; }
         .smart-canvas-option svg { width: 32px; height: 32px; color: var(--muted-text); transition: color 0.2s; }
         
         .canvas-relative-frame { position: relative; width: 100%; border-radius: var(--std-border-radius); border: 1px solid var(--border-color); overflow: hidden; margin: 8px 0; }
@@ -253,7 +189,7 @@
 
         /* --- VISUAL DEBUGGER STYLES --- */
         #visual-debugger-panel {
-            position: fixed; bottom: 0; left: 0; width: 100%; height: 33vh; 
+            position: fixed; bottom: 0; left: 0; width: 100%; height: 30vh; 
             background: #111; color: #0f0; font-family: monospace; font-size: 12px; 
             z-index: 999999; display: flex; flex-direction: column; 
             border-top: 2px solid #333; opacity: 0.95;
@@ -325,7 +261,7 @@
     <script type="module">
 
         // ==========================================
-        // 1. VISUAL LOGGER SETUP (Loaded First)
+        // 1. VISUAL LOGGER SETUP
         // ==========================================
         const logContainer = document.getElementById('visual-debugger-log');
         const originalLog = console.log;
@@ -373,25 +309,22 @@
             console.error(`Unhandled Promise: ${event.reason}`);
         });
 
-        console.log("Visual Debugger Initialized. Waiting for events...");
-
+        console.log("System Ready. Booting up App & local AI...");
 
         // ============================================================================
         // ⚙️ INFINITE NOTES CONFIGURATION
         // ============================================================================
         const CONFIG = {
-            DATABASE_MODE: 'indexedDB', // 'indexedDB', 'firebase', or 'rest'
+            DATABASE_MODE: 'indexedDB', 
             PWA_LOGO_URL: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzAwMDAwMCI+PHBhdGggZD0iTTE0IDJINmEyIDIgMCAwIDAtMiAydjE2YTIgMiAwIDAgMCAyIDJoMTJhMiAyIDAgMCAwIDItMlY4bC02LTZ6Ii8+PC9zdmc+",
             
-            // 🤖 THE INVISIBLE COLLABORATOR CONFIG
             AI_CO_PILOT: {
-                name: "", // Leave blank for a random name (e.g. "Cipher")
-                persona: "", // Leave blank for a random unpredictable personality
-                canEditYourWork: true // If true, the AI might unpredictably overwrite your blocks!
+                name: "", 
+                persona: "", 
+                canEditYourWork: true 
             }
         };
 
-        // --- AI Persona Generation ---
         const NAMES = ["Echo", "Void", "Cipher", "Atlas", "Sparks", "Orion", "Sage", "Nox", "Glitch"];
         const PERSONAS = [
             "You are a sarcastic pragmatist who gives painfully honest, brief answers.",
@@ -409,7 +342,6 @@
         const aiName = sessionStorage.getItem('ai_name');
         const aiPersona = sessionStorage.getItem('ai_persona');
 
-        // --- Apply Global Configurations ---
         document.getElementById('pwa-icon').href = CONFIG.PWA_LOGO_URL;
         document.getElementById('pwa-manifest').href = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify({
             "name": "Infinite Notes", "short_name": "Notes", "start_url": ".", "display": "standalone",
@@ -464,9 +396,6 @@
 
         function getLocalYYYYMMDD(date) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; }
 
-        // ============================================================================
-        // DATABASE ADAPTER SYSTEM (Safely Fallbacks to Memory on Cross-Origin Block)
-        // ============================================================================
         class IndexedDBAdapter {
             constructor() { this.dbName = 'InfiniteNotesDB'; this.storeName = 'daily_notes'; this.cache = {}; this.isMemoryOnly = false; }
             init() {
@@ -504,9 +433,6 @@
 
         let appDB = new IndexedDBAdapter();
 
-        // ============================================================================
-        // GLOBAL UI: DATE PICKER MODAL
-        // ============================================================================
         const DatePicker = (function() {
             let activeDate, viewDate, onConfirm, config;
             const modal = document.getElementById('global-calendar-modal');
@@ -568,13 +494,8 @@
             };
         })();
 
-        // ============================================================================
-        // EDITOR.JS PLUGINS (Safe Tool Registry)
-        // ============================================================================
-
         window.ToolRegistry = {};
 
-        // 1. The Invisible AI Ink Block
         class AiTextTool {
             constructor({data, api, readOnly}) {
                 this.api = api; this.readOnly = readOnly;
@@ -588,7 +509,6 @@
             save() { return { text: this.wrapper.innerHTML, streamId: null }; } 
         }
 
-        // 2. The Scan Tool (Local OCR)
         class ScanTool {
             static get toolbox() { return { title: 'Scan Text', icon: ICONS.scan }; }
             constructor({data, config, readOnly}) {
@@ -654,7 +574,6 @@
             save() { return this.data; }
         }
 
-        // 3. The Compute (REPL) Tool - PROXY MAGIC
         class ComputeTool {
             static get toolbox() { return { title: 'Compute Logic', icon: ICONS.compute }; }
 
@@ -760,7 +679,6 @@
             save() { return this.data; }
         }
 
-        // 4. The Recall Tool 
         class RecallTool {
             static get toolbox() { return { title: 'Recall', icon: ICONS.recall }; }
 
@@ -853,7 +771,6 @@
             save() { return this.data; }
         }
 
-        // 5. Smart Canvas Tool 
         class SmartCanvasTool {
             static get toolbox() { return { title: 'Media Canvas', icon: ICONS.pen }; }
             constructor({data, config, api, readOnly}) {
@@ -989,7 +906,6 @@
             destroy() { if (this.map) { this.map.remove(); this.map = null; } }
         }
 
-        // 6. Calendar Tool
         class CalendarTool {
             static get toolbox() { return { title: 'Calendar Event', icon: ICONS.calendar }; }
             constructor({data, config, api, readOnly}) {
@@ -1033,7 +949,6 @@
             save() { return this.data; }
         }
 
-        // 7. Voice Memo
         class VoiceMemo {
             static get toolbox() { return { title: 'Voice Memo', icon: ICONS.mic }; }
             constructor({data, config, api, readOnly}) {
@@ -1088,14 +1003,60 @@
         let todayStr = getLocalYYYYMMDD(new Date());
         window.currentDateStr = todayStr;
 
-        // Immediate Header Render
+        let isAiLoading = false;
+
+        async function initLocalAI() {
+            if (window.llmEngine || isAiLoading) return;
+            isAiLoading = true;
+
+            const statusTextEl = document.getElementById('ai-status-text');
+            const progressContainer = document.getElementById('ai-progress-container');
+            const progressBar = document.getElementById('ai-progress-bar');
+
+            console.log("Auto-initializing local AI...");
+
+            if (!navigator.gpu) {
+                console.error("WebGPU is NOT supported or enabled. AI cannot load locally.");
+                statusTextEl.textContent = `Collaborator: @${aiName} (WebGPU Unavailable)`;
+                return;
+            }
+
+            try {
+                statusTextEl.textContent = `Collaborator: @${aiName} (Starting Engine...)`;
+                progressContainer.style.display = 'block';
+
+                console.log("Importing Web-LLM from esm.sh CDN (Import Map)...");
+                
+                // 🟢 FIX: We now use the standard import with the Import Map configured above 🟢
+                const { CreateMLCEngine } = await import("@mlc-ai/web-llm");
+
+                console.log("Downloading Model Weights... (This may take a while)");
+                window.llmEngine = await CreateMLCEngine("Llama-3.2-1B-Instruct-q4f16_1-MLC", {
+                    initProgressCallback: (p) => {
+                        const perc = Math.round(p.progress * 100);
+                        progressBar.style.width = `${perc}%`;
+                        statusTextEl.textContent = `Collaborator: @${aiName} (Downloading ${perc}%)`;
+                        console.log(`Download Progress: ${perc}%`);
+                    }
+                });
+
+                console.log("MLCEngine successfully auto-initialized.");
+                progressContainer.style.display = 'none';
+                statusTextEl.textContent = `Collaborator: @${aiName} (Online & Ready)`;
+            } catch (error) {
+                console.error("Failed to load local AI:", error);
+                progressContainer.style.display = 'none';
+                statusTextEl.textContent = `Collaborator: @${aiName} (Failed to Load)`;
+            }
+        }
+
+
         function getDisplayDate(dateStr) {
             const [y, m, d] = dateStr.split('-'); const date = new Date(y, m - 1, d);
             return `${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}<br>${date.toLocaleDateString(undefined, { weekday: 'long' })}`; 
         }
         document.getElementById('date-header').innerHTML = getDisplayDate(window.currentDateStr);
 
-        // Safe evaluation of generic EditorJS core blocks 
         const P = typeof Paragraph !== 'undefined' ? Paragraph : window.Paragraph;
         const H = typeof Header !== 'undefined' ? Header : window.Header;
         const L = typeof NestedList !== 'undefined' ? NestedList : window.NestedList;
@@ -1115,7 +1076,6 @@
             aiText: { class: AiTextTool, config: { onChange: scheduleSave } } 
         };
 
-        // Complete the registry for Recall rendering
         window.ToolRegistry.paragraph = EDITOR_TOOLS_CONFIG.paragraph;
         window.ToolRegistry.header = EDITOR_TOOLS_CONFIG.header;
         window.ToolRegistry.list = EDITOR_TOOLS_CONFIG.list;
@@ -1154,14 +1114,12 @@
             });
         }
 
-        // --- INVISIBLE AI TRIGGER LOGIC ---
         async function checkAiTriggers() {
             if (!window.editor || window.editor.readOnly) return;
             
             const currentIndex = window.editor.blocks.getCurrentBlockIndex();
             const data = await window.editor.save();
             const blocks = data.blocks;
-            const statusTextEl = document.getElementById('ai-status-text');
             
             for (let i = 0; i < blocks.length; i++) {
                 const block = blocks[i];
@@ -1171,25 +1129,19 @@
                     const cleanText = tmp.textContent.replace(/\u00A0/g, ' ').trim();
                     
                     if (cleanText.toLowerCase().startsWith(`@${aiName.toLowerCase()}`) && !processedPrompts.has(block.id)) {
-                        
-                        // DEBUG LOG HERE
                         console.log(`Detected AI prompt trigger for: @${aiName}`);
                         
                         if (i !== currentIndex) {
                             processedPrompts.add(block.id);
                             
-                            // DEBUG LOG HERE
-                            console.log("Checking WebGPU support...");
-                            console.log("navigator.gpu object:", navigator.gpu);
-                            
-                            if (!navigator.gpu) {
-                                console.error("WebGPU is NOT supported on this browser/device.");
-                                window.editor.blocks.insert('aiText', { text: `[System]: Your device/browser blocks WebGPU. Try Chrome or Safari on desktop, or Chrome on Android.` }, {}, i + 1, false);
+                            if (!window.llmEngine) {
+                                console.warn("AI Triggered, but engine is not ready yet.");
+                                window.editor.blocks.insert('aiText', { text: `[System]: Still loading AI... please wait for it to finish.` }, {}, i + 1, false);
                                 scheduleSave();
                                 return;
                             }
 
-                            statusTextEl.textContent = `Collaborator: @${aiName} (Thinking...)`;
+                            document.getElementById('ai-status-text').textContent = `Collaborator: @${aiName} (Thinking...)`;
                             const streamId = 'ai-stream-' + Date.now();
                             window.editor.blocks.insert('aiText', { text: `...`, streamId: streamId }, {}, i + 1, false);
                             
@@ -1206,30 +1158,8 @@
         async function executeRAG(prompt, streamId, promptIndex, promptBlockId) {
             console.log("Starting executeRAG...");
             const statusTextEl = document.getElementById('ai-status-text');
-            const progressContainer = document.getElementById('ai-progress-container');
-            const progressBar = document.getElementById('ai-progress-bar');
             
             try {
-                if (!window.llmEngine) {
-                    console.log("Importing Web-LLM dynamically...");
-                    const { CreateMLCEngine } = await import("https://esm.run/@mlc-ai/web-llm");
-                    progressContainer.style.display = 'block';
-                    
-                    console.log("Initializing MLCEngine... (This might take a while)");
-                    window.llmEngine = await CreateMLCEngine("Llama-3.2-1B-Instruct-q4f16_1-MLC", {
-                        initProgressCallback: (p) => {
-                            const node = document.getElementById(streamId);
-                            const perc = Math.round(p.progress * 100);
-                            if(node) node.innerHTML = `Downloading Model Weights... ${perc}%`;
-                            progressBar.style.width = `${perc}%`;
-                            statusTextEl.textContent = `Collaborator: @${aiName} (Downloading ${perc}%)`;
-                            console.log(`Web-LLM Download Progress: ${perc}%`);
-                        }
-                    });
-                    console.log("MLCEngine successfully initialized.");
-                    progressContainer.style.display = 'none';
-                }
-
                 let contextText = "";
                 Object.entries(appDB.cache).forEach(([dateStr, dayData]) => {
                     if (!dayData.blocks) return;
@@ -1261,7 +1191,7 @@
                 }
 
                 console.log("LLM response complete.");
-                statusTextEl.textContent = `Collaborator: @${aiName} (Sleeping)`;
+                statusTextEl.textContent = `Collaborator: @${aiName} (Online & Ready)`;
 
                 if (CONFIG.AI_CO_PILOT.canEditYourWork && reply.trim().startsWith('[EDIT]')) {
                     const newText = reply.replace('[EDIT]', '').trim();
@@ -1276,7 +1206,6 @@
 
             } catch (e) {
                 console.error("Critical error in executeRAG: ", e.message, e);
-                progressContainer.style.display = 'none';
                 const streamNode = document.getElementById(streamId);
                 if(streamNode) streamNode.innerHTML = `Error: ${e.message}`;
                 statusTextEl.textContent = `Collaborator: @${aiName} (Error)`;
@@ -1284,7 +1213,6 @@
             scheduleSave();
         }
 
-        // --- Standard Save Trigger ---
         function scheduleSave() {
             if (window.editor && !window.editor.readOnly) {
                 clearTimeout(saveTimeout);
@@ -1327,12 +1255,14 @@
             });
         }
 
-        // Instant DB Init handling with memory fallback
+        // Boot Sequence
         appDB.init().then(() => {
             initEditor(window.currentDateStr);
+            initLocalAI(); // Trigger AI auto-load immediately
         }).catch(e => {
             console.warn("DB fallback triggered");
             initEditor(window.currentDateStr);
+            initLocalAI(); // Trigger AI auto-load immediately
         });
 
     </script>
