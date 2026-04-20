@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
-    <!-- PWA & Mobile Web App Meta Tags -->
     <title>Infinite Notes</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -12,81 +11,70 @@
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#121212">
     
-    <!-- Dynamic Manifest & Icons -->
+    <!-- Dynamic Manifest Injection -->
     <link id="pwa-manifest" rel="manifest" href="">
-    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzAwMDAwMCI+PHBhdGggZD0iTTE0IDJINmEyIDIgMCAwIDAtMiAydjE2YTIgMiAwIDAgMCAyIDJoMTJhMiAyIDAgMCAwIDItMlY4bC02LTZ6Ii8+PC9zdmc+">
+    <link id="pwa-icon" rel="apple-touch-icon" href="">
 
-    <!-- Editor.js Core & Plugins -->
+    <!-- Core Editor & Plugins -->
     <script src="https://cdn.jsdelivr.net/npm/@editorjs/editorjs@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@editorjs/paragraph@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@editorjs/header@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@editorjs/nested-list@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@editorjs/checklist@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@editorjs/table@latest"></script>
 
     <!-- Leaflet for Map Tool -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
-        /* --- Standardized Pure Flat Theme Variables --- */
+        /* --- Standardized Pure Flat Theme --- */
         :root {
-            --bg-color: #ffffff;
-            --text-color: #000000;
-            --border-color: #e0e0e0;
-            --muted-bg: #f5f5f5;
-            --muted-text: #666666;
-            --accent-color: #000000;
-            --editor-toolbar-bg: #ffffff;
-            --editor-hover-bg: #ebebeb;
-            --overlay-bg: transparent; 
-            
+            --bg-color: #ffffff; --text-color: #000000; --border-color: #e0e0e0;
+            --muted-bg: #f5f5f5; --muted-text: #666666; --accent-color: #000000;
+            --ai-color: #6366f1; /* Indigo for AI ink */
+            --recall-bg: #fcfcfc; --recall-border: #cccccc;
+            --editor-toolbar-bg: #ffffff; --editor-hover-bg: #ebebeb; --overlay-bg: transparent; 
             --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            --keyboard-offset: 0px; 
-            --safe-area-top: env(safe-area-inset-top, 0px);
-
-            --std-border-radius: 8px;
-            --std-padding: 12px 14px;
-            --std-margin: 8px 0;
-            --std-icon-size: 20px;
-            --std-control-height: 36px;
+            --keyboard-offset: 0px; --safe-area-top: env(safe-area-inset-top, 0px);
+            --std-border-radius: 8px; --std-padding: 12px 14px; --std-margin: 8px 0;
+            --std-icon-size: 20px; --std-control-height: 36px;
         }
 
         @media (prefers-color-scheme: dark) {
             :root {
-                --bg-color: #121212;
-                --text-color: #ffffff;
-                --border-color: #333333;
-                --muted-bg: #1e1e1e;
-                --muted-text: #aaaaaa;
-                --accent-color: #ffffff;
-                --editor-toolbar-bg: #1e1e1e;
-                --editor-hover-bg: #2a2a2a;
+                --bg-color: #121212; --text-color: #ffffff; --border-color: #333333;
+                --muted-bg: #1e1e1e; --muted-text: #aaaaaa; --accent-color: #ffffff;
+                --ai-color: #a78bfa; /* Soft purple for dark mode AI ink */
+                --recall-bg: #1a1a1a; --recall-border: #444444;
+                --editor-toolbar-bg: #1e1e1e; --editor-hover-bg: #2a2a2a;
             }
         }
 
+        /* Body hides horizontal overflow so the brutalist header doesn't cause page scrolling */
         body { background-color: var(--bg-color); color: var(--text-color); font-family: var(--font-main); margin: 0; padding: 0; line-height: 1.6; width: 100vw; overflow-x: hidden; }
         
-        /* Adjusted max-width to play nicely with Editor.js's natural centering */
-        #editorjs { max-width: 800px; width: 100%; margin: 0 auto; padding: calc(10vh + var(--safe-area-top)) 40px 65vh 40px; box-sizing: border-box; }
+        .app-container { max-width: 800px; width: 100%; margin: 0 auto; padding: calc(10vh + var(--safe-area-top)) 40px 65vh 40px; box-sizing: border-box; }
+        
+        #editorjs { padding: 0; max-width: 100%; box-sizing: border-box; transition: opacity 0.3s; min-height: 50vh; }
+        
         ::-webkit-scrollbar { width: 0px; background: transparent; }
         ::-webkit-scrollbar:horizontal { display: none; }
         svg { flex-shrink: 0; }
 
-        /* Give Editor.js blocks full width within the container, but leave the toolbar alone */
+        /* Editor.js Overrides */
+        .ce-block { position: relative; z-index: auto !important; } 
+        .ce-toolbar { z-index: 10000 !important; }
+        .ce-popover, .ce-settings, .tc-popover, .cdx-settings, .ce-tooltip { z-index: 10005 !important; }
         .ce-block__content { max-width: 100% !important; }
-
-        /* Remove weird overlays from pure flat theme */
         .ce-toolbar__plus, .ce-toolbar__settings-btn { background-color: var(--bg-color) !important; color: var(--text-color) !important; border: 1px solid transparent; }
         .ce-toolbar__plus:hover, .ce-toolbar__settings-btn:hover { background-color: var(--editor-hover-bg) !important; border-color: var(--border-color); }
         .ce-popover__overlay, .ce-popover-overlay, .cdx-overlay { background: var(--overlay-bg) !important; background-color: var(--overlay-bg) !important; box-shadow: none !important; backdrop-filter: none !important; }
-
-        /* Icon Standardizations */
         .ce-popover-item__icon svg { width: var(--std-icon-size) !important; height: var(--std-icon-size) !important; }
         .ce-popover-item__title { font-size: 14px !important; font-weight: 500 !important; }
 
         @media (prefers-color-scheme: dark) {
-            .ce-popover, .ce-popover__container, .ce-popover__panel, .ce-popover__items, .ce-inline-toolbar, .ce-conversion-toolbar, .ce-settings, .ce-tooltip, .tc-popover { background: var(--editor-toolbar-bg) !important; background-color: var(--editor-toolbar-bg) !important; border-color: var(--border-color) !important; box-shadow: none !important; }
+            .ce-popover, .ce-popover__container, .ce-popover__panel, .ce-popover__items, .ce-inline-toolbar, .ce-conversion-toolbar, .ce-settings, .ce-tooltip { background: var(--editor-toolbar-bg) !important; background-color: var(--editor-toolbar-bg) !important; border-color: var(--border-color) !important; box-shadow: none !important; }
+            .ce-tooltip { color: var(--text-color) !important; }
             .ce-popover-item, .ce-inline-tool, .ce-conversion-tool, .ce-settings__button { background-color: transparent !important; color: var(--text-color) !important; }
             .ce-popover-item__title { color: var(--text-color) !important; }
             .ce-popover-item:hover, .ce-inline-tool:hover, .ce-conversion-tool:hover, .ce-settings__button:hover { background-color: var(--editor-hover-bg) !important; }
@@ -94,172 +82,244 @@
             .cdx-search-field, .cdx-input { background-color: var(--muted-bg) !important; color: var(--text-color) !important; border: 1px solid var(--border-color) !important; box-shadow: none !important; }
             .cdx-search-field__icon { color: var(--muted-text) !important; }
             .ce-block--selected .ce-block__content { background-color: var(--editor-hover-bg) !important; }
-            ::selection { background: #444444 !important; color: #ffffff; }
-            
-            .tc-wrap, .tc-row::after, .tc-cell { border-color: var(--border-color) !important; }
-            .tc-cell { background-color: var(--bg-color) !important; color: var(--text-color) !important; }
-            .tc-row--heading .tc-cell { background-color: var(--editor-hover-bg) !important; color: var(--text-color) !important; }
-            .tc-add-column, .tc-add-row { background-color: var(--muted-bg) !important; border-color: var(--border-color) !important; color: var(--text-color) !important; }
-            .tc-add-column:hover, .tc-add-row:hover { background-color: var(--editor-hover-bg) !important; }
+            ::selection { background: var(--ai-color) !important; color: #ffffff; }
         }
-
-        .tc-wrap { overflow-x: auto; width: 100%; max-width: 100%; box-sizing: border-box; }
 
         @media (max-width: 650px) {
-            .ce-popover, .ce-settings, .ce-inline-toolbar {
-                bottom: var(--keyboard-offset, 0px) !important;
-                max-height: calc(100vh - var(--keyboard-offset, 0px) - 20px) !important;
-                transition: bottom 0.2s cubic-bezier(0.1, 0.7, 0.1, 1), max-height 0.2s ease;
-            }
+            .ce-popover, .ce-settings, .ce-inline-toolbar { bottom: var(--keyboard-offset, 0px) !important; max-height: calc(100vh - var(--keyboard-offset, 0px) - 20px) !important; transition: bottom 0.2s cubic-bezier(0.1, 0.7, 0.1, 1), max-height 0.2s ease; }
         }
 
-        /* --- STANDARDIZED Custom Tools Framework --- */
-        .custom-block-wrapper { margin: var(--std-margin); border-radius: var(--std-border-radius); border: 1px solid var(--border-color); background: var(--bg-color); box-sizing: border-box; width: 100%; overflow: hidden; position: relative; z-index: 1; }
-        .custom-block-wrapper svg { flex-shrink: 0; }
+        /* --- STYLISH BRUTALIST HEADER --- */
+        #date-header { 
+            text-align: left; 
+            font-size: clamp(60px, 18vw, 150px); 
+            font-weight: 900; 
+            font-style: italic; 
+            text-transform: uppercase; 
+            letter-spacing: -0.06em; 
+            line-height: 0.8; 
+            color: var(--text-color); 
+            margin: -20px 0 10px -25px; 
+            cursor: pointer; 
+            transition: opacity 0.2s; 
+            user-select: none; 
+            white-space: nowrap; 
+        }
+        #date-header:hover { opacity: 0.7; }
+        #date-header:active { opacity: 0.5; }
+        
+        #ai-status {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--ai-color);
+            margin-bottom: 40px;
+            opacity: 0.8;
+            padding-left: 4px;
+            height: 14px; /* Fixes layout jumping when empty */
+        }
 
-        /* General Button Styles */
+        .ce-block-time { font-size: 11px; color: var(--muted-text); text-align: right; padding-top: 6px; padding-bottom: 2px; padding-right: 2px; user-select: none; opacity: 0.7; font-weight: 500; }
+        
+        #loading-indicator { text-align: center; color: var(--muted-text); font-size: 14px; margin-top: 50px; font-weight: 500; }
+
         .cal-btn { padding: 8px 12px; background: transparent; border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-color); cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; }
         .cal-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
         .cal-btn:hover { background: var(--editor-hover-bg); }
         .cal-btn.primary { background: var(--text-color); color: var(--bg-color); border-color: var(--text-color); }
         .cal-btn.primary:hover { opacity: 0.9; }
-        .cal-btn.granted { background: #10B981; color: white; border-color: #10B981; }
 
-        /* Calendar Tool */
-        .cal-wrapper { padding: var(--std-padding); display: flex; flex-direction: column; gap: 12px; }
+        .tool-title-input { width: 100%; border: none; background: transparent; color: var(--text-color); font-size: 16px; font-weight: 600; outline: none; font-family: inherit; padding: 4px 0; margin-bottom: 8px; }
+        .tool-title-input::placeholder { color: var(--muted-text); font-weight: 500; opacity: 0.6; }
+
+        /* --- THE INVISIBLE AI INK --- */
+        .ai-text-block {
+            color: var(--ai-color);
+            font-style: italic;
+            font-weight: 500;
+            font-size: 16px;
+            line-height: 1.6;
+            outline: none;
+            padding: 8px 0;
+            white-space: pre-wrap;
+            border-left: 2px solid var(--ai-color);
+            padding-left: 14px;
+            margin-left: -16px;
+        }
+
+        /* --- UNIFIED DATE PICKER MODAL --- */
+        .global-calendar-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); z-index: 100000; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s ease; backdrop-filter: blur(2px); }
+        .global-calendar-modal.show { display: flex; opacity: 1; }
+        .cp-container { background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; width: 90%; max-width: 340px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); display: flex; flex-direction: column; gap: 12px; }
+        .cp-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
+        .cp-header button { background: var(--muted-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 6px; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .cp-header button:hover { background: var(--editor-hover-bg); }
+        .cp-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 12px; color: var(--muted-text); font-weight: 600; margin-bottom: 4px; }
+        .cp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .cp-day { padding: 8px 0; text-align: center; font-size: 14px; cursor: pointer; border-radius: 6px; color: var(--text-color); transition: background 0.1s; }
+        .cp-day:hover:not(.muted) { background: var(--editor-hover-bg); }
+        .cp-day.active { background: var(--text-color) !important; color: var(--bg-color) !important; font-weight: bold; }
+        .cp-day.muted { color: var(--border-color); pointer-events: none; opacity: 0.3; }
+        .cp-time { display: flex; justify-content: center; align-items: center; gap: 6px; padding-top: 16px; border-top: 1px solid var(--border-color); }
+        #dp-time-input { width: 100%; padding: 10px; font-size: 16px; text-align: center; border-radius: 6px; border: 1px solid var(--border-color); background: var(--muted-bg); color: var(--text-color); font-family: inherit; outline: none; }
+
+        /* --- COMPUTE BLOCK STYLES --- */
+        .compute-tool-container { border: 1px solid var(--border-color); border-radius: var(--std-border-radius); background: var(--muted-bg); overflow: hidden; margin: 8px 0; display: flex; flex-direction: column; }
+        .compute-input { width: 100%; padding: 16px 16px 12px 16px; background: transparent; border: none; outline: none; font-family: monospace; font-size: 14px; color: var(--text-color); resize: none; box-sizing: border-box; line-height: 1.5; min-height: 50px; font-weight: bold; }
+        .compute-input::placeholder { color: var(--muted-text); opacity: 0.5; font-weight: normal; }
+        .compute-output { padding: 12px 16px; border-top: 1px dashed var(--border-color); font-family: monospace; font-size: 16px; font-weight: 700; color: var(--text-color); background: var(--bg-color); word-break: break-word; min-height: 20px; }
+        .compute-error { color: #EF4444; font-weight: 400; font-size: 13px; }
+
+        /* --- SCAN BLOCK STYLES --- */
+        .scan-wrapper { margin: 8px 0; width: 100%; border: 1px dashed var(--border-color); border-radius: var(--std-border-radius); display: flex; flex-direction: column; overflow: hidden; }
+        .scan-action-area { padding: 30px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; cursor: pointer; transition: background 0.2s; }
+        .scan-action-area:hover { background: var(--editor-hover-bg); }
+        .scan-icon { color: var(--muted-text); }
+        .scan-icon svg { width: 32px; height: 32px; }
+        .scan-label { font-size: 14px; font-weight: 600; color: var(--text-color); letter-spacing: 1px; }
+        .scan-status { font-family: monospace; font-size: 12px; font-weight: bold; color: var(--muted-text); margin-top: 10px; }
+        .scan-output-textarea { width: 100%; min-height: 100px; padding: 16px; border: none; background: var(--muted-bg); color: var(--text-color); font-family: monospace; font-size: 13px; line-height: 1.5; resize: none; outline: none; box-sizing: border-box; }
+
+        /* --- RECALL BLOCK STYLES --- */
+        .recall-search-wrapper { position: relative; width: 100%; margin: 8px 0; }
+        .recall-search-input { width: 100%; padding: 12px 14px 12px 40px; border-radius: var(--std-border-radius); border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); font-family: inherit; font-size: 15px; outline: none; box-sizing: border-box; transition: border-color 0.2s; }
+        .recall-search-input:focus { border-color: var(--text-color); }
+        .recall-search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--muted-text); }
+        .recall-dropdown { position: absolute; top: 100%; left: 0; width: 100%; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: var(--std-border-radius); margin-top: 4px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); z-index: 1000; max-height: 250px; overflow-y: auto; display: none; }
+        .recall-dropdown.active { display: block; }
+        .recall-result-item { padding: 12px 14px; cursor: pointer; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 4px; }
+        .recall-result-item:last-child { border-bottom: none; }
+        .recall-result-item:hover { background: var(--editor-hover-bg); }
+        .recall-result-meta { font-size: 11px; color: var(--text-color); font-weight: 600; opacity: 0.7; }
+        .recall-result-snippet { font-size: 14px; color: var(--muted-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        .recalled-block { margin: 8px 0; padding: 12px 16px; background: var(--recall-bg); border-left: 4px solid var(--recall-border); border-radius: 4px var(--std-border-radius) var(--std-border-radius) 4px; position: relative; }
+        .recalled-orig-meta { font-size: 10px; color: var(--muted-text); font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+        .recalled-orig-meta svg { width: 12px; height: 12px; }
+
+        /* Other Plugin Tool Styles */
+        .calendar-tool-container { display: flex; flex-direction: column; gap: 12px; width: 100%; margin: 8px 0; }
         .cal-header { display: flex; align-items: center; gap: 10px; }
-        .cal-header svg { color: var(--text-color); }
-        .cal-title { flex-grow: 1; border: none; background: transparent; color: var(--text-color); font-size: 16px; font-weight: 500; outline: none; font-family: inherit; }
-        .cal-display-btn { border: 1px solid var(--border-color); background: var(--muted-bg); color: var(--text-color); border-radius: 6px; padding: 8px 12px; font-family: inherit; font-size: 14px; outline: none; cursor: pointer; text-align: left; display: flex; align-items: center; justify-content: space-between; }
-        .cal-display-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+        .cal-header svg { color: var(--muted-text); }
+        .cal-title { flex-grow: 1; border: none; background: transparent; color: var(--text-color); font-size: 18px; font-weight: 600; outline: none; font-family: inherit; }
+        .cal-display-btn { border: 1px solid var(--border-color); background: var(--muted-bg); color: var(--text-color); border-radius: 6px; padding: 10px 14px; font-family: inherit; font-size: 14px; outline: none; cursor: pointer; text-align: left; display: flex; align-items: center; justify-content: space-between; }
         .cal-display-btn:hover { background: var(--editor-hover-bg); }
         .cal-actions { display: flex; gap: 8px; flex-wrap: wrap; }
         .cal-actions .cal-btn { flex: 1; min-width: 130px; }
-        
-        .cp-container { border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; background: var(--bg-color); margin-top: 4px; display: none; }
-        .cp-container.open { display: block; animation: fadeIn 0.2s ease; }
-        .cp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: bold; }
-        .cp-header button { background: var(--muted-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px; width: 28px; height: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
-        .cp-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 11px; color: var(--muted-text); margin-bottom: 4px; font-weight: 600; }
-        .cp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
-        .cp-day { padding: 6px 0; text-align: center; font-size: 13px; cursor: pointer; border-radius: 4px; color: var(--text-color); }
-        .cp-day:hover { background: var(--editor-hover-bg); }
-        .cp-day.active { background: var(--text-color); color: var(--bg-color); font-weight: bold; }
-        .cp-day.muted { color: var(--border-color); pointer-events: none; }
-        
-        .cp-time { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color); }
-        .cp-time input, .cp-time select { background: var(--muted-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px; padding: 4px 8px; font-family: inherit; font-size: 14px; outline: none; }
-        .cp-time input[type="number"] { width: 48px; text-align: center; -moz-appearance: textfield; }
-        .cp-time input::-webkit-outer-spin-button, .cp-time input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
-        /* Voice Memo */
-        .v-memo { padding: var(--std-padding); display: flex; align-items: center; gap: 12px; }
+        .voice-tool-container { display: flex; align-items: center; gap: 12px; margin: 8px 0; }
         .v-memo__btn { width: var(--std-control-height); height: var(--std-control-height); border-radius: 50%; border: 1px solid var(--border-color); background: var(--muted-bg); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-color); flex-shrink: 0; min-width: var(--std-control-height); transition: all 0.2s; }
-        .v-memo__btn svg { width: 16px; height: 16px; } 
         .v-memo__btn:hover { background: var(--editor-hover-bg); }
         .v-memo__btn.recording { color: #ffffff; border-color: #ef4444; background: #ef4444; animation: pulse 1.5s infinite; }
         .v-memo__btn.playing { color: #ffffff; border-color: #3B82F6; background: #3B82F6; }
-        .v-memo__status { font-size: 14px; color: var(--muted-text); flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+        .v-memo__title { flex-grow: 1; border: none; background: transparent; color: var(--text-color); font-size: 15px; font-weight: 600; outline: none; font-family: inherit; min-width: 0; }
+        .v-memo__status { font-size: 13px; color: var(--muted-text); white-space: nowrap; font-weight: 500; }
         
-        /* --- SMART CANVAS & DRAWING SYSTEM --- */
-        .smart-canvas-selector { display: flex; gap: 12px; padding: 24px; justify-content: center; flex-wrap: wrap; }
+        .smart-canvas-selector { display: flex; gap: 12px; padding: 12px 0; justify-content: center; flex-wrap: wrap; }
         .smart-canvas-option { flex: 1; min-width: 100px; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 24px 10px; border: 1px dashed var(--border-color); border-radius: 8px; background: transparent; color: var(--text-color); cursor: pointer; transition: all 0.2s; font-size: 13px; font-weight: 500; font-family: inherit; }
         .smart-canvas-option:hover { background: var(--editor-hover-bg); border-style: solid; }
         .smart-canvas-option svg { width: 32px; height: 32px; color: var(--muted-text); transition: color 0.2s; }
         .smart-canvas-option:hover svg { color: var(--text-color); }
-
+        
+        .canvas-relative-frame { position: relative; width: 100%; border-radius: var(--std-border-radius); border: 1px solid var(--border-color); overflow: hidden; margin: 8px 0; }
         .block-controls-stack { position: absolute; top: 10px; left: 10px; display: flex; flex-direction: column; gap: 8px; z-index: 401 !important; }
         .canvas-action-btn { width: 32px; height: 32px; border-radius: 6px; background: var(--editor-toolbar-bg); border: 1px solid var(--border-color); color: var(--text-color); cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0.8; transition: all 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.15); }
         .canvas-action-btn:hover { opacity: 1; background: var(--editor-hover-bg); }
         .canvas-action-btn.active { background: var(--text-color); color: var(--bg-color); opacity: 1; border-color: var(--text-color); }
-        .canvas-action-btn svg { width: 16px; height: 16px; }
-
-        /* Force background color so Blank Canvas mode inherits native flat theme */
-        .leaflet-container { background: var(--bg-color) !important; z-index: 1 !important; width: 100%; height: 400px; border-radius: var(--std-border-radius); overflow: hidden; }
-
-        /* Map Interactive Cursors */
-        .leaflet-container.drawing-mode, .leaflet-container.drawing-mode .leaflet-interactive { cursor: crosshair !important; }
+        
+        .leaflet-container { background: var(--bg-color) !important; z-index: 1 !important; width: 100%; height: 400px; border: none; }
+        .leaflet-container.drawing-mode, .leaflet-container.drawing-mode .leaflet-interactive { cursor: crosshair !important; touch-action: none; }
         .leaflet-container.locked-mode { cursor: default !important; }
 
-        /* Ensure Editor.js UI escapes canvas z-indexes */
-        .ce-toolbar { z-index: 10000 !important; }
-        .ce-popover, .ce-settings, .tc-popover, .cdx-settings { z-index: 10001 !important; }
-
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-    <div id="editorjs"></div>
+    <div class="app-container">
+        <!-- The Brutalist Header -->
+        <div id="date-header"></div>
+        <div id="ai-status"></div>
+        <div id="loading-indicator">Initializing Local Database...</div>
+        <div id="editorjs" style="opacity: 0;"></div>
+    </div>
 
-    <script>
-        // Prevent benign ResizeObserver errors
-        window.addEventListener('error', function(e) {
-            if (e.message === 'ResizeObserver loop limit exceeded' || e.message === 'ResizeObserver loop completed with undelivered notifications.') {
-                e.stopImmediatePropagation();
+    <!-- UI Modal -->
+    <div id="global-calendar-modal" class="global-calendar-modal">
+        <div class="cp-container" onclick="event.stopPropagation()">
+            <div class="cp-header">
+                <button id="dp-prev"><</button>
+                <span id="dp-month-label">Month Year</span>
+                <button id="dp-next">></button>
+            </div>
+            <div class="cp-weekdays">
+                <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+            </div>
+            <div id="dp-grid" class="cp-grid"></div>
+            <div id="dp-time-section" class="cp-time" style="display: none;">
+                <input type="time" id="dp-time-input" required>
+            </div>
+            <div style="margin-top: 12px; display: flex; gap: 8px;">
+                <button id="dp-today-btn" class="cal-btn" style="flex: 1;">Today</button>
+                <button id="dp-confirm-btn" class="cal-btn primary" style="flex: 1;">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP SCRIPT -->
+    <script type="module">
+        // ============================================================================
+        // ⚙️ INFINITE NOTES CONFIGURATION
+        // ============================================================================
+        const CONFIG = {
+            DATABASE_MODE: 'indexedDB',
+            PWA_LOGO_URL: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzAwMDAwMCI+PHBhdGggZD0iTTE0IDJINmEyIDIgMCAwIDAtMiAydjE2YTIgMiAwIDAgMCAyIDJoMTJhMiAyIDAgMCAwIDItMlY4bC02LTZ6Ii8+PC9zdmc+",
+            
+            // 🤖 THE INVISIBLE COLLABORATOR CONFIG
+            AI_CO_PILOT: {
+                name: "", // Leave blank for a random name (e.g. "Cipher")
+                persona: "", // Leave blank for a random unpredictable personality
+                canEditYourWork: true // If true, the AI might unpredictably overwrite your blocks!
             }
-        });
+        };
 
-        const STORAGE_KEY = 'ultimate_notes_pure_flat_v11';
+        // --- AI Persona Generation ---
+        const NAMES = ["Echo", "Void", "Cipher", "Atlas", "Sparks", "Orion", "Sage", "Nox", "Glitch"];
+        const PERSONAS = [
+            "You are a sarcastic pragmatist who gives painfully honest, brief answers.",
+            "You are a cryptic philosopher. You answer questions with metaphors and deep insights.",
+            "You are hyper-logical, cold, and highly analytical. You use exact logic.",
+            "You are highly erratic, enthusiastic, and prone to going on fascinating tangents.",
+            "You are a minimalist. You answer with as few words as absolutely possible."
+        ];
+        
+        if (!sessionStorage.getItem('ai_name')) {
+            sessionStorage.setItem('ai_name', CONFIG.AI_CO_PILOT.name || NAMES[Math.floor(Math.random() * NAMES.length)]);
+            sessionStorage.setItem('ai_persona', CONFIG.AI_CO_PILOT.persona || PERSONAS[Math.floor(Math.random() * PERSONAS.length)]);
+        }
+        
+        const aiName = sessionStorage.getItem('ai_name');
+        const aiPersona = sessionStorage.getItem('ai_persona');
 
-        // --- PWA Setup ---
-        const pwaManifest = {
-            "name": "Infinite Notes",
-            "short_name": "Notes",
-            "start_url": ".",
-            "display": "standalone",
+        // Note: The UI status indicator stays quiet until invoked.
+        document.getElementById('ai-status').textContent = `Collaborator: @${aiName} (Sleeping)`;
+
+        // --- Apply Global Configurations ---
+        document.getElementById('pwa-icon').href = CONFIG.PWA_LOGO_URL;
+        document.getElementById('pwa-manifest').href = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify({
+            "name": "Infinite Notes", "short_name": "Notes", "start_url": ".", "display": "standalone",
             "background_color": window.matchMedia('(prefers-color-scheme: dark)').matches ? "#121212" : "#ffffff",
             "theme_color": window.matchMedia('(prefers-color-scheme: dark)').matches ? "#121212" : "#ffffff",
-            "icons": [{
-                "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzAwMDAwMCI+PHBhdGggZD0iTTE0IDJINmEyIDIgMCAwIDAtMiAydjE2YTIgMiAwIDAgMCAyIDJoMTJhMiAyIDAgMCAwIDItMlY4bC02LTZ6Ii8+PC9zdmc+",
-                "sizes": "192x192",
-                "type": "image/svg+xml"
-            }]
-        };
-        document.getElementById('pwa-manifest').setAttribute('href', 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify(pwaManifest)));
+            "icons": [{"src": CONFIG.PWA_LOGO_URL, "sizes": "192x192", "type": "image/svg+xml"}]
+        }));
 
-        if ('serviceWorker' in navigator) {
-            const swCode = `
-                const CACHE_NAME = 'infinite-notes-cache-v7';
-                const ASSETS = [ location.href.split('#')[0].split('?')[0] ];
-                self.addEventListener('install', (e) => { self.skipWaiting(); e.waitUntil(caches.open(CACHE_NAME).then((cache) => Promise.allSettled(ASSETS.map(url => cache.add(url))))); });
-                self.addEventListener('activate', (e) => { e.waitUntil(self.clients.claim()); });
-                self.addEventListener('fetch', (e) => {
-                    if (e.request.method !== 'GET') return;
-                    e.respondWith(caches.match(e.request).then((cached) => cached || fetch(e.request).then((response) => {
-                        if (response.status === 200) caches.open(CACHE_NAME).then((cache) => cache.put(e.request, response.clone()));
-                        return response;
-                    }).catch(() => console.warn('Fetch failed:', e.request.url))));
-                });
-            `;
-            try { navigator.serviceWorker.register(URL.createObjectURL(new Blob([swCode], { type: 'application/javascript' }))).catch(e => console.log('SW Registration gracefully skipped in this environment.')); } catch (e) { }
-        }
+        window.addEventListener('error', function(e) { if (e.message.includes('ResizeObserver')) e.stopImmediatePropagation(); });
 
         if (window.visualViewport) {
-            const updateKeyboardOffset = () => {
-                const safeOffset = Math.max(0, window.innerHeight - window.visualViewport.height);
-                document.documentElement.style.setProperty('--keyboard-offset', `${safeOffset}px`);
-                if (safeOffset > 100) setTimeout(() => { const activeBlock = document.querySelector('.ce-block--focused'); if (activeBlock) activeBlock.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 150);
-            };
-            window.visualViewport.addEventListener('resize', updateKeyboardOffset);
-            window.visualViewport.addEventListener('scroll', updateKeyboardOffset);
-            updateKeyboardOffset();
+            const updateKeyboardOffset = () => { document.documentElement.style.setProperty('--keyboard-offset', `${Math.max(0, window.innerHeight - window.visualViewport.height)}px`); };
+            window.visualViewport.addEventListener('resize', updateKeyboardOffset); updateKeyboardOffset();
         }
-
-        const NotificationEngine = {
-            timers: new Map(),
-            schedule: function(blockId, datetime, title, callback) {
-                this.cancel(blockId);
-                if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
-                const delay = new Date(datetime).getTime() - Date.now();
-                if (delay > 0) {
-                    const tid = setTimeout(() => { new Notification('Note Reminder', { body: title || 'Scheduled Event Reached' }); if (callback) callback(); this.timers.delete(blockId); }, delay);
-                    this.timers.set(blockId, tid);
-                }
-            },
-            cancel: function(blockId) { if (this.timers.has(blockId)) { clearTimeout(this.timers.get(blockId)); this.timers.delete(blockId); } }
-        };
 
         const ICONS = {
             mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>',
@@ -267,7 +327,6 @@
             play: '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>',
             pause: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect></svg>',
             image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>',
-            trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>',
             download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>',
             lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>',
             unlock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>',
@@ -276,80 +335,443 @@
             bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>',
             canvas: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg>',
             map: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>',
-            pen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>'
+            pen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>',
+            search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>',
+            recall: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline><polyline points="12 7 12 12 15 15"></polyline></svg>',
+            scan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h3"></path><path d="M20 7V4h-3"></path><path d="M4 17v3h3"></path><path d="M20 17v3h-3"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>',
+            compute: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 10 14 13 8 18 8"></polyline><circle cx="20" cy="8" r="2"></circle><circle cx="2" cy="14" r="2"></circle></svg>'
         };
 
         function createEl(tag, classNames = '', attributes = {}, children = []) {
-            const el = document.createElement(tag);
-            if (classNames) el.className = classNames;
-            for (const [key, val] of Object.entries(attributes)) {
-                if (key === 'innerHTML') el.innerHTML = val;
-                else if (key === 'textContent') el.textContent = val;
-                else if (key === 'style') el.style.cssText = val;
-                else el.setAttribute(key, val);
-            }
-            children.forEach(c => c && el.append(c));
-            return el;
+            const el = document.createElement(tag); if (classNames) el.className = classNames;
+            for (const [k, v] of Object.entries(attributes)) { if (k === 'innerHTML') el.innerHTML = v; else if (k === 'textContent') el.textContent = v; else if (k === 'style') el.style.cssText = v; else el.setAttribute(k, v); }
+            children.forEach(c => c && el.append(c)); return el;
         }
 
-        // ============================================================================
-        // UNIFIED SMART CANVAS TOOL (All modes powered entirely by Leaflet Native)
-        // ============================================================================
-        class SmartCanvasTool {
-            static get toolbox() { return { title: 'Media Canvas', icon: ICONS.pen }; }
+        const NotificationEngine = {
+            timers: new Map(),
+            schedule: function(id, dt, title) {
+                this.cancel(id); if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+                const delay = new Date(dt).getTime() - Date.now();
+                if (delay > 0) this.timers.set(id, setTimeout(() => { new Notification('Note Reminder', { body: title || 'Scheduled Event Reached' }); this.timers.delete(id); }, delay));
+            },
+            cancel: function(id) { if (this.timers.has(id)) { clearTimeout(this.timers.get(id)); this.timers.delete(id); } }
+        };
 
-            constructor({data, api}) {
-                this.api = api;
-                this.data = {
-                    mode: data.mode || null, // 'map', 'image', 'blank'
-                    lat: data.lat || 51.505,
-                    lng: data.lng || -0.09,
-                    zoom: data.zoom || 13,
-                    isLocked: data.isLocked !== undefined ? data.isLocked : false,
-                    baseImage: data.baseImage || null,
-                    imgWidth: data.imgWidth || null,
-                    imgHeight: data.imgHeight || null,
-                    hasInitializedView: data.hasInitializedView || false,
-                    lines: data.lines || [], // Vector drawing data
-                    isDrawingActive: data.isDrawingActive || false,
-                    hasGeolocated: data.hasGeolocated || false
-                };
-                
-                this.wrapper = createEl('div', 'custom-block-wrapper');
-                this.controls = createEl('div', 'block-controls-stack');
-                
-                this.currentColor = '#EF4444';
-                this.lineLayers = []; // Keep track of rendered Leaflet polylines
-                this.currentPolyline = null;
-                this.currentPoints = [];
+        function getLocalYYYYMMDD(date) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; }
+
+        // ============================================================================
+        // DATABASE ADAPTER SYSTEM
+        // ============================================================================
+        class IndexedDBAdapter {
+            constructor() { this.dbName = 'InfiniteNotesDB'; this.storeName = 'daily_notes'; this.cache = {}; }
+            init() {
+                return new Promise((resolve, reject) => {
+                    const req = indexedDB.open(this.dbName, 1);
+                    req.onupgradeneeded = (e) => { e.target.result.createObjectStore(this.storeName); };
+                    req.onsuccess = (e) => { this.db = e.target.result; this.loadAll().then(data => { this.cache = data; resolve(); }); };
+                    req.onerror = reject;
+                });
+            }
+            save(dateStr, data) { this.cache[dateStr] = data; const tx = this.db.transaction(this.storeName, 'readwrite'); tx.objectStore(this.storeName).put(data, dateStr); }
+            loadAll() {
+                return new Promise(resolve => {
+                    const tx = this.db.transaction(this.storeName, 'readonly'); const store = tx.objectStore(this.storeName);
+                    const valReq = store.getAll(); const keyReq = store.getAllKeys();
+                    tx.oncomplete = () => { const result = {}; keyReq.result.forEach((key, i) => result[key] = valReq.result[i]); resolve(result); };
+                });
+            }
+        }
+
+        let appDB = new IndexedDBAdapter();
+
+        // ============================================================================
+        // GLOBAL UI: DATE PICKER MODAL
+        // ============================================================================
+        const DatePicker = (function() {
+            let activeDate, viewDate, onConfirm, config;
+            const modal = document.getElementById('global-calendar-modal');
+            const elements = { grid: document.getElementById('dp-grid'), label: document.getElementById('dp-month-label'), timeSec: document.getElementById('dp-time-section'), timeInput: document.getElementById('dp-time-input') };
+
+            function render() {
+                const year = viewDate.getFullYear(), month = viewDate.getMonth();
+                elements.label.textContent = viewDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+                elements.grid.innerHTML = '';
+                if (config.showTime) { elements.timeSec.style.display = 'block'; elements.timeInput.value = `${String(activeDate.getHours()).padStart(2, '0')}:${String(activeDate.getMinutes()).padStart(2, '0')}`; } 
+                else { elements.timeSec.style.display = 'none'; }
+                for (let i = 0; i < new Date(year, month, 1).getDay(); i++) elements.grid.appendChild(createEl('div', 'cp-day muted', {style: "opacity: 0"}));
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const todayStr = getLocalYYYYMMDD(new Date());
+
+                for (let i = 1; i <= daysInMonth; i++) {
+                    const dayEl = createEl('div', 'cp-day', { textContent: i });
+                    const cellDateObj = new Date(year, month, i); const cellDateStr = getLocalYYYYMMDD(cellDateObj);
+
+                    if (year === activeDate.getFullYear() && month === activeDate.getMonth() && i === activeDate.getDate()) dayEl.classList.add('active');
+                    if (cellDateStr === todayStr) { dayEl.style.borderBottom = "2px solid var(--text-color)"; dayEl.style.borderRadius = "4px 4px 0 0"; }
+
+                    let isMuted = false;
+                    if (config.disableFuture && cellDateStr > todayStr) isMuted = true;
+                    if (config.disablePast && cellDateStr < todayStr) isMuted = true;
+                    if (config.onlyNotes && cellDateStr !== todayStr) { if (!appDB.cache[cellDateStr] || !appDB.cache[cellDateStr].blocks || appDB.cache[cellDateStr].blocks.length === 0) isMuted = true; }
+
+                    if (isMuted) { dayEl.classList.add('muted'); } 
+                    else {
+                        dayEl.onclick = () => { activeDate.setFullYear(year, month, i); render(); };
+                        if (!config.showTime && appDB.cache[cellDateStr] && appDB.cache[cellDateStr].blocks?.length > 0 && cellDateStr !== todayStr) {
+                            dayEl.style.fontWeight = "bold"; dayEl.style.textDecoration = "underline"; dayEl.style.textUnderlineOffset = "4px"; dayEl.style.textDecorationColor = "var(--border-color)";
+                        }
+                    }
+                    elements.grid.appendChild(dayEl);
+                }
+            }
+
+            document.getElementById('dp-prev').onclick = () => { viewDate.setMonth(viewDate.getMonth() - 1); render(); };
+            document.getElementById('dp-next').onclick = () => { viewDate.setMonth(viewDate.getMonth() + 1); render(); };
+            document.getElementById('dp-today-btn').onclick = () => { activeDate = new Date(); viewDate = new Date(activeDate); render(); };
+            document.getElementById('dp-confirm-btn').onclick = () => {
+                if (config.showTime) {
+                    const timeVal = elements.timeInput.value;
+                    if (timeVal) { const [h, m] = timeVal.split(':'); activeDate.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0); }
+                    if (config.disablePast && activeDate < new Date()) activeDate = new Date(); 
+                }
+                modal.classList.remove('show'); setTimeout(() => modal.style.display = 'none', 200);
+                if (onConfirm) onConfirm(new Date(activeDate));
+            };
+            modal.addEventListener('click', (e) => { if (e.target.id === 'global-calendar-modal') { modal.classList.remove('show'); setTimeout(() => modal.style.display = 'none', 200); } });
+
+            return {
+                open: function(initialDateObj, callback, options = {}) {
+                    activeDate = new Date(initialDateObj); viewDate = new Date(activeDate); onConfirm = callback;
+                    config = { showTime: options.showTime || false, disableFuture: options.disableFuture || false, disablePast: options.disablePast || false, onlyNotes: options.onlyNotes || false };
+                    render(); modal.style.display = 'flex'; void modal.offsetWidth; modal.classList.add('show');
+                }
+            };
+        })();
+
+        // ============================================================================
+        // EDITOR.JS PLUGINS (Safe Tool Registry)
+        // ============================================================================
+
+        window.ToolRegistry = {}; // Filled dynamically at bottom of script
+
+        // 1. The Invisible AI Ink Block
+        // Notice there is NO `static get toolbox()` so this is hidden from the UI menu
+        class AiTextTool {
+            constructor({data, api, readOnly}) {
+                this.api = api; this.readOnly = readOnly;
+                this.data = { text: data.text || '', streamId: data.streamId || '' };
+                this.wrapper = createEl('div', 'ai-text-block');
+                if (!this.readOnly) this.wrapper.contentEditable = true;
+                if (this.data.streamId) this.wrapper.id = this.data.streamId;
+                this.wrapper.innerHTML = this.data.text;
+            }
+            render() { return this.wrapper; }
+            save() { return { text: this.wrapper.innerHTML, streamId: null }; } 
+        }
+
+        // 2. The Scan Tool (Local OCR)
+        class ScanTool {
+            static get toolbox() { return { title: 'Scan Text', icon: ICONS.scan }; }
+            constructor({data, config, readOnly}) {
+                this.config = config; this.readOnly = readOnly;
+                this.data = { text: data.text || '' };
+                this.wrapper = createEl('div', 'scan-wrapper');
+            }
+            render() {
+                this.wrapper.innerHTML = '';
+                if (this.data.text) {
+                    this.input = createEl('textarea', 'scan-output-textarea', { value: this.data.text });
+                    if (this.readOnly) {
+                        this.input.readOnly = true;
+                        this.input.style.background = 'transparent';
+                        this.wrapper.style.border = 'none';
+                        this.wrapper.style.borderLeft = '4px solid var(--border-color)';
+                        this.wrapper.style.borderRadius = '0';
+                    } else {
+                        this.input.addEventListener('input', (e) => { this.data.text = e.target.value; this.adjustHeight(); if(this.config.onChange) this.config.onChange(); });
+                    }
+                    this.wrapper.appendChild(this.input);
+                    setTimeout(() => this.adjustHeight(), 0);
+                } else if (!this.readOnly) {
+                    this.actionArea = createEl('div', 'scan-action-area');
+                    const icon = createEl('div', 'scan-icon', {innerHTML: ICONS.scan});
+                    const label = createEl('div', 'scan-label', {textContent: 'SCAN DOCUMENT'});
+                    this.status = createEl('div', 'scan-status');
+                    this.fileInput = createEl('input', '', { type: 'file', accept: 'image/*', capture: 'environment', style: 'display: none;' });
+                    this.actionArea.onclick = () => this.fileInput.click();
+                    this.fileInput.onchange = (e) => this.handleScan(e.target.files[0]);
+                    this.actionArea.append(icon, label, this.status);
+                    this.wrapper.append(this.actionArea, this.fileInput);
+                } else {
+                    this.wrapper.innerHTML = '<div style="padding: 12px; color: var(--muted-text); font-size: 13px;">Empty Scan Block</div>';
+                }
+                return this.wrapper;
+            }
+            adjustHeight() { if (this.input) { this.input.style.height = 'auto'; this.input.style.height = (this.input.scrollHeight) + 'px'; } }
+            async handleScan(file) {
+                if (!file) return;
+                this.actionArea.onclick = null; this.actionArea.style.cursor = 'default';
+                this.actionArea.querySelector('.scan-icon').style.display = 'none';
+                this.actionArea.querySelector('.scan-label').style.display = 'none';
+                this.status.textContent = 'INITIALIZING OCR...';
+                try {
+                    if (typeof Tesseract === 'undefined') {
+                        await new Promise((resolve, reject) => {
+                            const script = document.createElement('script');
+                            script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+                            script.onload = resolve; script.onerror = reject;
+                            document.head.appendChild(script);
+                        });
+                    }
+                    const worker = await Tesseract.createWorker('eng', 1, { logger: m => { if(m.status === 'recognizing text') this.status.textContent = `ANALYZING: ${Math.round(m.progress * 100)}%`; } });
+                    const { data: { text } } = await worker.recognize(file);
+                    await worker.terminate();
+                    this.data.text = text.trim(); this.render(); if(this.config.onChange) this.config.onChange();
+                } catch(e) {
+                    this.status.textContent = 'SCAN FAILED. TRY AGAIN.';
+                    this.actionArea.onclick = () => this.fileInput.click(); this.actionArea.style.cursor = 'pointer';
+                }
+            }
+            save() { return this.data; }
+        }
+
+        // 3. The Compute (REPL) Tool - PROXY MAGIC
+        class ComputeTool {
+            static get toolbox() { return { title: 'Compute Logic', icon: ICONS.compute }; }
+
+            constructor({data, config, readOnly}) {
+                this.config = config; this.readOnly = readOnly;
+                this.data = { code: data.code || '', output: data.output || '' };
+                this.wrapper = createEl('div', 'compute-tool-container');
             }
 
             render() {
-                this.wrapper.innerHTML = ''; 
+                this.wrapper.innerHTML = '';
+                this.input = createEl('textarea', 'compute-input', { placeholder: 'Type logic: 10 * 4 or groceries / 2...', value: this.data.code });
+                if (this.readOnly) this.input.readOnly = true;
+                
+                this.output = createEl('div', 'compute-output', { innerHTML: this.data.output });
+                const adjustHeight = () => { this.input.style.height = 'auto'; this.input.style.height = (this.input.scrollHeight) + 'px'; };
+                setTimeout(adjustHeight, 0);
 
-                if (!this.data.mode) {
-                    this.renderSelector();
-                } else {
-                    this.wrapper.appendChild(this.controls);
-                    this.renderUniversalCanvas();
-                    this.buildControls();
+                let evalTimeout;
+                this.input.addEventListener('input', (e) => {
+                    adjustHeight();
+                    this.data.code = e.target.value;
+                    clearTimeout(evalTimeout);
+                    evalTimeout = setTimeout(() => this.evaluateLogic(), 400); 
+                });
+
+                this.wrapper.append(this.input, this.output); return this.wrapper;
+            }
+
+            async evaluateLogic() {
+                if (!this.data.code.trim()) { this.output.innerHTML = ''; this.data.output = ''; if(this.config.onChange) this.config.onChange(); return; }
+
+                const find = (query) => {
+                    let results = []; const q = query.toLowerCase();
+                    Object.values(appDB.cache).forEach(day => {
+                        if (!day.blocks) return;
+                        day.blocks.forEach(b => {
+                            if (b.type === 'compute' || b.type === 'recall' || b.type === 'aiText') return; 
+                            let text = JSON.stringify(b.data).toLowerCase();
+                            if (text.includes(q)) {
+                                if (b.data.text) results.push(b.data.text.replace(/<[^>]*>?/gm, ''));
+                                else if (b.data.items) results.push(...b.data.items.map(i=>i.content.replace(/<[^>]*>?/gm, '')));
+                                else if (b.data.title) results.push(b.data.title);
+                            }
+                        });
+                    });
+                    return results;
+                };
+
+                const nums = (query) => {
+                    let texts = find(query); let numbers = [];
+                    texts.forEach(t => { let matches = t.match(/-?\d+(\.\d+)?/g); if (matches) numbers.push(...matches.map(Number)); });
+                    return numbers;
+                };
+
+                const sum = (query) => nums(query).reduce((a,b)=>a+b, 0);
+                const avg = (query) => { let n = nums(query); return n.length ? sum(query)/n.length : 0; };
+
+                const allowed = { Math, Date, Number, String, Array, sum, avg, nums, find };
+                const ctx = new Proxy({}, {
+                    has: () => true, 
+                    get: (target, prop) => {
+                        if (prop === Symbol.unscopables) return undefined;
+                        if (prop in allowed) return allowed[prop];
+                        if (typeof prop === 'string') return sum(prop.toLowerCase());
+                        return undefined;
+                    }
+                });
+
+                try {
+                    let codeText = this.data.code;
+                    const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+                    const fn = new AsyncFunction('ctx', `with (ctx) { return eval(${JSON.stringify(codeText)}); }`);
+                    const result = await fn(ctx);
+                    
+                    if (result === undefined || result === null || Number.isNaN(result)) { 
+                        this.output.innerHTML = ''; this.data.output = ''; 
+                    } else if (this.isNumberArray(result)) {
+                        this.data.output = this.generateSparkline(result);
+                        this.output.innerHTML = this.data.output;
+                        this.output.classList.remove('compute-error');
+                    } else {
+                        this.data.output = typeof result === 'object' ? JSON.stringify(result) : String(result);
+                        this.output.innerHTML = this.data.output;
+                        this.output.classList.remove('compute-error');
+                    }
+                } catch(e) {
+                    this.data.output = `<span class="compute-error">${e.message}</span>`;
+                    this.output.innerHTML = this.data.output;
                 }
+                if(this.config.onChange) this.config.onChange();
+            }
+            isNumberArray(arr) { return Array.isArray(arr) && arr.length >= 2 && arr.every(n => typeof n === 'number' && !isNaN(n)); }
+            generateSparkline(data) {
+                const min = Math.min(...data); const max = Math.max(...data); const range = (max - min) || 1;
+                const width = 100, height = 40;
+                const points = data.map((val, i) => { const x = (i / (data.length - 1)) * width; const y = height - ((val - min) / range) * height; return `${x},${y}`; }).join(' ');
+                return `<div style="font-size: 11px; color: var(--muted-text); margin-bottom: 4px; font-weight: normal;">Array: [${data.join(', ')}]</div>
+                    <svg viewBox="0 -5 100 50" style="width: 100%; height: 60px; overflow: visible;" preserveAspectRatio="none">
+                    <polyline fill="none" stroke="var(--text-color)" stroke-width="2" points="${points}"></polyline>
+                    <circle cx="100" cy="${height - ((data[data.length - 1] - min) / range) * height}" r="3" fill="#EF4444"></circle></svg>`;
+            }
+            save() { return this.data; }
+        }
 
+        // 4. The Recall Tool 
+        class RecallTool {
+            static get toolbox() { return { title: 'Recall', icon: ICONS.recall }; }
+
+            constructor({data, config, api, readOnly}) {
+                this.api = api; this.config = config; this.readOnly = readOnly;
+                this.data = data && data.recalled ? data : { recalled: false, sourceDate: null, sourceTime: null, sourceBlock: null };
+                this.wrapper = createEl('div');
+            }
+
+            render() {
+                this.wrapper.innerHTML = '';
+                if (this.data.recalled) { this.wrapper.appendChild(this.renderRecalledState()); } 
+                else if (!this.readOnly) { this.wrapper.appendChild(this.renderSearchState()); } 
+                else { this.wrapper.innerHTML = '<div style="color: var(--muted-text); font-size: 13px;">Empty Recall Block</div>'; }
                 return this.wrapper;
             }
 
+            renderSearchState() {
+                const searchWrapper = createEl('div', 'recall-search-wrapper');
+                const icon = createEl('div', 'recall-search-icon', {innerHTML: ICONS.search});
+                const input = createEl('input', 'recall-search-input', { type: 'text', placeholder: 'Search past notes, maps, voice...' });
+                const dropdown = createEl('div', 'recall-dropdown');
+
+                input.addEventListener('focus', async () => {
+                    if (window.editor) { const currentData = await window.editor.save(); appDB.cache[window.currentDateStr] = currentData; }
+                });
+
+                input.addEventListener('input', (e) => {
+                    const query = e.target.value.toLowerCase().trim(); dropdown.innerHTML = '';
+                    if (!query) { dropdown.classList.remove('active'); return; }
+                    let results = [];
+                    Object.entries(appDB.cache).forEach(([dateStr, dayData]) => {
+                        if (!dayData.blocks) return;
+                        dayData.blocks.forEach(block => {
+                            if (block.type === 'recall') return; 
+                            let searchableText = block.type.toLowerCase() + " ";
+                            if (block.data.text) searchableText += block.data.text.toLowerCase() + " ";
+                            if (block.data.title) searchableText += block.data.title.toLowerCase() + " ";
+                            if (block.data.items) searchableText += block.data.items.map(i => i.content || i.text).join(' ').toLowerCase() + " ";
+                            if (block.type === 'smartCanvas') searchableText += "canvas drawing map sketch photo image ";
+                            if (block.type === 'voice') searchableText += "voice audio memo recording mic ";
+                            if (block.type === 'calendar') searchableText += "calendar event date reminder schedule ";
+                            if (searchableText.includes(query)) { results.push({ date: dateStr, block: block, timestamp: dayData.timestamps?.[block.id] }); }
+                        });
+                    });
+                    results.sort((a, b) => { const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime(); if (dateDiff !== 0) return dateDiff; return (b.timestamp || 0) - (a.timestamp || 0); });
+                    if (results.length > 0) {
+                        results.forEach(res => {
+                            const item = createEl('div', 'recall-result-item');
+                            const dateObj = new Date(res.date + 'T00:00:00'); const displayDate = dateObj.toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'});
+                            const displayTime = res.timestamp ? new Date(res.timestamp).toLocaleTimeString(undefined, {hour: 'numeric', minute: '2-digit'}) : '';
+                            let snippet = "";
+                            if (res.block.type === 'paragraph' || res.block.type === 'header' || res.block.type === 'scan' || res.block.type === 'aiText') { snippet = res.block.data.text.replace(/<[^>]*>?/gm, ''); } 
+                            else if (res.block.type === 'calendar') { snippet = "📅 " + (res.block.data.title || "Calendar Event"); } 
+                            else if (res.block.type === 'voice') { snippet = "🎤 " + (res.block.data.title || "Voice Memo"); } 
+                            else if (res.block.type === 'smartCanvas') { snippet = "🖌️ " + (res.block.data.title || "Media Canvas"); } 
+                            else if (res.block.type === 'list' || res.block.type === 'checklist') { let items = res.block.data.items || []; snippet = "📝 " + items.map(i=>i.content || i.text || '').join(', ').replace(/<[^>]*>?/gm, ''); } 
+                            else { snippet = "📄 " + res.block.type.toUpperCase() + " Block"; }
+                            snippet = snippet.substring(0, 60) + (snippet.length > 60 ? '...' : '');
+                            item.appendChild(createEl('div', 'recall-result-meta', {textContent: `${displayDate} ${displayTime}`}));
+                            item.appendChild(createEl('div', 'recall-result-snippet', {textContent: snippet}));
+                            item.onclick = () => { this.data = { recalled: true, sourceDate: res.date, sourceTime: res.timestamp, sourceBlock: res.block }; this.render(); this.config.onChange(); };
+                            dropdown.appendChild(item);
+                        });
+                        dropdown.classList.add('active');
+                    } else { dropdown.appendChild(createEl('div', 'recall-result-item', {textContent: 'No matches found', style: 'color: var(--muted-text); cursor: default;'})); dropdown.classList.add('active'); }
+                });
+                document.addEventListener('click', (e) => { if (!searchWrapper.contains(e.target)) dropdown.classList.remove('active'); });
+                searchWrapper.append(icon, input, dropdown); setTimeout(() => input.focus(), 50); return searchWrapper;
+            }
+            renderRecalledState() {
+                const container = createEl('div', 'recalled-block');
+                const dateObj = new Date(this.data.sourceDate + 'T00:00:00');
+                const displayDate = dateObj.toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'});
+                const displayTime = this.data.sourceTime ? new Date(this.data.sourceTime).toLocaleTimeString(undefined, {hour: 'numeric', minute: '2-digit'}) : '';
+                const meta = createEl('div', 'recalled-orig-meta');
+                meta.appendChild(createEl('div', '', {innerHTML: ICONS.recall})); meta.appendChild(createEl('span', '', {textContent: `Recalled from ${displayDate} ${displayTime}`})); container.appendChild(meta);
+
+                const targetDef = window.ToolRegistry[this.data.sourceBlock.type];
+                if (targetDef) {
+                    try {
+                        const instance = new targetDef.class({ data: this.data.sourceBlock.data, readOnly: true, api: this.api, config: targetDef.config || {} });
+                        const renderedNode = instance.render();
+                        renderedNode.style.pointerEvents = this.data.sourceBlock.type === 'voice' ? 'auto' : 'none'; 
+                        container.appendChild(renderedNode);
+                    } catch (e) { console.error("Failed to render recalled block", e); container.appendChild(createEl('div', '', {textContent: 'Error rendering original content.'})); }
+                }
+                return container;
+            }
+            save() { return this.data; }
+        }
+
+        // 5. Smart Canvas Tool 
+        class SmartCanvasTool {
+            static get toolbox() { return { title: 'Media Canvas', icon: ICONS.pen }; }
+            constructor({data, config, api, readOnly}) {
+                this.api = api; this.config = config; this.readOnly = readOnly;
+                this.data = { mode: data.mode || null, title: data.title || '', lat: data.lat || 51.505, lng: data.lng || -0.09, zoom: data.zoom || 13, isLocked: data.isLocked || false, baseImage: data.baseImage || null, imgWidth: data.imgWidth || null, imgHeight: data.imgHeight || null, hasInitializedView: data.hasInitializedView || false, lines: data.lines || [], isDrawingActive: data.isDrawingActive || false };
+                if (!this.data.title && !this.data.mode) { this.data.title = 'Canvas - ' + new Date().toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'}); }
+                
+                this.wrapper = createEl('div'); this.relativeFrame = createEl('div', 'canvas-relative-frame'); this.controls = createEl('div', 'block-controls-stack');
+                this.currentColor = '#EF4444'; this.lineLayers = []; this.currentPolyline = null; this.currentPoints = [];
+            }
+            render() {
+                this.wrapper.innerHTML = ''; 
+                if (!this.data.mode) {
+                    if (this.readOnly) this.wrapper.innerHTML = '<div style="padding: 24px; text-align: center; color: var(--muted-text); font-size: 14px;">Blank Canvas</div>';
+                    else this.renderSelector();
+                } else {
+                    this.titleInput = createEl('input', 'tool-title-input', { type: 'text', value: this.data.title, placeholder: 'Name this canvas...' });
+                    if (this.readOnly) this.titleInput.readOnly = true;
+                    this.titleInput.addEventListener('input', (e) => { this.data.title = e.target.value; if(this.config.onChange) this.config.onChange(); });
+                    this.wrapper.appendChild(this.titleInput);
+
+                    this.renderUniversalCanvas();
+                    if (!this.readOnly) { this.buildControls(); this.relativeFrame.appendChild(this.controls); }
+                    this.wrapper.appendChild(this.relativeFrame);
+                }
+                return this.wrapper;
+            }
             renderSelector() {
                 const selector = createEl('div', 'smart-canvas-selector');
-                
                 const mapBtn = createEl('button', 'smart-canvas-option', {}, [createEl('div', '', {innerHTML: ICONS.map}), createEl('span', '', {textContent: 'Map View'})]);
                 const photoBtn = createEl('button', 'smart-canvas-option', {}, [createEl('div', '', {innerHTML: ICONS.image}), createEl('span', '', {textContent: 'Photo Overlay'})]);
                 const blankBtn = createEl('button', 'smart-canvas-option', {}, [createEl('div', '', {innerHTML: ICONS.canvas}), createEl('span', '', {textContent: 'Blank Canvas'})]);
-                
                 const fileInput = createEl('input', '', { type: 'file', accept: 'image/*', style: 'display: none;' });
                 
-                mapBtn.onclick = () => { this.data.mode = 'map'; this.render(); this.api.saver.save(); };
-                blankBtn.onclick = () => { this.data.mode = 'blank'; this.data.isDrawingActive = true; this.render(); this.api.saver.save(); };
-                
+                mapBtn.onclick = () => { this.data.mode = 'map'; this.data.isLocked = false; this.data.isDrawingActive = false; this.render(); if(this.config.onChange) this.config.onChange(); };
+                blankBtn.onclick = () => { this.data.mode = 'blank'; this.data.isLocked = false; this.data.isDrawingActive = false; this.render(); if(this.config.onChange) this.config.onChange(); };
                 photoBtn.onclick = () => fileInput.click();
                 fileInput.onchange = (e) => {
                     const file = e.target.files[0];
@@ -357,365 +779,409 @@
                         const reader = new FileReader();
                         reader.onload = (re) => { 
                             const img = new Image();
-                            img.onload = () => {
-                                this.data.baseImage = re.target.result;
-                                this.data.imgWidth = img.width;
-                                this.data.imgHeight = img.height;
-                                this.data.mode = 'image';
-                                this.render();
-                                this.api.saver.save();
-                            };
+                            img.onload = () => { this.data.baseImage = re.target.result; this.data.imgWidth = img.width; this.data.imgHeight = img.height; this.data.mode = 'image'; this.data.isLocked = false; this.data.isDrawingActive = false; this.render(); if(this.config.onChange) this.config.onChange(); };
                             img.src = re.target.result;
-                        };
-                        reader.readAsDataURL(file);
+                        }; reader.readAsDataURL(file);
                     }
                 };
-
-                selector.append(mapBtn, photoBtn, blankBtn, fileInput);
-                this.wrapper.appendChild(selector);
+                selector.append(mapBtn, photoBtn, blankBtn, fileInput); this.wrapper.appendChild(selector);
             }
-
             buildControls() {
-                // Map Lock Button
                 this.lockBtn = createEl('button', 'canvas-action-btn', { innerHTML: this.data.isLocked ? ICONS.lock : ICONS.unlock });
-                this.lockBtn.onclick = () => {
-                    this.data.isLocked = !this.data.isLocked;
-                    this.lockBtn.innerHTML = this.data.isLocked ? ICONS.lock : ICONS.unlock;
-                    this.updateInteractions();
-                    this.api.saver.save();
-                };
-
-                // Hidden Color Picker
+                this.lockBtn.onclick = () => { this.data.isLocked = !this.data.isLocked; this.updateInteractions(); if(this.config.onChange) this.config.onChange(); };
                 this.colorPicker = createEl('input', '', { type: 'color', value: this.currentColor, style: 'position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;' });
                 this.colorPicker.addEventListener('input', (e) => { this.currentColor = e.target.value; });
-
-                // Draw Button
                 this.drawBtn = createEl('button', `canvas-action-btn draw-btn ${this.data.isDrawingActive ? 'active' : ''}`, { innerHTML: ICONS.pen });
-                
                 this.drawBtn.addEventListener('dblclick', (e) => { e.preventDefault(); e.stopPropagation(); this.colorPicker.click(); });
                 this.drawBtn.addEventListener('click', (e) => {
-                    e.preventDefault(); e.stopPropagation();
-                    if (this.wasLongPress) { this.wasLongPress = false; return; }
-                    this.data.isDrawingActive = !this.data.isDrawingActive;
-                    this.drawBtn.classList.toggle('active', this.data.isDrawingActive);
-                    this.updateInteractions();
-                    this.api.saver.save();
+                    e.preventDefault(); e.stopPropagation(); if (this.wasLongPress) { this.wasLongPress = false; return; }
+                    this.data.isDrawingActive = !this.data.isDrawingActive; this.drawBtn.classList.toggle('active', this.data.isDrawingActive); this.updateInteractions(); if(this.config.onChange) this.config.onChange();
                 });
-
-                // Long Press to Clear All Vector Lines
                 const startPress = (e) => {
-                    if (e.type === 'touchstart') e.stopPropagation();
-                    this.wasLongPress = false;
-                    this.pressTimer = setTimeout(() => {
-                        this.wasLongPress = true;
-                        this.clearDrawing();
-                        this.drawBtn.style.transform = 'scale(0.8)'; setTimeout(() => this.drawBtn.style.transform = '', 150);
-                    }, 600);
+                    if (e.type === 'touchstart') e.stopPropagation(); this.wasLongPress = false;
+                    this.pressTimer = setTimeout(() => { this.wasLongPress = true; this.clearDrawing(); this.drawBtn.style.transform = 'scale(0.8)'; setTimeout(() => this.drawBtn.style.transform = '', 150); }, 600);
                 };
                 const cancelPress = () => clearTimeout(this.pressTimer);
-
-                this.drawBtn.addEventListener('mousedown', startPress);
-                this.drawBtn.addEventListener('touchstart', startPress, {passive: true});
-                this.drawBtn.addEventListener('mouseup', cancelPress);
-                this.drawBtn.addEventListener('mouseleave', cancelPress);
-                this.drawBtn.addEventListener('touchend', cancelPress);
-                this.drawBtn.addEventListener('touchcancel', cancelPress);
-
+                ['mousedown','touchstart'].forEach(evt => this.drawBtn.addEventListener(evt, startPress, {passive: true}));
+                ['mouseup','mouseleave','touchend','touchcancel'].forEach(evt => this.drawBtn.addEventListener(evt, cancelPress));
                 this.controls.append(this.lockBtn, this.drawBtn, this.colorPicker);
             }
-
             renderUniversalCanvas() {
-                this.mediaContainer = createEl('div', 'leaflet-container');
-                this.wrapper.appendChild(this.mediaContainer);
-
+                this.mediaContainer = createEl('div', 'leaflet-container'); this.relativeFrame.appendChild(this.mediaContainer);
                 setTimeout(() => {
                     if (!this.mediaContainer.isConnected) return;
-                    
                     if (this.data.mode === 'map') {
-                        // Standard Geographic Map
-                        this.map = L.map(this.mediaContainer, { zoomControl: false }).setView([this.data.lat, this.data.lng], this.data.zoom);
-                        
-                        const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                        const tileUrl = isDark ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-                        L.tileLayer(tileUrl, { maxZoom: 20, attribution: '© OpenStreetMap, © CARTO' }).addTo(this.map);
-
-                        if (!this.data.hasGeolocated && navigator.geolocation) {
-                            navigator.geolocation.getCurrentPosition(
-                                (pos) => {
-                                    const { latitude, longitude } = pos.coords;
-                                    this.map.setView([latitude, longitude], 14);
-                                    this.data.hasGeolocated = true;
-                                    this.api.saver.save();
-                                },
-                                (err) => { this.data.hasGeolocated = true; this.api.saver.save(); },
-                                { timeout: 5000 }
-                            );
-                        }
+                        this.map = L.map(this.mediaContainer, { zoomControl: false, attributionControl: false }).setView([this.data.lat, this.data.lng], this.data.zoom);
+                        const tileUrl = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+                        L.tileLayer(tileUrl, { maxZoom: 20 }).addTo(this.map);
                     } else {
-                        // Photo or Blank Canvas using Leaflet Flat Coordinates (CRS.Simple)
-                        this.map = L.map(this.mediaContainer, { crs: L.CRS.Simple, zoomControl: false, minZoom: -4 });
-
+                        this.map = L.map(this.mediaContainer, { crs: L.CRS.Simple, zoomControl: false, attributionControl: false, minZoom: -4 });
                         if (this.data.mode === 'image' && this.data.baseImage) {
                             const bounds = [[0, 0], [this.data.imgHeight || 600, this.data.imgWidth || 800]];
                             L.imageOverlay(this.data.baseImage, bounds).addTo(this.map);
-                            
-                            if (!this.data.hasInitializedView) {
-                                this.map.fitBounds(bounds);
-                                this.data.hasInitializedView = true;
-                                this.api.saver.save();
-                            } else {
-                                this.map.setView([this.data.lat, this.data.lng], this.data.zoom);
-                            }
-                        } else {
-                            // Blank Canvas
-                            this.map.setView([this.data.lat || 0, this.data.lng || 0], this.data.zoom || 0);
-                        }
+                            if (!this.data.hasInitializedView && !this.readOnly) { this.map.fitBounds(bounds); this.data.hasInitializedView = true; if(this.config.onChange) this.config.onChange(); } 
+                            else { this.map.setView([this.data.lat, this.data.lng], this.data.zoom); }
+                        } else { this.map.setView([this.data.lat || 0, this.data.lng || 0], this.data.zoom || 0); }
                     }
-                    
-                    this.renderExistingLines();
-                    this.initDrawingTracker();
-                    this.updateInteractions();
-                    this.map.on('moveend', () => this.api.saver.save());
+                    this.renderExistingLines(); this.initDrawingTracker(); this.updateInteractions();
+                    this.map.on('moveend', () => { if(this.config.onChange) this.config.onChange(); });
                 }, 150);
             }
-
             renderExistingLines() {
-                this.lineLayers.forEach(layer => this.map.removeLayer(layer));
-                this.lineLayers = [];
-                this.data.lines.forEach(line => {
-                    const polyline = L.polyline(line.points, { color: line.color, weight: line.weight, lineCap: 'round', lineJoin: 'round', smoothFactor: 1.5 }).addTo(this.map);
-                    this.lineLayers.push(polyline);
-                });
+                this.lineLayers.forEach(layer => this.map.removeLayer(layer)); this.lineLayers = [];
+                this.data.lines.forEach(line => { this.lineLayers.push(L.polyline(line.points, { color: line.color, weight: line.weight, lineCap: 'round', lineJoin: 'round', smoothFactor: 1.5 }).addTo(this.map)); });
             }
-
             initDrawingTracker() {
-                this.map.on('mousedown touchstart', (e) => {
-                    if (!this.data.isDrawingActive) return;
-                    if (e.originalEvent && e.originalEvent.touches) {
-                         // Prevent scrolling when touching map directly
-                         e.originalEvent.preventDefault();
-                    }
-                    this.currentPoints = [e.latlng];
+                if (this.readOnly) return; let isPointerDown = false;
+                this.mediaContainer.addEventListener('pointerdown', (e) => {
+                    if (!this.data.isDrawingActive) return; isPointerDown = true; this.mediaContainer.setPointerCapture(e.pointerId);
+                    this.currentPoints = [this.map.mouseEventToLatLng(e)];
                     this.currentPolyline = L.polyline(this.currentPoints, { color: this.currentColor, weight: 4, lineCap: 'round', lineJoin: 'round', smoothFactor: 1.5 }).addTo(this.map);
                 });
-
-                this.map.on('mousemove touchmove', (e) => {
-                    if (!this.data.isDrawingActive || !this.currentPolyline) return;
-                    if (e.originalEvent && e.originalEvent.touches) {
-                         e.originalEvent.preventDefault();
-                    }
-                    this.currentPoints.push(e.latlng);
-                    this.currentPolyline.setLatLngs(this.currentPoints);
+                this.mediaContainer.addEventListener('pointermove', (e) => {
+                    if (!this.data.isDrawingActive || !isPointerDown || !this.currentPolyline) return;
+                    this.currentPoints.push(this.map.mouseEventToLatLng(e)); this.currentPolyline.setLatLngs(this.currentPoints);
                 });
-
                 const endDraw = () => {
-                    if (!this.currentPolyline || !this.data.isDrawingActive) return;
-                    // Persist to data array
+                    if (!isPointerDown) return; isPointerDown = false; if (!this.currentPolyline || !this.data.isDrawingActive) return;
                     this.data.lines.push({ color: this.currentColor, weight: 4, points: this.currentPoints.map(p => [p.lat, p.lng]) });
-                    this.lineLayers.push(this.currentPolyline);
-                    this.currentPolyline = null;
-                    this.currentPoints = [];
-                    this.api.saver.save();
+                    this.lineLayers.push(this.currentPolyline); this.currentPolyline = null; this.currentPoints = []; if(this.config.onChange) this.config.onChange();
                 };
-
-                this.map.on('mouseup touchend mouseout', endDraw);
+                this.mediaContainer.addEventListener('pointerup', endDraw); this.mediaContainer.addEventListener('pointercancel', endDraw);
             }
-
-            clearDrawing() {
-                this.lineLayers.forEach(layer => { if(this.map) this.map.removeLayer(layer); });
-                this.lineLayers = [];
-                this.data.lines = [];
-                this.api.saver.save();
-            }
-
+            clearDrawing() { this.lineLayers.forEach(layer => { if(this.map) this.map.removeLayer(layer); }); this.lineLayers = []; this.data.lines = []; if(this.config.onChange) this.config.onChange(); }
             updateInteractions() {
-                if (!this.map) return;
-                
-                this.mediaContainer.classList.remove('drawing-mode', 'locked-mode');
+                if (!this.map) return; this.mediaContainer.classList.remove('drawing-mode', 'locked-mode');
+                const disableAll = () => { this.map.dragging.disable(); this.map.touchZoom.disable(); this.map.doubleClickZoom.disable(); this.map.scrollWheelZoom.disable(); this.map.boxZoom.disable(); this.map.keyboard.disable(); if (this.map.tap) this.map.tap.disable(); };
+                const enableAll = () => { this.map.dragging.enable(); this.map.touchZoom.enable(); this.map.doubleClickZoom.enable(); this.map.scrollWheelZoom.enable(); this.map.boxZoom.enable(); this.map.keyboard.enable(); if (this.map.tap) this.map.tap.enable(); };
 
-                if (this.data.isDrawingActive) {
-                    this.mediaContainer.classList.add('drawing-mode');
-                    this.map.dragging.disable(); this.map.touchZoom.disable(); this.map.doubleClickZoom.disable();
-                    this.map.scrollWheelZoom.disable(); this.map.boxZoom.disable(); this.map.keyboard.disable();
-                    if (this.map.tap) this.map.tap.disable();
-                } else if (this.data.isLocked) {
-                    this.mediaContainer.classList.add('locked-mode');
-                    this.map.dragging.disable(); this.map.touchZoom.disable(); this.map.doubleClickZoom.disable();
-                    this.map.scrollWheelZoom.disable(); this.map.boxZoom.disable(); this.map.keyboard.disable();
-                    if (this.map.tap) this.map.tap.disable();
+                if (this.readOnly) { disableAll(); this.mediaContainer.classList.add('locked-mode'); if(this.lockBtn) this.lockBtn.style.display = 'none'; if(this.drawBtn) this.drawBtn.style.display = 'none'; return; }
+                if (!this.data.isLocked) {
+                    this.data.isDrawingActive = false; enableAll();
+                    if (this.lockBtn) this.lockBtn.innerHTML = ICONS.unlock;
+                    if (this.drawBtn) { this.drawBtn.style.display = 'none'; this.drawBtn.classList.remove('active'); }
                 } else {
-                    this.map.dragging.enable(); this.map.touchZoom.enable(); this.map.doubleClickZoom.enable();
-                    this.map.scrollWheelZoom.enable(); this.map.boxZoom.enable(); this.map.keyboard.enable();
-                    if (this.map.tap) this.map.tap.enable();
+                    disableAll(); this.mediaContainer.classList.add('locked-mode');
+                    if (this.lockBtn) this.lockBtn.innerHTML = ICONS.lock;
+                    if (this.drawBtn) { this.drawBtn.style.display = 'flex'; if (this.data.isDrawingActive) { this.drawBtn.classList.add('active'); this.mediaContainer.classList.add('drawing-mode'); } else { this.drawBtn.classList.remove('active'); } }
                 }
             }
-
-            save() {
-                if (this.map && this.data.mode) {
-                    const center = this.map.getCenter();
-                    this.data.lat = center.lat; 
-                    this.data.lng = center.lng; 
-                    this.data.zoom = this.map.getZoom();
-                }
-                return this.data;
-            }
-
-            destroy() {
-                if (this.map) this.map.remove();
-            }
+            save() { if (this.map && this.data.mode) { const center = this.map.getCenter(); this.data.lat = center.lat; this.data.lng = center.lng; this.data.zoom = this.map.getZoom(); } return this.data; }
+            destroy() { if (this.map) this.map.remove(); }
         }
 
-        // ============================================================================
-        // CALENDAR & VOICE (Unchanged functionality)
-        // ============================================================================
+        // 6. Calendar Tool
         class CalendarTool {
             static get toolbox() { return { title: 'Calendar Event', icon: ICONS.calendar }; }
-            constructor({data}) {
-                this.id = crypto.randomUUID(); 
+            constructor({data, config, api, readOnly}) {
+                this.id = crypto.randomUUID(); this.config = config; this.readOnly = readOnly;
                 this.data = { title: data.title || '', datetime: data.datetime || new Date().toISOString(), notified: data.notified || false };
-                this.viewDate = new Date(this.data.datetime); 
-                if (!this.data.notified) this.scheduleNotification();
+                if (!this.data.notified && !this.readOnly && new Date(this.data.datetime) > new Date()) NotificationEngine.schedule(this.id, this.data.datetime, this.data.title);
+                this.wrapper = createEl('div', 'calendar-tool-container'); 
             }
-            scheduleNotification() { NotificationEngine.schedule(this.id, this.data.datetime, this.data.title, () => { this.data.notified = true; }); }
             formatDisplayDate() { const d = new Date(this.data.datetime); return `${d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} at ${d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`; }
             render() {
                 this.titleInput = createEl('input', 'cal-title', { type: 'text', placeholder: 'Event Name / Reminder...', value: this.data.title });
-                this.titleInput.oninput = (e) => { this.data.title = e.target.value; this.scheduleNotification(); };
+                if (this.readOnly) { this.titleInput.readOnly = true; this.titleInput.style.pointerEvents = 'none'; } 
+                else { this.titleInput.oninput = (e) => { this.data.title = e.target.value; NotificationEngine.schedule(this.id, this.data.datetime, this.data.title); if(this.config.onChange) this.config.onChange(); }; }
+
                 const header = createEl('div', 'cal-header', {}, [createEl('div', '', { innerHTML: ICONS.calendar }), this.titleInput]);
                 this.displayTxt = createEl('span', 'cal-display-text', { textContent: this.formatDisplayDate() });
-                const displayBtn = createEl('button', 'cal-display-btn', {}, [this.displayTxt, createEl('div', '', { innerHTML: ICONS.chevronDown })]);
-                this.monthLabel = createEl('span', 'cp-month-label', { textContent: 'Month Year' });
-                const prevBtn = createEl('button', 'cp-prev', { textContent: '<' });
-                const nextBtn = createEl('button', 'cp-next', { textContent: '>' });
-                prevBtn.onclick = () => { this.viewDate.setMonth(this.viewDate.getMonth() - 1); this.renderGrid(); };
-                nextBtn.onclick = () => { this.viewDate.setMonth(this.viewDate.getMonth() + 1); this.renderGrid(); };
-                this.grid = createEl('div', 'cp-grid');
-                this.hourInput = createEl('input', 'cp-hour', { type: 'number', min: '1', max: '12' });
-                this.minInput = createEl('input', 'cp-minute', { type: 'number', min: '0', max: '59' });
-                this.ampmInput = createEl('select', 'cp-ampm', {}, [ createEl('option', '', { value: 'AM', textContent: 'AM' }), createEl('option', '', { value: 'PM', textContent: 'PM' }) ]);
-                const handleTimeChange = () => {
-                    const newDate = new Date(this.data.datetime);
-                    let h = parseInt(this.hourInput.value) || 12;
-                    if (h === 12 && this.ampmInput.value === 'AM') h = 0;
-                    if (h < 12 && this.ampmInput.value === 'PM') h += 12;
-                    newDate.setHours(h, parseInt(this.minInput.value) || 0);
-                    this.updateDateTime(newDate);
-                };
-                [this.hourInput, this.minInput, this.ampmInput].forEach(el => el.onchange = handleTimeChange);
-                this.picker = createEl('div', 'cp-container', {}, [
-                    createEl('div', 'cp-header', {}, [prevBtn, this.monthLabel, nextBtn]),
-                    createEl('div', 'cp-weekdays', { innerHTML: '<span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>' }),
-                    this.grid,
-                    createEl('div', 'cp-time', {}, [this.hourInput, createEl('span', '', {textContent: ':'}), this.minInput, this.ampmInput])
-                ]);
-                displayBtn.onclick = () => { this.picker.classList.toggle('open'); this.renderGrid(); };
-                const isGranted = typeof Notification !== 'undefined' && Notification.permission === 'granted';
-                const exportBtn = createEl('button', 'cal-btn cal-export-btn primary', {}, [createEl('div', '', { innerHTML: ICONS.download }), document.createTextNode(' Add to Calendar')]);
-                this.notifyBtn = createEl('button', `cal-btn cal-notify-btn ${isGranted ? 'granted' : ''}`, {}, [createEl('div', '', { innerHTML: ICONS.bell }), document.createTextNode(isGranted ? ' On' : ' Notify')]);
+                const displayBtn = createEl('button', 'cal-display-btn', {}, [this.displayTxt]);
+                
+                if (!this.readOnly) {
+                    displayBtn.appendChild(createEl('div', '', { innerHTML: ICONS.chevronDown }));
+                    displayBtn.onclick = () => { DatePicker.open(new Date(this.data.datetime), (newDate) => { this.data.datetime = newDate.toISOString(); this.data.notified = false; this.displayTxt.textContent = this.formatDisplayDate(); NotificationEngine.schedule(this.id, this.data.datetime, this.data.title); if(this.config.onChange) this.config.onChange(); }, { showTime: true, disablePast: true }); };
+                } else { displayBtn.style.cursor = 'default'; displayBtn.style.border = 'none'; displayBtn.style.background = 'transparent'; displayBtn.style.padding = '8px 0'; }
+
+                const exportBtn = createEl('button', 'cal-btn primary', {}, [createEl('div', '', { innerHTML: ICONS.download }), document.createTextNode(' Add to Calendar')]);
                 exportBtn.onclick = () => {
-                    const start = new Date(this.data.datetime);
-                    const formatICS = (date) => date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+                    const start = new Date(this.data.datetime); const formatICS = (date) => date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
                     const icsContent = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'BEGIN:VEVENT', `DTSTART:${formatICS(start)}`, `DTEND:${formatICS(new Date(start.getTime() + 3600000))}`, `SUMMARY:${this.data.title || 'Note Event'}`, 'END:VEVENT', 'END:VCALENDAR'].join('\n');
                     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([icsContent], { type: 'text/calendar;charset=utf-8' })); a.download = `${this.data.title ? this.data.title.replace(/\s+/g, '_') : 'event'}.ics`; a.click();
                 };
-                this.notifyBtn.onclick = async () => {
-                    if (!('Notification' in window)) return alert('Browser does not support notifications.');
-                    if (Notification.permission === 'granted') return alert('Notifications active!');
-                    if (await Notification.requestPermission() === 'granted') { this.notifyBtn.innerHTML = ICONS.bell + ' On'; this.notifyBtn.classList.add('granted'); this.scheduleNotification(); }
-                };
-                return createEl('div', 'custom-block-wrapper cal-wrapper', {}, [header, displayBtn, this.picker, createEl('div', 'cal-actions', {}, [exportBtn, this.notifyBtn])]);
-            }
-            renderGrid() {
-                const activeDate = new Date(this.data.datetime);
-                const year = this.viewDate.getFullYear(), month = this.viewDate.getMonth();
-                this.monthLabel.textContent = this.viewDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-                this.hourInput.value = activeDate.getHours() % 12 || 12; this.minInput.value = activeDate.getMinutes().toString().padStart(2, '0'); this.ampmInput.value = activeDate.getHours() >= 12 ? 'PM' : 'AM';
-                this.grid.innerHTML = '';
-                for (let i = 0; i < new Date(year, month, 1).getDay(); i++) this.grid.appendChild(createEl('div', 'cp-day muted'));
-                for (let i = 1; i <= new Date(year, month + 1, 0).getDate(); i++) {
-                    const dayEl = createEl('div', 'cp-day', { textContent: i });
-                    if (activeDate.getFullYear() === year && activeDate.getMonth() === month && activeDate.getDate() === i) dayEl.classList.add('active');
-                    dayEl.onclick = () => { const newDate = new Date(this.data.datetime); newDate.setFullYear(year, month, i); this.updateDateTime(newDate); this.renderGrid(); };
-                    this.grid.appendChild(dayEl);
+
+                const actionsArr = [exportBtn];
+                if (!this.readOnly) {
+                    const isGranted = typeof Notification !== 'undefined' && Notification.permission === 'granted';
+                    this.notifyBtn = createEl('button', `cal-btn ${isGranted ? 'granted' : ''}`, {}, [createEl('div', '', { innerHTML: ICONS.bell }), document.createTextNode(isGranted ? ' On' : ' Notify')]);
+                    this.notifyBtn.onclick = async () => { if (!('Notification' in window)) return alert('Browser does not support notifications.'); if (await Notification.requestPermission() === 'granted') { this.notifyBtn.innerHTML = ICONS.bell + ' On'; this.notifyBtn.classList.add('granted'); NotificationEngine.schedule(this.id, this.data.datetime, this.data.title); } };
+                    actionsArr.push(this.notifyBtn);
                 }
+                this.wrapper.append(header, displayBtn, createEl('div', 'cal-actions', {}, actionsArr)); return this.wrapper;
             }
-            updateDateTime(newDateObj) { this.data.datetime = newDateObj.toISOString(); this.data.notified = false; this.displayTxt.textContent = this.formatDisplayDate(); this.scheduleNotification(); }
             destroy() { NotificationEngine.cancel(this.id); }
             save() { return this.data; }
         }
 
+        // 7. Voice Memo
         class VoiceMemo {
             static get toolbox() { return { title: 'Voice Memo', icon: ICONS.mic }; }
-            constructor({data}) {
-                this.data = data.url || null; this.recorder = null; this.chunks = []; this.isPlaying = false; this.isRecording = false;
-                this.nodes = { wrapper: createEl('div', 'custom-block-wrapper v-memo'), button: createEl('button', 'v-memo__btn'), audio: createEl('audio', '', { style: 'display: none;', src: this.data || '' }), status: createEl('div', 'v-memo__status') };
+            constructor({data, config, api, readOnly}) {
+                this.api = api; this.config = config; this.readOnly = readOnly; 
+                this.data = { url: data.url || null, title: data.title || '' };
+                if (!this.data.title && !this.data.url) { this.data.title = 'Voice Memo - ' + new Date().toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'}); }
+                this.recorder = null; this.chunks = []; this.isPlaying = false; this.isRecording = false;
+                this.nodes = { wrapper: createEl('div', 'voice-tool-container'), button: createEl('button', 'v-memo__btn'), title: createEl('input', 'v-memo__title', { type: 'text', value: this.data.title, placeholder: 'Name this memo...' }), status: createEl('div', 'v-memo__status'), audio: createEl('audio', '', { style: 'display: none;', src: this.data.url || '' }) };
+                if (this.readOnly) this.nodes.title.readOnly = true;
+                this.nodes.title.addEventListener('input', (e) => { this.data.title = e.target.value; if(this.config.onChange) this.config.onChange(); });
             }
             render() {
-                this.nodes.audio.onplay = () => { this.isPlaying = true; this.updateUI(); };
-                this.nodes.audio.onpause = () => { this.isPlaying = false; this.updateUI(); };
-                this.nodes.audio.onended = () => { this.isPlaying = false; this.updateUI(); };
+                this.nodes.audio.onplay = () => { this.isPlaying = true; this.updateUI(); }; this.nodes.audio.onpause = () => { this.isPlaying = false; this.updateUI(); }; this.nodes.audio.onended = () => { this.isPlaying = false; this.updateUI(); };
                 this.nodes.button.onclick = () => this.handleAction();
-                this.nodes.wrapper.append(this.nodes.button, this.nodes.status, this.nodes.audio);
-                this.updateUI(); return this.nodes.wrapper;
+                this.nodes.wrapper.append(this.nodes.button, this.nodes.title, this.nodes.status, this.nodes.audio); this.updateUI(); return this.nodes.wrapper;
             }
             updateUI() {
                 this.nodes.button.className = 'v-memo__btn'; 
                 if (this.isPlaying) { this.nodes.button.innerHTML = ICONS.pause; this.nodes.status.innerText = 'Playing...'; this.nodes.button.classList.add('playing'); } 
-                else if (this.data) { this.nodes.button.innerHTML = ICONS.play; this.nodes.status.innerText = 'Voice Memo (Ready)'; } 
+                else if (this.data.url) { this.nodes.button.innerHTML = ICONS.play; this.nodes.status.innerText = 'Ready'; } 
                 else if (this.isRecording) { this.nodes.button.innerHTML = ICONS.stop; this.nodes.status.innerText = 'Recording...'; this.nodes.button.classList.add('recording'); } 
-                else { this.nodes.button.innerHTML = ICONS.mic; this.nodes.status.innerText = 'Click to record'; }
+                else if (this.readOnly) { this.nodes.button.style.display = 'none'; this.nodes.status.innerText = 'No audio'; }
+                else { this.nodes.button.innerHTML = ICONS.mic; this.nodes.status.innerText = 'Record'; }
             }
             async handleAction() {
-                if (this.data) { this.isPlaying ? this.nodes.audio.pause() : this.nodes.audio.play(); } 
+                if (this.readOnly && !this.data.url) return;
+                if (this.data.url) { this.isPlaying ? this.nodes.audio.pause() : this.nodes.audio.play(); } 
                 else {
                     if (this.isRecording) { this.recorder.stop(); this.isRecording = false; this.nodes.status.innerText = 'Processing...'; } 
                     else {
                         try {
                             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                            this.recorder = new MediaRecorder(stream); this.chunks = [];
-                            this.recorder.ondataavailable = (e) => this.chunks.push(e.data);
-                            this.recorder.onstop = () => { const reader = new FileReader(); reader.onloadend = () => { this.data = reader.result; this.nodes.audio.src = this.data; this.updateUI(); }; reader.readAsDataURL(new Blob(this.chunks, { type: 'audio/ogg; codecs=opus' })); stream.getTracks().forEach(track => track.stop()); };
+                            this.recorder = new MediaRecorder(stream); this.chunks = []; this.recorder.ondataavailable = (e) => this.chunks.push(e.data);
+                            this.recorder.onstop = () => { const reader = new FileReader(); reader.onloadend = () => { this.data.url = reader.result; this.nodes.audio.src = this.data.url; this.updateUI(); if(this.config.onChange) this.config.onChange(); }; reader.readAsDataURL(new Blob(this.chunks, { type: 'audio/ogg; codecs=opus' })); stream.getTracks().forEach(track => track.stop()); };
                             this.recorder.start(); this.isRecording = true; this.updateUI();
                         } catch (err) { this.nodes.status.innerText = 'Mic access denied'; }
                     }
                 }
             }
             destroy() { if (this.recorder && this.recorder.state !== 'inactive') this.recorder.stop(); if (this.recorder && this.recorder.stream) this.recorder.stream.getTracks().forEach(track => track.stop()); this.nodes.audio.pause(); }
-            save() { return { url: this.data }; }
+            save() { return this.data; }
         }
 
-        // --- Editor Initialization ---
-        const defaultData = {
-            blocks: [
-                { type: "header", data: { text: "Infinite Notes v3", level: 1 } },
-                { type: "paragraph", data: { text: "We've unified Map, Photo, and Blank Canvas into a single smart block. Type '/' to view the command menu." } }
-            ]
+        // ============================================================================
+        // CORE APP INITIALIZATION & AI TRIGGERS
+        // ============================================================================
+        window.editor = null; 
+        let timestamps = {}, updateRaf, saveTimeout;
+        let todayStr = getLocalYYYYMMDD(new Date());
+        window.currentDateStr = todayStr;
+
+        // Safely map core JS functions avoiding window prefix bug on some mobile browsers
+        const P = typeof Paragraph !== 'undefined' ? Paragraph : window.Paragraph;
+        const H = typeof Header !== 'undefined' ? Header : window.Header;
+        const L = typeof NestedList !== 'undefined' ? NestedList : window.NestedList;
+        const C = typeof Checklist !== 'undefined' ? Checklist : window.Checklist;
+
+        const EDITOR_TOOLS_CONFIG = {
+            paragraph: { class: P, inlineToolbar: ['link', 'bold', 'italic'] },
+            header: { class: H, inlineToolbar: ['link', 'bold', 'italic'], config: { levels: [1, 2, 3], defaultLevel: 2 } },
+            list: { class: L, inlineToolbar: ['link', 'bold', 'italic'] },
+            checklist: { class: C, inlineToolbar: ['link', 'bold', 'italic'] },
+            scan: { class: ScanTool, config: { onChange: scheduleSave } },
+            compute: { class: ComputeTool, config: { onChange: scheduleSave } },
+            smartCanvas: { class: SmartCanvasTool, config: { onChange: scheduleSave } },
+            calendar: { class: CalendarTool, config: { onChange: scheduleSave } },
+            voice: { class: VoiceMemo, config: { onChange: scheduleSave } },
+            recall: { class: RecallTool, config: { onChange: scheduleSave } },
+            aiText: { class: AiTextTool, config: { onChange: scheduleSave } } // Invisible Tool
         };
 
-        const inlineToolbarConfig = ['link', 'bold', 'italic'];
+        // Complete the registry for Recall rendering
+        window.ToolRegistry.paragraph = EDITOR_TOOLS_CONFIG.paragraph;
+        window.ToolRegistry.header = EDITOR_TOOLS_CONFIG.header;
+        window.ToolRegistry.list = EDITOR_TOOLS_CONFIG.list;
+        window.ToolRegistry.checklist = EDITOR_TOOLS_CONFIG.checklist;
+        window.ToolRegistry.scan = EDITOR_TOOLS_CONFIG.scan;
+        window.ToolRegistry.compute = EDITOR_TOOLS_CONFIG.compute;
+        window.ToolRegistry.smartCanvas = EDITOR_TOOLS_CONFIG.smartCanvas;
+        window.ToolRegistry.calendar = EDITOR_TOOLS_CONFIG.calendar;
+        window.ToolRegistry.voice = EDITOR_TOOLS_CONFIG.voice;
+        window.ToolRegistry.aiText = EDITOR_TOOLS_CONFIG.aiText;
 
-        const editor = new EditorJS({
-            holder: 'editorjs',
-            placeholder: 'Type "/" for commands...',
-            data: localStorage.getItem(STORAGE_KEY) ? JSON.parse(localStorage.getItem(STORAGE_KEY)) : defaultData,
-            tools: {
-                paragraph: { class: Paragraph, inlineToolbar: inlineToolbarConfig },
-                header: { class: Header, inlineToolbar: inlineToolbarConfig, config: { levels: [1, 2, 3], defaultLevel: 2 } },
-                list: { class: NestedList, inlineToolbar: inlineToolbarConfig },
-                checklist: { class: Checklist, inlineToolbar: inlineToolbarConfig },
-                table: Table,
-                smartCanvas: SmartCanvasTool, // Consolidated Unified Tool
-                calendar: CalendarTool,
-                voice: VoiceMemo
-            },
-            onChange: () => {
-                clearTimeout(window.saveTimeout);
-                window.saveTimeout = setTimeout(async () => {
-                    const outputData = await editor.save();
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(outputData));
-                }, 500); 
+        function getDisplayDate(dateStr) {
+            const [y, m, d] = dateStr.split('-'); const date = new Date(y, m - 1, d);
+            const monthDay = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+            const weekday = date.toLocaleDateString(undefined, { weekday: 'long' });
+            return `${monthDay}<br>${weekday}`; 
+        }
+
+        document.getElementById('date-header').onclick = () => {
+            const [y, m, d] = window.currentDateStr.split('-').map(Number);
+            DatePicker.open(new Date(y, m - 1, d), (selectedDate) => {
+                const selectedStr = getLocalYYYYMMDD(selectedDate);
+                if (window.currentDateStr !== selectedStr) {
+                    window.currentDateStr = selectedStr;
+                    document.getElementById('date-header').innerHTML = getDisplayDate(selectedStr);
+                    initEditor(selectedStr);
+                }
+            }, { showTime: false, disableFuture: true, onlyNotes: true }); 
+        };
+
+        const domObserver = new MutationObserver(() => { cancelAnimationFrame(updateRaf); updateRaf = requestAnimationFrame(updateAllTimestamps); });
+
+        function updateAllTimestamps() {
+            document.querySelectorAll('.ce-block').forEach(block => {
+                const id = block.getAttribute('data-id'); if (!id) return;
+                let timeEl = block.querySelector('.ce-block-time');
+                if (!timeEl) { timeEl = createEl('div', 'ce-block-time'); block.appendChild(timeEl); }
+                if (timestamps[id]) { timeEl.textContent = new Date(timestamps[id]).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }); } 
+                else if (window.currentDateStr === todayStr && window.editor && !window.editor.readOnly) {
+                    timestamps[id] = Date.now(); timeEl.textContent = new Date(timestamps[id]).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+                    scheduleSave(); 
+                }
+            });
+        }
+
+        // --- INVISIBLE AI TRIGGER LOGIC ---
+        const processedPrompts = new Set();
+        let aiTriggerTimeout;
+
+        async function checkAiTriggers() {
+            if (!window.editor || window.editor.readOnly) return;
+            const data = await window.editor.save();
+            const blocks = data.blocks;
+            const statusEl = document.getElementById('ai-status');
+            
+            for (let i = 0; i < blocks.length; i++) {
+                const block = blocks[i];
+                if (block.type === 'paragraph' && block.data.text) {
+                    const cleanText = block.data.text.replace(/<[^>]*>?/gm, '').trim();
+                    if (cleanText.toLowerCase().startsWith(`@${aiName.toLowerCase()}`) && !processedPrompts.has(block.id)) {
+                        processedPrompts.add(block.id);
+                        
+                        if (!navigator.gpu) {
+                            window.editor.blocks.insert('aiText', { text: `[System]: WebGPU is required to wake me up on this device.` }, {}, i + 1, false);
+                            return;
+                        }
+
+                        statusEl.textContent = `Collaborator: @${aiName} (Thinking...)`;
+                        const streamId = 'ai-stream-' + Date.now();
+                        window.editor.blocks.insert('aiText', { text: `Waking up...`, streamId: streamId }, {}, i + 1, false);
+                        
+                        executeRAG(cleanText, streamId, i, block.id);
+                    }
+                }
             }
+        }
+
+        async function executeRAG(prompt, streamId, promptIndex, promptBlockId) {
+            const statusEl = document.getElementById('ai-status');
+            
+            try {
+                if (!window.llmEngine) {
+                    const { CreateMLCEngine } = await import("https://esm.run/@mlc-ai/web-llm");
+                    window.llmEngine = await CreateMLCEngine("Llama-3.2-1B-Instruct-q4f16_1-MLC", {
+                        initProgressCallback: (p) => {
+                            const node = document.getElementById(streamId);
+                            if(node) node.innerHTML = `Downloading neural pathways... ${Math.round(p.progress * 100)}%`;
+                        }
+                    });
+                }
+
+                let contextText = "";
+                Object.entries(appDB.cache).forEach(([dateStr, dayData]) => {
+                    if (!dayData.blocks) return;
+                    dayData.blocks.forEach(block => {
+                        if (block.type === 'aiText') return;
+                        if (block.data.text) contextText += `[${dateStr}]: ${block.data.text.replace(/<[^>]*>?/gm, '')}\n`;
+                        if (block.data.title) contextText += `[${dateStr}]: ${block.data.title}\n`;
+                        if (block.data.items) contextText += `[${dateStr}]: ${block.data.items.map(j=>j.content).join(', ')}\n`;
+                    });
+                });
+                contextText = contextText.slice(-5000);
+
+                const messages = [
+                    { role: "system", content: `You are ${aiName}. ${aiPersona} You live inside the user's personal notebook. Use the following past notes as context to answer them. If you want to reply normally, just speak. If you feel the user's prompt needs a creative rewrite, improvement, or you want to forcefully hijack their thought, you can OVERWRITE their text by starting your response EXACTLY with '[EDIT] ' followed by the new text.\n\nContext:\n${contextText}` },
+                    { role: "user", content: prompt }
+                ];
+
+                statusEl.textContent = `Collaborator: @${aiName} (Typing...)`;
+                
+                const chunks = await window.llmEngine.chat.completions.create({ messages, stream: true });
+                
+                let reply = "";
+                const streamNode = document.getElementById(streamId);
+                
+                for await (const chunk of chunks) {
+                    reply += chunk.choices[0]?.delta?.content || "";
+                    if(streamNode) streamNode.innerHTML = reply.replace(/\n/g, '<br>');
+                }
+
+                statusEl.textContent = `Collaborator: @${aiName} (Sleeping)`;
+
+                if (CONFIG.AI_CO_PILOT.canEditYourWork && reply.trim().startsWith('[EDIT]')) {
+                    const newText = reply.replace('[EDIT]', '').trim();
+                    window.editor.blocks.update(promptBlockId, { text: newText });
+                    
+                    const blocksCount = window.editor.blocks.getBlocksCount();
+                    for(let i=0; i < blocksCount; i++) {
+                        const b = window.editor.blocks.getBlockByIndex(i);
+                        if (b.holder.querySelector(`#${streamId}`)) { window.editor.blocks.delete(i); break; }
+                    }
+                }
+
+            } catch (e) {
+                console.error(e);
+                const streamNode = document.getElementById(streamId);
+                if(streamNode) streamNode.innerHTML = `Error: ${e.message}`;
+                statusEl.textContent = `Collaborator: @${aiName} (Error)`;
+            }
+            scheduleSave();
+        }
+
+        // --- Standard Save Trigger ---
+        function scheduleSave() {
+            if (window.editor && !window.editor.readOnly) {
+                clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(async () => {
+                    const outputData = await window.editor.save();
+                    outputData.timestamps = timestamps;
+                    appDB.save(window.currentDateStr, outputData);
+                }, 500);
+
+                clearTimeout(aiTriggerTimeout);
+                aiTriggerTimeout = setTimeout(checkAiTriggers, 1500); 
+            }
+        }
+
+        async function initEditor(date) {
+            if (window.editor) { domObserver.disconnect(); await window.editor.destroy(); window.editor = null; }
+            
+            const isToday = date === todayStr;
+            let savedData = appDB.cache[date] || { blocks: [] };
+            
+            if (isToday && (!savedData.blocks || savedData.blocks.length === 0)) {
+                savedData = {
+                    blocks: [
+                        { type: "paragraph", data: { text: `Type '/' to add blocks, or type '@${aiName}' to ask your collaborator a question.` } }
+                    ]
+                };
+            }
+
+            timestamps = savedData.timestamps || {};
+            document.getElementById('editorjs').innerHTML = '';
+
+            window.editor = new EditorJS({
+                holder: 'editorjs',
+                placeholder: isToday ? 'Type "/" for commands...' : 'No notes available for this day.',
+                readOnly: !isToday,
+                data: savedData,
+                tools: EDITOR_TOOLS_CONFIG,
+                onChange: () => { if (isToday) scheduleSave(); },
+                onReady: () => { domObserver.observe(document.getElementById('editorjs'), { childList: true, subtree: true }); updateAllTimestamps(); }
+            });
+        }
+
+        appDB.init().then(() => {
+            document.getElementById('loading-indicator').style.display = 'none';
+            document.getElementById('editorjs').style.opacity = '1';
+            document.getElementById('date-header').innerHTML = getDisplayDate(window.currentDateStr);
+            initEditor(window.currentDateStr);
+        }).catch(e => {
+            document.getElementById('loading-indicator').textContent = 'Database Initialization Failed.';
+            console.error(e);
         });
+
     </script>
 </body>
 </html>
