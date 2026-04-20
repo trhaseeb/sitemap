@@ -50,8 +50,11 @@
             }
         }
 
+        /* Body hides horizontal overflow so the brutalist header doesn't cause page scrolling */
         body { background-color: var(--bg-color); color: var(--text-color); font-family: var(--font-main); margin: 0; padding: 0; line-height: 1.6; width: 100vw; overflow-x: hidden; }
+        
         .app-container { max-width: 800px; width: 100%; margin: 0 auto; padding: calc(10vh + var(--safe-area-top)) 40px 65vh 40px; box-sizing: border-box; }
+        
         #editorjs { padding: 0; max-width: 100%; box-sizing: border-box; min-height: 50vh; }
         
         ::-webkit-scrollbar { width: 0px; background: transparent; }
@@ -86,14 +89,57 @@
             .ce-popover, .ce-settings, .ce-inline-toolbar { bottom: var(--keyboard-offset, 0px) !important; max-height: calc(100vh - var(--keyboard-offset, 0px) - 20px) !important; transition: bottom 0.2s cubic-bezier(0.1, 0.7, 0.1, 1), max-height 0.2s ease; }
         }
 
-        #date-header { text-align: left; font-size: clamp(60px, 18vw, 150px); font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: -0.06em; line-height: 0.8; color: var(--text-color); margin: -20px 0 10px -25px; cursor: pointer; transition: opacity 0.2s; user-select: none; white-space: nowrap; }
+        /* --- STYLISH BRUTALIST HEADER --- */
+        #date-header { 
+            text-align: left; 
+            font-size: clamp(60px, 18vw, 150px); 
+            font-weight: 900; 
+            font-style: italic; 
+            text-transform: uppercase; 
+            letter-spacing: -0.06em; 
+            line-height: 0.8; 
+            color: var(--text-color); 
+            margin: -20px 0 10px -25px; 
+            cursor: pointer; 
+            transition: opacity 0.2s; 
+            user-select: none; 
+            white-space: nowrap; 
+        }
         #date-header:hover { opacity: 0.7; }
         #date-header:active { opacity: 0.5; }
         
-        #ai-status-wrapper { margin-bottom: 40px; padding-left: 4px; }
-        #ai-status-text { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ai-color); opacity: 0.8; transition: color 0.3s; }
-        .ai-progress-container { width: 100%; max-width: 200px; height: 4px; background: var(--muted-bg); border-radius: 2px; margin-top: 8px; overflow: hidden; display: none; }
-        .ai-progress-bar { width: 0%; height: 100%; background: var(--ai-color); transition: width 0.1s ease-out; }
+        #ai-status-wrapper {
+            margin-bottom: 40px;
+            padding-left: 4px;
+        }
+
+        #ai-status-text {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--ai-color);
+            opacity: 0.8;
+            transition: color 0.3s;
+        }
+        
+        /* The sleek progress bar */
+        .ai-progress-container {
+            width: 100%;
+            max-width: 200px;
+            height: 4px;
+            background: var(--muted-bg);
+            border-radius: 2px;
+            margin-top: 8px;
+            overflow: hidden;
+            display: none;
+        }
+        .ai-progress-bar {
+            width: 0%;
+            height: 100%;
+            background: var(--ai-color);
+            transition: width 0.1s ease-out;
+        }
 
         .ce-block-time { font-size: 11px; color: var(--muted-text); text-align: right; padding-top: 6px; padding-bottom: 2px; padding-right: 2px; user-select: none; opacity: 0.7; font-weight: 500; }
         
@@ -102,11 +148,26 @@
         .cal-btn:hover { background: var(--editor-hover-bg); }
         .cal-btn.primary { background: var(--text-color); color: var(--bg-color); border-color: var(--text-color); }
         .cal-btn.primary:hover { opacity: 0.9; }
+
         .tool-title-input { width: 100%; border: none; background: transparent; color: var(--text-color); font-size: 16px; font-weight: 600; outline: none; font-family: inherit; padding: 4px 0; margin-bottom: 8px; }
         .tool-title-input::placeholder { color: var(--muted-text); font-weight: 500; opacity: 0.6; }
 
-        .ai-text-block { color: var(--ai-color); font-style: italic; font-weight: 500; font-size: 16px; line-height: 1.6; outline: none; padding: 8px 0; white-space: pre-wrap; border-left: 2px solid var(--ai-color); padding-left: 14px; margin-left: -16px; word-break: break-word; }
+        /* --- THE INVISIBLE AI INK --- */
+        .ai-text-block {
+            color: var(--ai-color);
+            font-style: italic;
+            font-weight: 500;
+            font-size: 16px;
+            line-height: 1.6;
+            outline: none;
+            padding: 8px 0;
+            white-space: pre-wrap;
+            border-left: 2px solid var(--ai-color);
+            padding-left: 14px;
+            margin-left: -16px;
+        }
 
+        /* --- UNIFIED DATE PICKER MODAL --- */
         .global-calendar-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); z-index: 100000; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s ease; backdrop-filter: blur(2px); }
         .global-calendar-modal.show { display: flex; opacity: 1; }
         .cp-container { background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; width: 90%; max-width: 340px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); display: flex; flex-direction: column; gap: 12px; }
@@ -122,12 +183,14 @@
         .cp-time { display: flex; justify-content: center; align-items: center; gap: 6px; padding-top: 16px; border-top: 1px solid var(--border-color); }
         #dp-time-input { width: 100%; padding: 10px; font-size: 16px; text-align: center; border-radius: 6px; border: 1px solid var(--border-color); background: var(--muted-bg); color: var(--text-color); font-family: inherit; outline: none; }
 
+        /* --- COMPUTE BLOCK STYLES --- */
         .compute-tool-container { border: 1px solid var(--border-color); border-radius: var(--std-border-radius); background: var(--muted-bg); overflow: hidden; margin: 8px 0; display: flex; flex-direction: column; }
         .compute-input { width: 100%; padding: 16px 16px 12px 16px; background: transparent; border: none; outline: none; font-family: monospace; font-size: 14px; color: var(--text-color); resize: none; box-sizing: border-box; line-height: 1.5; min-height: 50px; font-weight: bold; }
         .compute-input::placeholder { color: var(--muted-text); opacity: 0.5; font-weight: normal; }
         .compute-output { padding: 12px 16px; border-top: 1px dashed var(--border-color); font-family: monospace; font-size: 16px; font-weight: 700; color: var(--text-color); background: var(--bg-color); word-break: break-word; min-height: 20px; }
         .compute-error { color: #EF4444; font-weight: 400; font-size: 13px; }
 
+        /* --- SCAN BLOCK STYLES --- */
         .scan-wrapper { margin: 8px 0; width: 100%; border: 1px dashed var(--border-color); border-radius: var(--std-border-radius); display: flex; flex-direction: column; overflow: hidden; }
         .scan-action-area { padding: 30px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; cursor: pointer; transition: background 0.2s; }
         .scan-action-area:hover { background: var(--editor-hover-bg); }
@@ -137,6 +200,7 @@
         .scan-status { font-family: monospace; font-size: 12px; font-weight: bold; color: var(--muted-text); margin-top: 10px; }
         .scan-output-textarea { width: 100%; min-height: 100px; padding: 16px; border: none; background: var(--muted-bg); color: var(--text-color); font-family: monospace; font-size: 13px; line-height: 1.5; resize: none; outline: none; box-sizing: border-box; }
 
+        /* --- RECALL BLOCK STYLES --- */
         .recall-search-wrapper { position: relative; width: 100%; margin: 8px 0; }
         .recall-search-input { width: 100%; padding: 12px 14px 12px 40px; border-radius: var(--std-border-radius); border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); font-family: inherit; font-size: 15px; outline: none; box-sizing: border-box; transition: border-color 0.2s; }
         .recall-search-input:focus { border-color: var(--text-color); }
@@ -148,10 +212,12 @@
         .recall-result-item:hover { background: var(--editor-hover-bg); }
         .recall-result-meta { font-size: 11px; color: var(--text-color); font-weight: 600; opacity: 0.7; }
         .recall-result-snippet { font-size: 14px; color: var(--muted-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
         .recalled-block { margin: 8px 0; padding: 12px 16px; background: var(--recall-bg); border-left: 4px solid var(--recall-border); border-radius: 4px var(--std-border-radius) var(--std-border-radius) 4px; position: relative; }
         .recalled-orig-meta { font-size: 10px; color: var(--muted-text); font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
         .recalled-orig-meta svg { width: 12px; height: 12px; }
 
+        /* Other Plugin Tool Styles */
         .calendar-tool-container { display: flex; flex-direction: column; gap: 12px; width: 100%; margin: 8px 0; }
         .cal-header { display: flex; align-items: center; gap: 10px; }
         .cal-header svg { color: var(--muted-text); }
@@ -184,6 +250,29 @@
         .leaflet-container.locked-mode { cursor: default !important; }
 
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
+        /* --- VISUAL DEBUGGER STYLES --- */
+        #visual-debugger-panel {
+            position: fixed; bottom: 0; left: 0; width: 100%; height: 33vh; 
+            background: #111; color: #0f0; font-family: monospace; font-size: 12px; 
+            z-index: 999999; display: flex; flex-direction: column; 
+            border-top: 2px solid #333; opacity: 0.95;
+        }
+        #visual-debugger-header {
+            background: #222; padding: 6px 12px; display: flex; justify-content: space-between; 
+            align-items: center; color: #aaa; font-weight: bold;
+        }
+        #visual-debugger-header button {
+            background: transparent; color: #fff; border: 1px solid #555; 
+            padding: 2px 8px; border-radius: 4px; cursor: pointer;
+        }
+        #visual-debugger-log {
+            flex: 1; overflow-y: auto; padding: 10px; white-space: pre-wrap; word-break: break-all;
+        }
+        .log-line { margin-bottom: 4px; border-bottom: 1px solid #222; padding-bottom: 2px; }
+        .log-error { color: #ff5555; font-weight: bold; }
+        .log-warn { color: #ffbb00; }
+        .log-info { color: #55ff55; }
     </style>
 </head>
 <body>
@@ -223,22 +312,86 @@
         </div>
     </div>
 
+    <!-- VISUAL DEBUGGER UI -->
+    <div id="visual-debugger-panel">
+        <div id="visual-debugger-header">
+            <span>LIVE DEBUG CONSOLE</span>
+            <button onclick="document.getElementById('visual-debugger-log').innerHTML=''">Clear</button>
+        </div>
+        <div id="visual-debugger-log"></div>
+    </div>
+
     <!-- MAIN APP SCRIPT -->
     <script type="module">
+
+        // ==========================================
+        // 1. VISUAL LOGGER SETUP (Loaded First)
+        // ==========================================
+        const logContainer = document.getElementById('visual-debugger-log');
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+
+        function appendLog(message, type = 'log') {
+            const div = document.createElement('div');
+            const time = new Date().toLocaleTimeString();
+            
+            if (typeof message === 'object') {
+                try { message = JSON.stringify(message, null, 2); } 
+                catch (e) { message = String(message); }
+            }
+
+            div.textContent = `[${time}] ${message}`;
+            div.className = 'log-line';
+            
+            if (type === 'error') div.classList.add('log-error');
+            else if (type === 'warn') div.classList.add('log-warn');
+            else div.classList.add('log-info');
+
+            logContainer.appendChild(div);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            appendLog(args.join(' '), 'info');
+        };
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            appendLog(args.join(' '), 'error');
+        };
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            appendLog(args.join(' '), 'warn');
+        };
+
+        window.addEventListener('error', function(event) {
+            console.error(`Global Error: ${event.message} at line ${event.lineno}`);
+        });
+
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error(`Unhandled Promise: ${event.reason}`);
+        });
+
+        console.log("Visual Debugger Initialized. Waiting for events...");
+
+
         // ============================================================================
         // ⚙️ INFINITE NOTES CONFIGURATION
         // ============================================================================
         const CONFIG = {
-            DATABASE_MODE: 'indexedDB',
+            DATABASE_MODE: 'indexedDB', // 'indexedDB', 'firebase', or 'rest'
             PWA_LOGO_URL: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzAwMDAwMCI+PHBhdGggZD0iTTE0IDJINmEyIDIgMCAwIDAtMiAydjE2YTIgMiAwIDAgMCAyIDJoMTJhMiAyIDAgMCAwIDItMlY4bC02LTZ6Ii8+PC9zdmc+",
             
+            // 🤖 THE INVISIBLE COLLABORATOR CONFIG
             AI_CO_PILOT: {
-                name: "", 
-                persona: "", 
-                canEditYourWork: true 
+                name: "", // Leave blank for a random name (e.g. "Cipher")
+                persona: "", // Leave blank for a random unpredictable personality
+                canEditYourWork: true // If true, the AI might unpredictably overwrite your blocks!
             }
         };
 
+        // --- AI Persona Generation ---
         const NAMES = ["Echo", "Void", "Cipher", "Atlas", "Sparks", "Orion", "Sage", "Nox", "Glitch"];
         const PERSONAS = [
             "You are a sarcastic pragmatist who gives painfully honest, brief answers.",
@@ -256,6 +409,7 @@
         const aiName = sessionStorage.getItem('ai_name');
         const aiPersona = sessionStorage.getItem('ai_persona');
 
+        // --- Apply Global Configurations ---
         document.getElementById('pwa-icon').href = CONFIG.PWA_LOGO_URL;
         document.getElementById('pwa-manifest').href = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify({
             "name": "Infinite Notes", "short_name": "Notes", "start_url": ".", "display": "standalone",
@@ -310,6 +464,9 @@
 
         function getLocalYYYYMMDD(date) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; }
 
+        // ============================================================================
+        // DATABASE ADAPTER SYSTEM (Safely Fallbacks to Memory on Cross-Origin Block)
+        // ============================================================================
         class IndexedDBAdapter {
             constructor() { this.dbName = 'InfiniteNotesDB'; this.storeName = 'daily_notes'; this.cache = {}; this.isMemoryOnly = false; }
             init() {
@@ -344,8 +501,12 @@
                 });
             }
         }
+
         let appDB = new IndexedDBAdapter();
 
+        // ============================================================================
+        // GLOBAL UI: DATE PICKER MODAL
+        // ============================================================================
         const DatePicker = (function() {
             let activeDate, viewDate, onConfirm, config;
             const modal = document.getElementById('global-calendar-modal');
@@ -407,8 +568,13 @@
             };
         })();
 
+        // ============================================================================
+        // EDITOR.JS PLUGINS (Safe Tool Registry)
+        // ============================================================================
+
         window.ToolRegistry = {};
 
+        // 1. The Invisible AI Ink Block
         class AiTextTool {
             constructor({data, api, readOnly}) {
                 this.api = api; this.readOnly = readOnly;
@@ -422,6 +588,7 @@
             save() { return { text: this.wrapper.innerHTML, streamId: null }; } 
         }
 
+        // 2. The Scan Tool (Local OCR)
         class ScanTool {
             static get toolbox() { return { title: 'Scan Text', icon: ICONS.scan }; }
             constructor({data, config, readOnly}) {
@@ -487,13 +654,16 @@
             save() { return this.data; }
         }
 
+        // 3. The Compute (REPL) Tool - PROXY MAGIC
         class ComputeTool {
             static get toolbox() { return { title: 'Compute Logic', icon: ICONS.compute }; }
+
             constructor({data, config, readOnly}) {
                 this.config = config; this.readOnly = readOnly;
                 this.data = { code: data.code || '', output: data.output || '' };
                 this.wrapper = createEl('div', 'compute-tool-container');
             }
+
             render() {
                 this.wrapper.innerHTML = '';
                 this.input = createEl('textarea', 'compute-input', { placeholder: 'Type logic: 10 * 4 or groceries / 2...', value: this.data.code });
@@ -513,8 +683,10 @@
 
                 this.wrapper.append(this.input, this.output); return this.wrapper;
             }
+
             async evaluateLogic() {
                 if (!this.data.code.trim()) { this.output.innerHTML = ''; this.data.output = ''; if(this.config.onChange) this.config.onChange(); return; }
+
                 const find = (query) => {
                     let results = []; const q = query.toLowerCase();
                     Object.values(appDB.cache).forEach(day => {
@@ -531,11 +703,13 @@
                     });
                     return results;
                 };
+
                 const nums = (query) => {
                     let texts = find(query); let numbers = [];
                     texts.forEach(t => { let matches = t.match(/-?\d+(\.\d+)?/g); if (matches) numbers.push(...matches.map(Number)); });
                     return numbers;
                 };
+
                 const sum = (query) => nums(query).reduce((a,b)=>a+b, 0);
                 const avg = (query) => { let n = nums(query); return n.length ? sum(query)/n.length : 0; };
 
@@ -549,6 +723,7 @@
                         return undefined;
                     }
                 });
+
                 try {
                     let codeText = this.data.code;
                     const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
@@ -585,13 +760,16 @@
             save() { return this.data; }
         }
 
+        // 4. The Recall Tool 
         class RecallTool {
             static get toolbox() { return { title: 'Recall', icon: ICONS.recall }; }
+
             constructor({data, config, api, readOnly}) {
                 this.api = api; this.config = config; this.readOnly = readOnly;
                 this.data = data && data.recalled ? data : { recalled: false, sourceDate: null, sourceTime: null, sourceBlock: null };
                 this.wrapper = createEl('div');
             }
+
             render() {
                 this.wrapper.innerHTML = '';
                 if (this.data.recalled) { this.wrapper.appendChild(this.renderRecalledState()); } 
@@ -599,6 +777,7 @@
                 else { this.wrapper.innerHTML = '<div style="color: var(--muted-text); font-size: 13px;">Empty Recall Block</div>'; }
                 return this.wrapper;
             }
+
             renderSearchState() {
                 const searchWrapper = createEl('div', 'recall-search-wrapper');
                 const icon = createEl('div', 'recall-search-icon', {innerHTML: ICONS.search});
@@ -621,6 +800,9 @@
                             if (block.data.text) searchableText += block.data.text.toLowerCase() + " ";
                             if (block.data.title) searchableText += block.data.title.toLowerCase() + " ";
                             if (block.data.items) searchableText += block.data.items.map(i => i.content || i.text).join(' ').toLowerCase() + " ";
+                            if (block.type === 'smartCanvas') searchableText += "canvas drawing map sketch photo image ";
+                            if (block.type === 'voice') searchableText += "voice audio memo recording mic ";
+                            if (block.type === 'calendar') searchableText += "calendar event date reminder schedule ";
                             if (searchableText.includes(query)) { results.push({ date: dateStr, block: block, timestamp: dayData.timestamps?.[block.id] }); }
                         });
                     });
@@ -629,11 +811,16 @@
                         results.forEach(res => {
                             const item = createEl('div', 'recall-result-item');
                             const dateObj = new Date(res.date + 'T00:00:00'); const displayDate = dateObj.toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'});
+                            const displayTime = res.timestamp ? new Date(res.timestamp).toLocaleTimeString(undefined, {hour: 'numeric', minute: '2-digit'}) : '';
                             let snippet = "";
                             if (res.block.type === 'paragraph' || res.block.type === 'header' || res.block.type === 'scan' || res.block.type === 'aiText') { snippet = res.block.data.text.replace(/<[^>]*>?/gm, ''); } 
+                            else if (res.block.type === 'calendar') { snippet = "📅 " + (res.block.data.title || "Calendar Event"); } 
+                            else if (res.block.type === 'voice') { snippet = "🎤 " + (res.block.data.title || "Voice Memo"); } 
+                            else if (res.block.type === 'smartCanvas') { snippet = "🖌️ " + (res.block.data.title || "Media Canvas"); } 
+                            else if (res.block.type === 'list' || res.block.type === 'checklist') { let items = res.block.data.items || []; snippet = "📝 " + items.map(i=>i.content || i.text || '').join(', ').replace(/<[^>]*>?/gm, ''); } 
                             else { snippet = "📄 " + res.block.type.toUpperCase() + " Block"; }
                             snippet = snippet.substring(0, 60) + (snippet.length > 60 ? '...' : '');
-                            item.appendChild(createEl('div', 'recall-result-meta', {textContent: `${displayDate}`}));
+                            item.appendChild(createEl('div', 'recall-result-meta', {textContent: `${displayDate} ${displayTime}`}));
                             item.appendChild(createEl('div', 'recall-result-snippet', {textContent: snippet}));
                             item.onclick = () => { this.data = { recalled: true, sourceDate: res.date, sourceTime: res.timestamp, sourceBlock: res.block }; this.render(); this.config.onChange(); };
                             dropdown.appendChild(item);
@@ -648,8 +835,9 @@
                 const container = createEl('div', 'recalled-block');
                 const dateObj = new Date(this.data.sourceDate + 'T00:00:00');
                 const displayDate = dateObj.toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'});
+                const displayTime = this.data.sourceTime ? new Date(this.data.sourceTime).toLocaleTimeString(undefined, {hour: 'numeric', minute: '2-digit'}) : '';
                 const meta = createEl('div', 'recalled-orig-meta');
-                meta.appendChild(createEl('div', '', {innerHTML: ICONS.recall})); meta.appendChild(createEl('span', '', {textContent: `Recalled from ${displayDate}`})); container.appendChild(meta);
+                meta.appendChild(createEl('div', '', {innerHTML: ICONS.recall})); meta.appendChild(createEl('span', '', {textContent: `Recalled from ${displayDate} ${displayTime}`})); container.appendChild(meta);
 
                 const targetDef = window.ToolRegistry[this.data.sourceBlock.type];
                 if (targetDef) {
@@ -658,19 +846,21 @@
                         const renderedNode = instance.render();
                         renderedNode.style.pointerEvents = this.data.sourceBlock.type === 'voice' ? 'auto' : 'none'; 
                         container.appendChild(renderedNode);
-                    } catch (e) { container.appendChild(createEl('div', '', {textContent: 'Error rendering original content.'})); }
+                    } catch (e) { console.error("Failed to render recalled block", e); container.appendChild(createEl('div', '', {textContent: 'Error rendering original content.'})); }
                 }
                 return container;
             }
             save() { return this.data; }
         }
 
+        // 5. Smart Canvas Tool 
         class SmartCanvasTool {
             static get toolbox() { return { title: 'Media Canvas', icon: ICONS.pen }; }
             constructor({data, config, api, readOnly}) {
                 this.api = api; this.config = config; this.readOnly = readOnly;
                 this.data = { mode: data.mode || null, title: data.title || '', lat: data.lat || 51.505, lng: data.lng || -0.09, zoom: data.zoom || 13, isLocked: data.isLocked || false, baseImage: data.baseImage || null, imgWidth: data.imgWidth || null, imgHeight: data.imgHeight || null, hasInitializedView: data.hasInitializedView || false, lines: data.lines || [], isDrawingActive: data.isDrawingActive || false };
                 if (!this.data.title && !this.data.mode) { this.data.title = 'Canvas - ' + new Date().toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'}); }
+                
                 this.wrapper = createEl('div'); this.relativeFrame = createEl('div', 'canvas-relative-frame'); this.controls = createEl('div', 'block-controls-stack');
                 this.currentColor = '#EF4444'; this.lineLayers = []; this.currentPolyline = null; this.currentPoints = [];
             }
@@ -799,6 +989,7 @@
             destroy() { if (this.map) { this.map.remove(); this.map = null; } }
         }
 
+        // 6. Calendar Tool
         class CalendarTool {
             static get toolbox() { return { title: 'Calendar Event', icon: ICONS.calendar }; }
             constructor({data, config, api, readOnly}) {
@@ -842,6 +1033,7 @@
             save() { return this.data; }
         }
 
+        // 7. Voice Memo
         class VoiceMemo {
             static get toolbox() { return { title: 'Voice Memo', icon: ICONS.mic }; }
             constructor({data, config, api, readOnly}) {
@@ -885,18 +1077,25 @@
             save() { return this.data; }
         }
 
+        // ============================================================================
+        // CORE APP INITIALIZATION & AI TRIGGERS
+        // ============================================================================
         window.editor = null; 
-        let timestamps = {}, updateRaf, saveTimeout, aiTriggerTimeout;
+        let timestamps = {}, updateRaf, saveTimeout;
+        let aiTriggerTimeout;
         const processedPrompts = new Set(); 
+        
         let todayStr = getLocalYYYYMMDD(new Date());
         window.currentDateStr = todayStr;
 
+        // Immediate Header Render
         function getDisplayDate(dateStr) {
             const [y, m, d] = dateStr.split('-'); const date = new Date(y, m - 1, d);
             return `${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}<br>${date.toLocaleDateString(undefined, { weekday: 'long' })}`; 
         }
         document.getElementById('date-header').innerHTML = getDisplayDate(window.currentDateStr);
 
+        // Safe evaluation of generic EditorJS core blocks 
         const P = typeof Paragraph !== 'undefined' ? Paragraph : window.Paragraph;
         const H = typeof Header !== 'undefined' ? Header : window.Header;
         const L = typeof NestedList !== 'undefined' ? NestedList : window.NestedList;
@@ -916,6 +1115,7 @@
             aiText: { class: AiTextTool, config: { onChange: scheduleSave } } 
         };
 
+        // Complete the registry for Recall rendering
         window.ToolRegistry.paragraph = EDITOR_TOOLS_CONFIG.paragraph;
         window.ToolRegistry.header = EDITOR_TOOLS_CONFIG.header;
         window.ToolRegistry.list = EDITOR_TOOLS_CONFIG.list;
@@ -954,8 +1154,10 @@
             });
         }
 
+        // --- INVISIBLE AI TRIGGER LOGIC ---
         async function checkAiTriggers() {
             if (!window.editor || window.editor.readOnly) return;
+            
             const currentIndex = window.editor.blocks.getCurrentBlockIndex();
             const data = await window.editor.save();
             const blocks = data.blocks;
@@ -968,67 +1170,66 @@
                     tmp.innerHTML = block.data.text.replace(/<br>/g, '\n');
                     const cleanText = tmp.textContent.replace(/\u00A0/g, ' ').trim();
                     
-                    if (cleanText.includes('@') && !processedPrompts.has(block.id)) {
-                        const expectedPrefix = `@${aiName.toLowerCase()}`;
-                        if (cleanText.toLowerCase().startsWith(expectedPrefix)) {
-                            if (i !== currentIndex) {
-                                processedPrompts.add(block.id);
-                                statusTextEl.textContent = `Collaborator: @${aiName} (Initializing...)`;
-                                const streamId = 'ai-stream-' + Date.now();
-                                window.editor.blocks.insert('aiText', { text: `<i>Initializing backend...</i>`, streamId: streamId }, {}, i + 1, false);
-                                executeRAG(cleanText, streamId, i, block.id);
-                            } else { statusTextEl.textContent = `Press 'Enter' to send prompt to @${aiName}`; }
-                        } else if (cleanText.startsWith('@')) { statusTextEl.textContent = `Did you mean to type @${aiName}?`; }
+                    if (cleanText.toLowerCase().startsWith(`@${aiName.toLowerCase()}`) && !processedPrompts.has(block.id)) {
+                        
+                        // DEBUG LOG HERE
+                        console.log(`Detected AI prompt trigger for: @${aiName}`);
+                        
+                        if (i !== currentIndex) {
+                            processedPrompts.add(block.id);
+                            
+                            // DEBUG LOG HERE
+                            console.log("Checking WebGPU support...");
+                            console.log("navigator.gpu object:", navigator.gpu);
+                            
+                            if (!navigator.gpu) {
+                                console.error("WebGPU is NOT supported on this browser/device.");
+                                window.editor.blocks.insert('aiText', { text: `[System]: Your device/browser blocks WebGPU. Try Chrome or Safari on desktop, or Chrome on Android.` }, {}, i + 1, false);
+                                scheduleSave();
+                                return;
+                            }
+
+                            statusTextEl.textContent = `Collaborator: @${aiName} (Thinking...)`;
+                            const streamId = 'ai-stream-' + Date.now();
+                            window.editor.blocks.insert('aiText', { text: `...`, streamId: streamId }, {}, i + 1, false);
+                            
+                            console.log("Proceeding to executeRAG...");
+                            executeRAG(cleanText, streamId, i, block.id);
+                        } else {
+                            console.log("Prompt is currently being edited. Waiting for user to move to a new block.");
+                        }
                     }
                 }
             }
         }
 
         async function executeRAG(prompt, streamId, promptIndex, promptBlockId) {
+            console.log("Starting executeRAG...");
             const statusTextEl = document.getElementById('ai-status-text');
             const progressContainer = document.getElementById('ai-progress-container');
             const progressBar = document.getElementById('ai-progress-bar');
-            const streamNode = document.getElementById(streamId);
             
-            let debugLogHTML = ``;
-            const visualLog = (msg) => {
-                console.log(`[AI Backend]: ${msg}`);
-                debugLogHTML += `<div style="font-family: monospace; font-size: 11px; color: var(--muted-text); margin-left: 8px; border-left: 2px solid var(--border-color); padding-left: 6px; margin-bottom: 2px;">> ${msg}</div>`;
-                if(streamNode) streamNode.innerHTML = debugLogHTML + `<i>...</i>`;
-            };
-
             try {
-                visualLog(`Checking engine status...`);
-
                 if (!window.llmEngine) {
-                    visualLog(`Attempting to import WebLLM from CDN...`);
+                    console.log("Importing Web-LLM dynamically...");
                     const { CreateMLCEngine } = await import("https://esm.run/@mlc-ai/web-llm");
-                    
-                    if (!navigator.gpu) throw new Error("navigator.gpu is UNDEFINED.");
-                    
-                    visualLog(`WebGPU is supported! Configuring mobile memory constraints...`);
                     progressContainer.style.display = 'block';
                     
-                    // CRUCIAL iOS FIX: Restrict Context Window to prevent Safari memory crash
+                    console.log("Initializing MLCEngine... (This might take a while)");
                     window.llmEngine = await CreateMLCEngine("Llama-3.2-1B-Instruct-q4f16_1-MLC", {
                         initProgressCallback: (p) => {
+                            const node = document.getElementById(streamId);
                             const perc = Math.round(p.progress * 100);
-                            if(streamNode) streamNode.innerHTML = debugLogHTML + `<div style="margin-top: 8px; font-weight: bold; font-size: 13px;">Downloading Model Weights: ${perc}%</div><div style="font-size:10px; color:var(--muted-text)">${p.text}</div>`;
+                            if(node) node.innerHTML = `Downloading Model Weights... ${perc}%`;
                             progressBar.style.width = `${perc}%`;
                             statusTextEl.textContent = `Collaborator: @${aiName} (Downloading ${perc}%)`;
-                        },
-                        chatOpts: {
-                            // Caps memory usage so iOS doesn't assassinate the tab
-                            context_window_size: 1536 
+                            console.log(`Web-LLM Download Progress: ${perc}%`);
                         }
                     });
+                    console.log("MLCEngine successfully initialized.");
                     progressContainer.style.display = 'none';
-                    visualLog(`Engine initialized successfully with mobile constraints.`);
-                } else {
-                    visualLog(`Using cached MLCEngine instance.`);
                 }
 
-                visualLog(`Gathering context from past notes...`);
                 let contextText = "";
                 Object.entries(appDB.cache).forEach(([dateStr, dayData]) => {
                     if (!dayData.blocks) return;
@@ -1036,28 +1237,30 @@
                         if (block.type === 'aiText') return;
                         if (block.data.text) contextText += `[${dateStr}]: ${block.data.text.replace(/<[^>]*>?/gm, '')}\n`;
                         if (block.data.title) contextText += `[${dateStr}]: ${block.data.title}\n`;
+                        if (block.data.items) contextText += `[${dateStr}]: ${block.data.items.map(j=>j.content).join(', ')}\n`;
                     });
                 });
-                
-                // Reduce context string size to help with iOS memory constraints
-                contextText = contextText.slice(-2000); 
+                contextText = contextText.slice(-5000);
 
                 const messages = [
-                    { role: "system", content: `You are ${aiName}. ${aiPersona} You live inside the user's notebook. Use past notes as context. Keep answers brief. To forcefully edit their note, start response EXACTLY with '[EDIT] ' followed by new text.\n\nContext:\n${contextText}` },
+                    { role: "system", content: `You are ${aiName}. ${aiPersona} You live inside the user's personal notebook. Use the following past notes as context to answer them. If you want to reply normally, just speak. If you feel the user's prompt needs a creative rewrite, improvement, or you want to forcefully hijack their thought, you can OVERWRITE their text by starting your response EXACTLY with '[EDIT] ' followed by the new text.\n\nContext:\n${contextText}` },
                     { role: "user", content: prompt }
                 ];
 
-                statusTextEl.textContent = `Collaborator: @${aiName} (Generating...)`;
+                statusTextEl.textContent = `Collaborator: @${aiName} (Typing...)`;
+                console.log("Sending query to local LLM...");
                 
                 const chunks = await window.llmEngine.chat.completions.create({ messages, stream: true });
-                visualLog(`Stream connected. Yielding tokens...`);
                 
                 let reply = "";
+                const streamNode = document.getElementById(streamId);
+                
                 for await (const chunk of chunks) {
                     reply += chunk.choices[0]?.delta?.content || "";
-                    if(streamNode) streamNode.innerHTML = debugLogHTML + `<br><span style="color: var(--text-color); font-style: normal;">${reply.replace(/\n/g, '<br>')}</span>`;
+                    if(streamNode) streamNode.innerHTML = reply.replace(/\n/g, '<br>');
                 }
 
+                console.log("LLM response complete.");
                 statusTextEl.textContent = `Collaborator: @${aiName} (Sleeping)`;
 
                 if (CONFIG.AI_CO_PILOT.canEditYourWork && reply.trim().startsWith('[EDIT]')) {
@@ -1072,21 +1275,16 @@
                 }
 
             } catch (e) {
-                console.error(e);
+                console.error("Critical error in executeRAG: ", e.message, e);
                 progressContainer.style.display = 'none';
-                if(streamNode) {
-                    streamNode.innerHTML = debugLogHTML + `
-                        <div style="margin-top: 10px; padding: 10px; border: 1px solid #EF4444; border-radius: 6px; background: rgba(239, 68, 68, 0.1);">
-                            <span style="color: #EF4444; font-weight: bold; font-size: 13px;">[FATAL ERROR]:</span><br>
-                            <span style="color: var(--text-color); font-family: monospace; font-size: 12px;">${e.name}: ${e.message}</span><br><br>
-                            <span style="font-size: 10px;">(If your browser refreshed or crashed right before this, you hit the iOS RAM limit.)</span>
-                        </div>`;
-                }
-                statusTextEl.textContent = `Collaborator: @${aiName} (Crashed)`;
+                const streamNode = document.getElementById(streamId);
+                if(streamNode) streamNode.innerHTML = `Error: ${e.message}`;
+                statusTextEl.textContent = `Collaborator: @${aiName} (Error)`;
             }
             scheduleSave();
         }
 
+        // --- Standard Save Trigger ---
         function scheduleSave() {
             if (window.editor && !window.editor.readOnly) {
                 clearTimeout(saveTimeout);
@@ -1103,11 +1301,16 @@
 
         async function initEditor(date) {
             if (window.editor) { domObserver.disconnect(); await window.editor.destroy(); window.editor = null; }
+            
             const isToday = date === todayStr;
             let savedData = appDB.cache[date] || { blocks: [] };
             
             if (isToday && (!savedData.blocks || savedData.blocks.length === 0)) {
-                savedData = { blocks: [{ type: "paragraph", data: { text: `Type '/' to add blocks, or type '@${aiName}' to ask your collaborator a question.` } }] };
+                savedData = {
+                    blocks: [
+                        { type: "paragraph", data: { text: `Type '/' to add blocks, or type '@${aiName}' to ask your collaborator a question.` } }
+                    ]
+                };
             }
 
             timestamps = savedData.timestamps || {};
@@ -1124,7 +1327,13 @@
             });
         }
 
-        appDB.init().then(() => initEditor(window.currentDateStr)).catch(() => initEditor(window.currentDateStr));
+        // Instant DB Init handling with memory fallback
+        appDB.init().then(() => {
+            initEditor(window.currentDateStr);
+        }).catch(e => {
+            console.warn("DB fallback triggered");
+            initEditor(window.currentDateStr);
+        });
 
     </script>
 </body>
