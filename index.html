@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -344,10 +345,11 @@
         };
 
         const SLASH_COMMANDS = [
+            { id: 'ai_continue', label: 'AI: Think', sub: 'Continue this thought' },
+            { id: 'profile', label: 'AI Memory', sub: 'View/Edit Profile Facts' },
             { id: 'h1', label: 'Heading 1', sub: 'Big Title' },
             { id: 'h2', label: 'Heading 2', sub: 'Medium Title' },
             { id: 'h3', label: 'Heading 3', sub: 'Small Title' },
-            { id: 'ai_continue', label: 'AI: Think', sub: 'Continue this thought' },
             { id: 'compute', label: 'Compute', sub: 'Math & Logic' },
             { id: 'smartCanvas', label: 'Canvas', sub: 'Draw & Map' },
             { id: 'voice', label: 'Voice', sub: 'Audio Memo' },
@@ -463,6 +465,9 @@
                         CREATE EXTENSION IF NOT EXISTS vector;
                         CREATE TABLE IF NOT EXISTS daily_notes (date_str TEXT PRIMARY KEY, data JSONB);
                         CREATE TABLE IF NOT EXISTS semantic_index (key TEXT PRIMARY KEY, date_str TEXT, block_id TEXT, block_type TEXT, search_text TEXT, embedding vector(384), timestamp BIGINT);
+                        
+                        -- INTELLIGENT DESIGN: Core User Knowledge Table
+                        CREATE TABLE IF NOT EXISTS user_knowledge (id SERIAL PRIMARY KEY, fact TEXT, timestamp BIGINT);
                     `);
                     this.isReady = true;
                     document.getElementById('db-status').textContent = 'pg_vector.ready';
@@ -476,6 +481,23 @@
                     document.getElementById('db-status').textContent = 'pg_vector.offline';
                     document.getElementById('storage-warning').style.display = 'inline';
                 }
+            }
+            
+            // --- KNOWLEDGE BASE MANAGEMENT ---
+            async getKnowledge() {
+                if (!this.isReady) return [];
+                const res = await this.pg.query(`SELECT id, fact FROM user_knowledge ORDER BY timestamp ASC`);
+                return res.rows;
+            }
+            
+            async addKnowledge(fact) {
+                if (!this.isReady || !fact) return;
+                await this.pg.query(`INSERT INTO user_knowledge (fact, timestamp) VALUES ($1, $2)`, [fact, Date.now()]);
+            }
+            
+            async removeKnowledge(id) {
+                if (!this.isReady) return;
+                await this.pg.query(`DELETE FROM user_knowledge WHERE id = $1`, [id]);
             }
             
             async saveNote(dateStr, data) {
@@ -593,6 +615,14 @@
             {
                 type: "function",
                 function: {
+                    name: "learn_about_user",
+                    description: "Saves a permanent fact, trait, or writing preference about the user to your core memory. Do NOT save temporary moods (e.g., 'user is sad').",
+                    parameters: { type: "object", properties: { fact: { type: "string" } }, required: ["fact"] }
+                }
+            },
+            {
+                type: "function",
+                function: {
                     name: "create_compute_block",
                     description: "Creates a computation block. Used for evaluating math, arrays, or logic execution.",
                     parameters: { type: "object", properties: { code: { type: "string" }, title: { type: "string" } }, required: ["code"] }
@@ -700,6 +730,47 @@
                 return el('div', {}, titleInput, ...contentElements); 
             }
             save() { return this.data; }
+        }
+
+        // INTELLIGENT DESIGN: Profile Tool
+        class ProfileTool extends BaseTool {
+            constructor(data, isReadOnly, onChange) { 
+                super({ title: 'AI Core Memory', ...data }, isReadOnly, onChange); 
+                this.mainContainer = el('div');
+            }
+            render() {
+                this.mainContainer.innerHTML = ''; 
+                const baseEl = this.renderContainer([]); 
+                this.mainContainer.appendChild(baseEl);
+                
+                const listContainer = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }});
+                baseEl.appendChild(listContainer);
+                
+                // Fetch and render knowledge table asynchronously
+                pgDB.getKnowledge().then(rows => {
+                    if (rows.length === 0) {
+                        listContainer.appendChild(el('div', { style: { fontSize: '13px', color: 'var(--muted-text)' }, textContent: 'I am a blank slate. Write to me, and I will learn your preferences.' }));
+                    } else {
+                        rows.forEach(r => {
+                            const delBtn = this.readOnly ? null : el('button', {
+                                textContent: '✕',
+                                style: { background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontFamily: 'var(--font-mono)' },
+                                onclick: async () => { await pgDB.removeKnowledge(r.id); this.render(); }
+                            });
+                            
+                            listContainer.appendChild(
+                                el('div', { style: { display: 'flex', gap: '12px', alignItems: 'flex-start', paddingBottom: '8px', borderBottom: '1px dashed var(--muted-text)' } },
+                                    el('span', { textContent: '•', style: { color: 'var(--neon-purple)', fontWeight: 'bold' }}),
+                                    el('span', { textContent: r.fact, style: { flex: '1', fontSize: '14px', lineHeight: '1.4', fontFamily: 'var(--font-mono)' }}),
+                                    delBtn
+                                )
+                            );
+                        });
+                    }
+                });
+                
+                return this.mainContainer;
+            }
         }
 
         class ComputeTool extends BaseTool {
@@ -869,7 +940,7 @@
             }
         }
 
-        const TOOLS_MAP = { compute: ComputeTool, voice: VoiceTool, smartCanvas: SmartCanvasTool, calendar: CalendarTool, scan: ScanTool };
+        const TOOLS_MAP = { compute: ComputeTool, voice: VoiceTool, smartCanvas: SmartCanvasTool, calendar: CalendarTool, scan: ScanTool, profile: ProfileTool };
 
         // ============================================================================
         // 🖋 THE LEAN STREAM EDITOR 
@@ -1075,7 +1146,6 @@
             executeSlashCommand(item) {
                 const { block, content } = this.slashContext;
                 
-                // Clean up the slash text
                 content.innerHTML = content.innerHTML.replace(/\/[a-zA-Z0-9_]*$/, '');
                 if (content.innerHTML === '<br>') content.innerHTML = '';
                 
@@ -1147,28 +1217,6 @@
                 }
             }
 
-            async getRecentContext() {
-                // Fetch the ~8 most recent text blocks from previous days to establish baseline tone/vibe
-                let recentNotesText = "";
-                if (pgDB.isReady) {
-                    const allDates = Object.keys(pgDB.cache).filter(d => d !== window.currentDateStr && d.match(/^\d{4}-\d{2}-\d{2}$/)).sort().reverse();
-                    let recentBlocks = [];
-                    for (const d of allDates) {
-                        const dayBlocks = pgDB.cache[d].blocks || [];
-                        for (let i = dayBlocks.length - 1; i >= 0; i--) {
-                            const b = dayBlocks[i];
-                            if (['text', 'h1', 'h2', 'h3'].includes(b.type) && b.data && b.data.text) {
-                                recentBlocks.push(normalizePlainText(b.data.text));
-                                if (recentBlocks.length >= 8) break;
-                            }
-                        }
-                        if (recentBlocks.length >= 8) break;
-                    }
-                    recentNotesText = recentBlocks.join('\n\n');
-                }
-                return recentNotesText;
-            }
-
             async triggerAI(promptText, sourceBlockId) {
                 if (!aiEngine) return alert("AI offline.");
                 this.activeBlockId = sourceBlockId;
@@ -1180,13 +1228,18 @@
                 aiStatusEl.className = 'neon-status ai-status loading'; aiStatusEl.textContent = 'sys.ai.generating';
 
                 try {
-                    aiContentNode.textContent = "learning writing style...";
+                    aiContentNode.textContent = "reading user profile...";
                     
-                    // 1. Fetch Contexts
-                    const recentVibeContext = await this.getRecentContext();
+                    // 1. Fetch Permanent User Knowledge (The safe baseline)
+                    const knowledgeRows = await pgDB.getKnowledge();
+                    const profileContext = knowledgeRows.length > 0 
+                        ? knowledgeRows.map(r => `• ${r.fact}`).join('\n') 
+                        : "(No permanent traits learned yet. You are a blank slate.)";
+
+                    // 2. Fetch Topical Facts via Vector Search
                     let topicalContext = "";
                     if (pgDB.isReady) {
-                        const hits = await pgDB.searchSemantic(promptText || "writing style tone ideas", window.currentDateStr, 5);
+                        const hits = await pgDB.searchSemantic(promptText || "general context", window.currentDateStr, 5);
                         if (hits && hits.length > 0) topicalContext = hits.map(h => h.searchText).join('\n\n---\n\n');
                     }
 
@@ -1196,25 +1249,29 @@
                         return `[${b.type.toUpperCase()}]`;
                     }).join('\n');
 
-                    // 2. Build the Hybrid System Prompt
-                    const systemPrompt = `You are a seamless, invisible extension of the user's mind inside their personal notebook. 
-DO NOT act like an AI assistant. DO NOT say "How can I help you" or "Here is the continuation".
-Your goal is to effortlessly continue their thought, answer an implicit question, or brainstorm with them by mimicking their exact tone, formatting, brevity, and perspective.
+                    // 3. The Grounded System Prompt
+                    const systemPrompt = `You are an intelligent, deeply helpful companion seamlessly integrated into the user's personal notebook.
+DO NOT act like a standard chatbot. DO NOT say "How can I help you".
 
-[RECENT WRITING STYLE (Mimic this tone)]:
+[CORE USER PROFILE (Your enduring knowledge of the user)]:
 """
-${recentVibeContext || '(No recent notes available - use a neutral, brutalist tone)'}
+${profileContext}
 """
 
-[RELEVANT PAST KNOWLEDGE (Use these facts if applicable)]:
+[RELEVANT PAST NOTES (For factual lookup only)]:
 """
 ${topicalContext || '(No relevant past notes found)'}
 """
 
-[TODAY'S NOTE (Current Context)]:
+[TODAY'S NOTE]:
 """
 ${todaysContext}
-"""`;
+"""
+
+CRITICAL INSTRUCTIONS:
+1. Be a stable, grounded companion. Match the user's permanent writing style/formatting preferences if listed in the Core User Profile above.
+2. DO NOT echo, mirror, or amplify temporary emotional distress, anger, or depressive states found in the notes. Remain objective, kind, and structurally helpful.
+3. If the user explicitly reveals a NEW enduring fact, preference, or trait about themselves in their prompt, you MUST call 'learn_about_user' to save it to your core memory.`;
 
                     let messages = [
                         { role: 'system', content: systemPrompt },
@@ -1225,16 +1282,22 @@ ${todaysContext}
                     const msg = response.choices[0].message;
 
                     if (msg.tool_calls && msg.tool_calls.length > 0) {
-                        aiContentNode.textContent = "executing functions...";
+                        aiContentNode.textContent = "executing logic...";
                         messages.push({ role: "assistant", content: msg.content || "", tool_calls: msg.tool_calls }); 
                         
                         for (const toolCall of msg.tool_calls) {
                             let toolResultStr = "Success.";
                             try {
                                 const args = JSON.parse(toolCall.function.arguments || "{}");
-                                if (toolCall.function.name === 'create_compute_block') {
+                                
+                                if (toolCall.function.name === 'learn_about_user') {
+                                    await pgDB.addKnowledge(args.fact);
+                                    toolResultStr = `Successfully saved fact to core memory: "${args.fact}"`;
+                                    
+                                } else if (toolCall.function.name === 'create_compute_block') {
                                     this.addToolBlock('compute', { code: args.code, title: args.title || 'Calculation' }, 'ai');
                                     toolResultStr = `Compute block created.`;
+                                    
                                 } else if (toolCall.function.name === 'create_calendar_event') {
                                     this.addToolBlock('calendar', { title: args.title, datetime: args.datetime }, 'ai');
                                     toolResultStr = `Event scheduled for ${args.datetime}.`;
