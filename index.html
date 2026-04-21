@@ -11,11 +11,9 @@
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a">
 
-    <!-- Dynamic Manifest Injection for PWA -->
     <link id="pwa-manifest" rel="manifest" href="">
     <link id="pwa-icon" rel="apple-touch-icon" href="">
 
-    <!-- Leaflet for Map Tool -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -125,7 +123,6 @@
             font-style: italic; font-weight: 400; opacity: 0.5; pointer-events: none;
         }
 
-        /* Heading Styles */
         .text-content.h1 { font-size: clamp(40px, 8vw, 56px); font-weight: 900; letter-spacing: -0.04em; line-height: 1.1; padding-top: 24px; text-transform: uppercase; }
         .text-content.h2 { font-size: clamp(30px, 6vw, 42px); font-weight: 800; letter-spacing: -0.03em; line-height: 1.2; padding-top: 16px; }
         .text-content.h3 { font-size: clamp(24px, 5vw, 32px); font-weight: 700; letter-spacing: -0.02em; line-height: 1.3; padding-top: 12px; }
@@ -204,7 +201,6 @@
         .raw-input { background: transparent; border: none; outline: none; color: var(--text-color); font-family: var(--font-main); font-size: 18px; font-weight: 500; width: 100%; }
         .raw-input::placeholder { color: var(--muted-text); }
 
-        /* UNIVERSAL NEO-BRUTALIST BUTTON */
         .raw-btn {
             background: var(--bg-color); border: 2px solid var(--text-color); color: var(--text-color);
             font-family: var(--font-mono); font-size: 11px; font-weight: 800; text-transform: uppercase; 
@@ -216,7 +212,6 @@
         .raw-btn.danger { color: #ef4444; border-color: #ef4444; }
         .raw-btn.danger.active { background: #ef4444; border-color: #ef4444; color: #fff; }
 
-        /* Tools Details */
         .compute-code { font-family: var(--font-mono); font-size: 16px; font-weight: 500; resize: none; min-height: 22px; line-height: 1.4; border-bottom: 1px dashed var(--muted-text); padding-bottom: 8px; margin-bottom: 8px;}
         .compute-output { font-family: var(--font-mono); font-size: 22px; font-weight: 700; color: var(--neon-purple); word-break: break-word; }
         .compute-error { color: #ef4444; font-size: 14px; }
@@ -229,7 +224,6 @@
         .calendar-date-display { font-family: var(--font-mono); font-size: 15px; color: var(--neon-purple); font-weight: 700; display: inline-block; transition: opacity 0.2s; margin-bottom: 4px; }
         .calendar-date-display:hover { opacity: 0.8; }
 
-        /* Recall Tool Specific */
         .recall-search-wrapper { position: relative; width: 100%; }
         .recall-search-input { width: 100%; padding: 12px 0; border: none; border-bottom: 2px solid var(--muted-text); background: transparent; color: var(--text-color); font-family: var(--font-main); font-size: 18px; outline: none; transition: border-color 0.2s; }
         .recall-search-input:focus { border-color: var(--neon-purple); }
@@ -243,7 +237,6 @@
         .recalled-block { padding: 12px 16px; background: var(--bg-color); border-left: 4px solid var(--neon-purple); margin-top: 12px;}
         .recalled-orig-meta { font-family: var(--font-mono); font-size: 10px; color: var(--muted-text); font-weight: bold; text-transform: uppercase; margin-bottom: 12px; }
 
-        /* --- SMART CANVAS --- */
         .smart-canvas-selector { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; justify-content: center; }
         .smart-canvas-option {
             flex: 1; min-width: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
@@ -308,13 +301,12 @@
     <div class="app-container">
         <div id="date-header">today</div>
         <div class="status-row">
-            <span id="ai-inline-status" class="neon-status ai-status loading">sys.ai.booting</span>
+            <span id="ai-inline-status" class="neon-status ai-status loading" style="opacity: 0.4;">sys.ai.waking</span>
+            <span id="db-status" class="neon-status" style="color: var(--neon-purple); opacity: 0.4;">pg.loading</span>
             <span id="save-indicator" class="neon-status save-status">saved</span>
-            <span id="storage-warning" class="neon-status storage-warning">private.mode [no save]</span>
         </div>
         
         <div id="lean-editor">
-            <!-- Inline Action Menu dynamically positions itself here -->
             <div id="inline-menu">
                 <button id="inline-plus" class="inline-plus">+</button>
                 <div class="inline-tools">
@@ -351,23 +343,25 @@
         // ============================================================================
         const CONFIG = {
             AI_NAME: "bro", 
-            AI_PERSONALITY: "You are intelligent, brief, and have a flawless memory. Output brutalist markdown.",
+            AI_PERSONALITY: `You are an intelligent, integrated AI assistant inside Infinite Notes.
+Output brutalist markdown. Be extremely concise.
+YOU HAVE TOOLS. USE THEM PROACTIVELY:
+- Need to do math, code, or sum numbers? Call create_compute_block.
+- Mentioning a meeting or reminder? Call create_calendar_event.
+- Asked about past notes or memories? Call search_memory.
+Never refuse a tool execution if it fits the user's intent. Do not ask for permission, just call the tool.`,
             PWA_LOGO_URL: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzAwMDAwMCI+PHBhdGggZD0iTTE0IDJINmEyIDIgMCAwIDAtMiAydjE2YTIgMiAwIDAgMCAyIDJoMTJhMiAyIDAgMCAwIDItMlY4bC02LTZ6Ii8+PC9zdmc+",
             EMBEDDING_MODEL_ID: "Xenova/all-MiniLM-L6-v2",
-            SEMANTIC_SEARCH_LIMIT: 8,
-            AI_MEMORY_LIMIT: 6,
-            SEMANTIC_MIN_SCORE: 0.22
         };
 
-        // DOM Builder Utility (JSX alternative for Vanilla JS)
         function el(tag, attributes = {}, ...children) {
             const element = document.createElement(tag);
             for (const [key, value] of Object.entries(attributes || {})) {
                 if (key === 'style' && typeof value === 'object') Object.assign(element.style, value);
                 else if (key === 'className') element.className = value;
                 else if (key === 'innerHTML') element.innerHTML = value;
-                else if (key === 'textContent') element.textContent = value; // Explicitly assign textContent
-                else if (key === 'value') element.value = value;             // Explicitly assign value
+                else if (key === 'textContent') element.textContent = value;
+                else if (key === 'value') element.value = value;
                 else if (key.startsWith('on') && typeof value === 'function') element[key] = value;
                 else if (value !== false && value !== undefined && value !== null) element.setAttribute(key, value);
             }
@@ -378,7 +372,6 @@
             return element;
         }
 
-        // Standardized Debounce Helper
         function debounce(func, wait) {
             let timeout;
             return function executedFunction(...args) {
@@ -387,17 +380,15 @@
             };
         }
 
-        // Centralized UI Component Factory
         const UI = {
             button: (text, onClick, className = '') => el('button', { className: `raw-btn ${className}`.trim(), textContent: text, onclick: (e) => { if (onClick) onClick(e); } }),
             row: (...children) => el('div', { style: { display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' } }, ...children),
             textarea: (props) => el('textarea', { className: 'raw-input', ...props })
         };
 
-        // PWA Setup
         document.getElementById('pwa-icon').href = CONFIG.PWA_LOGO_URL;
         document.getElementById('pwa-manifest').href = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify({
-            "name": "Infinite Notes", "short_name": "Notes", "start_url": ".", "display": "standalone",
+            "name": "Infinite Notes V3", "short_name": "Notes", "start_url": ".", "display": "standalone",
             "background_color": window.matchMedia('(prefers-color-scheme: dark)').matches ? "#0a0a0a" : "#ffffff",
             "theme_color": window.matchMedia('(prefers-color-scheme: dark)').matches ? "#0a0a0a" : "#ffffff",
             "icons": [{"src": CONFIG.PWA_LOGO_URL, "sizes": "192x192", "type": "image/svg+xml"}]
@@ -422,67 +413,149 @@
         };
 
         // ============================================================================
-        // 💾 ROBUST STORAGE ARCHITECTURE (IndexedDB + Media + Vectors)
+        // 🧠 VECTOR EMBEDDING ENGINE (Background Load)
         // ============================================================================
-        const DB_VERSION = 3;
+        const VectorEmbedder = new (class {
+            constructor() { this.embedder = null; this.promise = null; }
+            async getEmbedder() {
+                if (this.embedder) return this.embedder;
+                if (!this.promise) {
+                    this.promise = import('https://esm.run/@huggingface/transformers').then(async ({ pipeline, env }) => {
+                        env.allowRemoteModels = true; env.useBrowserCache = true;
+                        let pipe;
+                        try { pipe = await pipeline('feature-extraction', CONFIG.EMBEDDING_MODEL_ID, { device: 'webgpu' }); } 
+                        catch (e) { pipe = await pipeline('feature-extraction', CONFIG.EMBEDDING_MODEL_ID, { dtype: 'q8' }); }
+                        this.embedder = pipe; return pipe;
+                    });
+                }
+                return this.promise;
+            }
+            async embedText(text) {
+                const normalized = clampText(normalizePlainText(text), 1200);
+                if (!normalized) return null;
+                try {
+                    const pipe = await this.getEmbedder();
+                    const output = await pipe(normalized, { pooling: 'mean', normalize: true });
+                    const list = typeof output.tolist === 'function' ? output.tolist() : Array.from(output.data);
+                    return Array.isArray(list[0]) ? list[0] : list;
+                } catch (e) { return null; }
+            }
+        })();
 
-        function ensureDatabaseStores(db) {
-            if (!db.objectStoreNames.contains('daily_notes')) db.createObjectStore('daily_notes');
-            if (!db.objectStoreNames.contains('semantic_index')) {
-                const semanticStore = db.createObjectStore('semantic_index', { keyPath: 'key' });
-                semanticStore.createIndex('by_date', 'date', { unique: false });
+        // ============================================================================
+        // 💾 ROBUST STORAGE ARCHITECTURE (PGlite + IDB Media)
+        // ============================================================================
+        class PGLiteDatabase {
+            constructor() { this.pg = null; this.cache = {}; this.isReady = false; this.pendingDays = new Set(); }
+            
+            async init() {
+                try {
+                    const [{ PGlite }, { vector }] = await Promise.all([
+                        import("https://cdn.jsdelivr.net/npm/@electric-sql/pglite/dist/index.js"),
+                        import("https://cdn.jsdelivr.net/npm/@electric-sql/pglite/dist/vector/index.js")
+                    ]);
+                    
+                    // Use a clean DB name dropping old schema baggage entirely
+                    this.pg = await PGlite.create({
+                        dataDir: 'idb://infinotes-v3-fast',
+                        extensions: { vector }
+                    });
+                    
+                    await this.pg.exec(`
+                        CREATE EXTENSION IF NOT EXISTS vector;
+                        CREATE TABLE IF NOT EXISTS daily_notes (date_str TEXT PRIMARY KEY, data JSONB);
+                        CREATE TABLE IF NOT EXISTS semantic_index (
+                            key TEXT PRIMARY KEY, date_str TEXT, block_id TEXT, 
+                            block_type TEXT, search_text TEXT, embedding vector(384), timestamp BIGINT
+                        );
+                    `);
+                    this.isReady = true;
+                    document.getElementById('db-status').textContent = 'pg.ready';
+                    document.getElementById('db-status').style.opacity = '0.8';
+                    
+                    const res = await this.pg.query(`SELECT date_str, data FROM daily_notes`);
+                    res.rows.forEach(r => { this.cache[r.date_str] = typeof r.data === 'string' ? JSON.parse(r.data) : r.data; });
+                    
+                    this.startBackgroundIndexer();
+                } catch (e) {
+                    console.error("PGlite Init Error", e);
+                    document.getElementById('db-status').textContent = 'pg.offline';
+                }
             }
-            if (!db.objectStoreNames.contains('media_blobs')) {
-                const mediaBlobs = db.createObjectStore('media_blobs', { keyPath: 'id' });
-                mediaBlobs.createIndex('by_kind', 'kind', { unique: false });
-            }
-        }
-
-        class IndexedDBAdapter {
-            constructor() { this.cache = {}; this.isMemoryOnly = false; this.saveQueue = Promise.resolve(); }
-            init() {
-                return new Promise(resolve => {
-                    try {
-                        const req = indexedDB.open('InfiniteNotesDB', DB_VERSION);
-                        req.onupgradeneeded = e => ensureDatabaseStores(e.target.result);
-                        req.onsuccess = e => { this.db = e.target.result; this.loadAll().then(d => { this.cache = d; resolve(); }); };
-                        req.onerror = () => this.enableFallback(resolve);
-                    } catch(e) { this.enableFallback(resolve); }
-                });
-            }
-            enableFallback(resolve) { this.isMemoryOnly = true; document.getElementById('storage-warning').style.display = 'inline'; resolve(); }
-            save(dateStr, data) {
+            
+            async saveNote(dateStr, data) {
                 this.cache[dateStr] = data;
-                if (this.isMemoryOnly || !this.db) return Promise.resolve();
-                this.saveQueue = this.saveQueue.then(() => new Promise(resolve => {
-                    const tx = this.db.transaction('daily_notes', 'readwrite');
-                    tx.objectStore('daily_notes').put(data, dateStr);
-                    tx.oncomplete = () => resolve(); tx.onerror = () => resolve();
-                })).catch(() => {}); // Prevent queue collapse on individual errors
-                return this.saveQueue;
+                if (!this.isReady) return;
+                await this.pg.query(
+                    `INSERT INTO daily_notes (date_str, data) VALUES ($1, $2) ON CONFLICT (date_str) DO UPDATE SET data = EXCLUDED.data`,
+                    [dateStr, JSON.stringify(data)] 
+                );
+                this.pendingDays.add(dateStr);
             }
-            loadAll() {
-                return new Promise(resolve => {
-                    if (this.isMemoryOnly || !this.db) return resolve({});
-                    const tx = this.db.transaction('daily_notes', 'readonly');
-                    const store = tx.objectStore('daily_notes');
-                    const vReq = store.getAll(); const kReq = store.getAllKeys();
-                    tx.oncomplete = () => {
-                        const res = {};
-                        if (kReq.result && vReq.result) kReq.result.forEach((k, i) => res[k] = vReq.result[i]);
-                        resolve(res);
-                    };
-                });
+            
+            startBackgroundIndexer() {
+                setInterval(async () => {
+                    if (this.pendingDays.size === 0 || !this.isReady) return;
+                    const dateStr = Array.from(this.pendingDays)[0];
+                    this.pendingDays.delete(dateStr);
+                    await this.indexDay(dateStr);
+                }, 5000); 
+            }
+            
+            async indexDay(dateStr) {
+                const dayData = this.cache[dateStr];
+                if (!dayData || !dayData.blocks) return;
+                
+                await this.pg.query(`DELETE FROM semantic_index WHERE date_str = $1`, [dateStr]);
+                
+                for (const block of dayData.blocks) {
+                    if (block.type === 'recall' || !block.data) continue;
+                    const searchText = ['text','h1','h2','h3'].includes(block.type) ? normalizePlainText(block.data.text) : normalizePlainText(JSON.stringify(block.data));
+                    if (!searchText) continue;
+                    
+                    const vectorData = await VectorEmbedder.embedText(searchText);
+                    if (!vectorData) continue;
+                    
+                    try {
+                        await this.pg.query(
+                            `INSERT INTO semantic_index (key, date_str, block_id, block_type, search_text, embedding, timestamp) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                            [`${dateStr}::${block.id}`, dateStr, block.id, block.type, searchText, `[${vectorData.join(',')}]`, block.timestamp || Date.now()]
+                        );
+                    } catch (e) {}
+                }
+            }
+
+            async searchSemantic(queryText, excludeDate, limit = 5) {
+                if (!this.isReady) return [];
+                const vectorData = await VectorEmbedder.embedText(queryText);
+                if (!vectorData) return [];
+                
+                const res = await this.pg.query(
+                    `SELECT date_str as date, block_id as "blockId", block_type as type, search_text as "searchText", timestamp, 1 - (embedding <=> $1) AS score
+                     FROM semantic_index WHERE date_str != $2 ORDER BY embedding <=> $1 ASC LIMIT $3`,
+                    [`[${vectorData.join(',')}]`, excludeDate || '', limit]
+                );
+                return res.rows;
+            }
+
+            async searchKeyword(queryText, excludeDate) {
+                if (!this.isReady || !queryText) return [];
+                const res = await this.pg.query(
+                    `SELECT date_str as date, block_id as "blockId", block_type as type, search_text as "searchText", timestamp, 1 as score
+                     FROM semantic_index WHERE date_str != $1 AND search_text ILIKE $2 ORDER BY timestamp DESC LIMIT 12`,
+                    [excludeDate || '', `%${queryText}%`]
+                );
+                return res.rows;
             }
         }
-        
+
         class MediaBlobStore {
             constructor() { this.db = null; this.isAvailable = true; }
             init() {
                 return new Promise(resolve => {
                     try {
-                        const req = indexedDB.open('InfiniteNotesDB', DB_VERSION);
-                        req.onupgradeneeded = e => ensureDatabaseStores(e.target.result);
+                        const req = indexedDB.open('InfinotesMediaV3', 1);
+                        req.onupgradeneeded = e => { if (!e.target.result.objectStoreNames.contains('media_blobs')) e.target.result.createObjectStore('media_blobs', { keyPath: 'id' }); };
                         req.onsuccess = e => { this.db = e.target.result; resolve(); };
                         req.onerror = () => { this.isAvailable = false; resolve(); };
                     } catch(e) { this.isAvailable = false; resolve(); }
@@ -506,136 +579,9 @@
             }
         }
 
-        class VectorDBAdapter {
-            constructor() {
-                this.cache = new Map(); this.pendingDays = new Map(); this.db = null;
-                this.embedder = null; this.embedderPromise = null; this.isProcessing = false; this.isAvailable = true;
-            }
-            init() {
-                return new Promise((resolve) => {
-                    try {
-                        const req = indexedDB.open('InfiniteNotesDB', DB_VERSION);
-                        req.onupgradeneeded = e => ensureDatabaseStores(e.target.result);
-                        req.onsuccess = e => { this.db = e.target.result; this.loadAll().then(entries => { entries.forEach(entry => this.cache.set(entry.key, entry)); resolve(); }); };
-                        req.onerror = () => { this.isAvailable = false; resolve(); };
-                    } catch (e) { this.isAvailable = false; resolve(); }
-                });
-            }
-            loadAll() {
-                return new Promise(resolve => {
-                    if (!this.isAvailable || !this.db) return resolve([]);
-                    const req = this.db.transaction('semantic_index', 'readonly').objectStore('semantic_index').getAll();
-                    req.onsuccess = () => resolve(req.result || []); req.onerror = () => resolve([]);
-                });
-            }
-            async ensureEmbedder() {
-                if (this.embedder) return this.embedder;
-                if (!this.embedderPromise) {
-                    this.embedderPromise = (async () => {
-                        const { pipeline, env } = await import('https://esm.run/@huggingface/transformers');
-                        env.allowRemoteModels = true; env.useBrowserCache = true;
-                        if (navigator.gpu) {
-                            try { return await pipeline('feature-extraction', CONFIG.EMBEDDING_MODEL_ID, { device: 'webgpu' }); } 
-                            catch (e) { console.warn('WebGPU embeddings unavailable, falling back.'); }
-                        }
-                        return pipeline('feature-extraction', CONFIG.EMBEDDING_MODEL_ID, { dtype: 'q8' });
-                    })().then(embedder => { this.embedder = embedder; return embedder; });
-                }
-                return this.embedderPromise;
-            }
-            async embedText(text) {
-                const normalized = clampText(normalizePlainText(text), 1200);
-                if (!normalized) return null;
-                try {
-                    const embedder = await this.ensureEmbedder();
-                    const output = await embedder(normalized, { pooling: 'mean', normalize: true });
-                    const list = typeof output.tolist === 'function' ? output.tolist() : Array.from(output.data);
-                    return Array.isArray(list[0]) ? list[0] : list;
-                } catch (e) { return null; }
-            }
-            extractEntries(dateStr, dayData) {
-                if (!dayData || !dayData.blocks) return [];
-                return dayData.blocks.map(block => {
-                    if (block.type === 'recall' || !block.data) return null;
-                    let searchText = ['text','h1','h2','h3'].includes(block.type) ? normalizePlainText(block.data.text) : normalizePlainText(JSON.stringify(block.data));
-                    if (!searchText) return null;
-                    return { key: `${dateStr}::${block.id}`, date: dateStr, blockId: block.id, type: block.type, searchText, timestamp: block.timestamp || 0 };
-                }).filter(Boolean);
-            }
-            ensureBackfill(noteCache) {
-                if (!this.isAvailable || this.cache.size > 0 || !noteCache) return;
-                Object.entries(noteCache).forEach(([dateStr, dayData]) => this.scheduleIndexDay(dateStr, dayData));
-            }
-            scheduleIndexDay(dateStr, dayData) {
-                if (!this.isAvailable || !dateStr || !dayData || !dayData.blocks) return;
-                this.pendingDays.set(dateStr, JSON.parse(JSON.stringify(dayData)));
-                void this.processQueue();
-            }
-            async processQueue() {
-                if (this.isProcessing) return; this.isProcessing = true;
-                while (this.pendingDays.size > 0) {
-                    const [dateStr, dayData] = this.pendingDays.entries().next().value;
-                    this.pendingDays.delete(dateStr);
-                    await this.indexDay(dateStr, dayData);
-                }
-                this.isProcessing = false;
-            }
-            async indexDay(dateStr, dayData) {
-                if (!this.db) return;
-                const entries = this.extractEntries(dateStr, dayData);
-                const indexedEntries = [];
-                for (const entry of entries) {
-                    const vector = await this.embedText(entry.searchText);
-                    if (vector) indexedEntries.push({ ...entry, vector });
-                }
-                await this.replaceDayEntries(dateStr, indexedEntries);
-            }
-            replaceDayEntries(dateStr, entries) {
-                return new Promise((resolve) => {
-                    if (!this.db) return resolve();
-                    const tx = this.db.transaction('semantic_index', 'readwrite');
-                    const store = tx.objectStore('semantic_index');
-                    const removeReq = store.index('by_date').openCursor(IDBKeyRange.only(dateStr));
-                    
-                    removeReq.onsuccess = (e) => {
-                        const cursor = e.target.result;
-                        if (cursor) { store.delete(cursor.primaryKey); cursor.continue(); return; }
-                        entries.forEach(entry => store.put(entry));
-                    };
-                    tx.oncomplete = () => {
-                        Array.from(this.cache.keys()).forEach(key => { if (key.startsWith(`${dateStr}::`)) this.cache.delete(key); });
-                        entries.forEach(entry => this.cache.set(entry.key, entry)); resolve();
-                    };
-                });
-            }
-            async search(query, options = {}) {
-                const normalized = normalizePlainText(query);
-                if (!normalized || !this.cache.size) return [];
-                const queryVector = await this.embedText(normalized);
-                if (!queryVector) return [];
-                const results = [];
-                const dotProduct = (a, b) => { let sum = 0; for(let i=0; i<Math.min(a.length, b.length); i++) sum += a[i]*b[i]; return sum; };
-
-                for (const entry of this.cache.values()) {
-                    if (options.excludeDate && entry.date === options.excludeDate) continue;
-                    const score = dotProduct(queryVector, entry.vector || []);
-                    if (score >= CONFIG.SEMANTIC_MIN_SCORE) results.push({ ...entry, score, source: 'semantic' });
-                }
-                return results.sort((a, b) => b.score - a.score).slice(0, CONFIG.SEMANTIC_SEARCH_LIMIT);
-            }
-        }
-
-        const appDB = new IndexedDBAdapter();
+        const pgDB = new PGLiteDatabase();
         const mediaStore = new MediaBlobStore();
-        const vectorDB = new VectorDBAdapter();
 
-        // Recall Helpers
-        const getBlockSearchText = (block) => {
-            if (!block || !block.data || block.type === 'recall') return '';
-            if (['text','h1','h2','h3'].includes(block.type)) return normalizePlainText(block.data.text);
-            if (block.type === 'compute') return `${block.data.code} = ${block.data.output}`;
-            return normalizePlainText(JSON.stringify(block.data));
-        };
         const buildRecallSnippet = (block) => {
             if (!block || !block.data) return 'Empty';
             if (['text','h1','h2','h3'].includes(block.type)) return normalizePlainText(block.data.text) || 'Empty text';
@@ -645,44 +591,44 @@
             if (block.type === 'compute') return `Compute: ${block.data.code}`;
             return `[${block.type}] block`;
         };
-        const collectKeywordRecallResults = (query, excludeDate) => {
-            const norm = normalizePlainText(query).toLowerCase();
-            if (!norm) return [];
-            const results = [];
-            Object.entries(appDB.cache).forEach(([dateStr, dayData]) => {
-                if (excludeDate && dateStr === excludeDate) return;
-                if (!dayData || !dayData.blocks) return;
-                dayData.blocks.forEach(block => {
-                    if (block.type !== 'recall' && `${block.type} ${getBlockSearchText(block)}`.toLowerCase().includes(norm)) {
-                        results.push({ date: dateStr, block, timestamp: block.timestamp || 0, source: 'keyword', score: 1 });
-                    }
-                });
-            });
-            return results.sort((a, b) => b.timestamp - a.timestamp);
-        };
 
         // ============================================================================
-        // 🤖 ON-DEVICE AI COLLABORATOR (WebLLM)
+        // 🤖 NON-BLOCKING AI COLLABORATOR (Web Worker)
         // ============================================================================
         const AI_MODEL_ID = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC"; 
         let aiEngine = null;
-        let isAILoading = false;
         const aiStatusEl = document.getElementById('ai-inline-status');
 
-        async function initializeAI() {
-            if (aiEngine || isAILoading) return;
-            isAILoading = true;
+        const AI_TOOLS = [
+            { type: "function", function: { name: "create_compute_block", description: "Creates a computation block for evaluating math.", parameters: { type: "object", properties: { code: { type: "string" }, title: { type: "string" } }, required: ["code"] } } },
+            { type: "function", function: { name: "create_calendar_event", description: "Schedules an event or reminder.", parameters: { type: "object", properties: { title: { type: "string" }, datetime: { type: "string", description: "ISO 8601 datetime" } }, required: ["title", "datetime"] } } },
+            { type: "function", function: { name: "search_memory", description: "Retrieves past notes using semantic search.", parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } } }
+        ];
+
+        async function initializeWorkerAI() {
             try {
-                const { CreateMLCEngine } = await import("https://esm.run/@mlc-ai/web-llm");
-                aiEngine = await CreateMLCEngine(AI_MODEL_ID, {
-                    initProgressCallback: (progress) => { aiStatusEl.textContent = `sys.ai.loading [${Math.round(progress.progress * 100)}%]`; }
+                // Dynamically spin up a Blob Worker so the main UI thread stays completely fluid
+                const workerScript = `
+                    import { WebWorkerMLCEngineHandler } from "https://esm.run/@mlc-ai/web-llm";
+                    const handler = new WebWorkerMLCEngineHandler();
+                    self.onmessage = (msg) => { handler.onmessage(msg); };
+                `;
+                const workerBlob = new Blob([workerScript], { type: "text/javascript" });
+                const aiWorker = new Worker(URL.createObjectURL(workerBlob), { type: "module" });
+                
+                const { CreateWebWorkerMLCEngine } = await import("https://esm.run/@mlc-ai/web-llm");
+                
+                aiEngine = await CreateWebWorkerMLCEngine(aiWorker, AI_MODEL_ID, {
+                    initProgressCallback: (progress) => { aiStatusEl.textContent = `sys.ai.waking [${Math.round(progress.progress * 100)}%]`; }
                 });
+                
                 aiStatusEl.className = 'neon-status ai-status'; aiStatusEl.textContent = `sys.ai.online`;
+                aiStatusEl.style.opacity = '1';
             } catch (err) {
-                aiStatusEl.className = 'neon-status ai-status error'; aiStatusEl.textContent = 'sys.ai.offline'; aiEngine = null;
-            } finally { isAILoading = false; }
+                aiStatusEl.className = 'neon-status ai-status error'; aiStatusEl.textContent = 'sys.ai.offline'; 
+                aiStatusEl.style.opacity = '1';
+            }
         }
-        setTimeout(() => initializeAI(), 1500);
 
         // ============================================================================
         // 📅 EDITORIAL CALENDAR UI
@@ -744,61 +690,41 @@
         })();
 
         // ============================================================================
-        // ⬛ BARITONE TOOL COMPONENTS (Refactored using el & BaseTool)
+        // ⬛ BARITONE TOOL COMPONENTS
         // ============================================================================
-
         class BaseTool {
             constructor(data, isReadOnly, onChange) {
-                this.data = data || {};
-                this.readOnly = isReadOnly;
-                this.onChange = onChange;
+                this.data = data || {}; this.readOnly = isReadOnly; this.onChange = onChange;
             }
-
             renderContainer(contentElements) {
                 const titleInput = el('input', {
-                    className: 'panel-title-input',
-                    type: 'text',
-                    placeholder: 'block title...',
-                    value: this.data.title || '',
-                    readonly: this.readOnly ? true : null,
+                    className: 'panel-title-input', type: 'text', placeholder: 'block title...',
+                    value: this.data.title || '', readonly: this.readOnly ? true : null,
                     oninput: (e) => { this.data.title = e.target.value; if (this.onChange) this.onChange(); }
                 });
-
-                return el('div', {}, titleInput, ...contentElements); // Returns content wrapper
+                return el('div', {}, titleInput, ...contentElements); 
             }
-
             save() { return this.data; }
         }
 
         class ComputeTool extends BaseTool {
-            constructor(data, isReadOnly, onChange) {
-                super({ title: data.title || '', code: data.code || '', output: data.output || '' }, isReadOnly, onChange);
-            }
+            constructor(data, isReadOnly, onChange) { super({ title: data.title || '', code: data.code || '', output: data.output || '' }, isReadOnly, onChange); }
             render() {
                 this.input = UI.textarea({
-                    className: 'raw-input compute-code',
-                    placeholder: 'type logic or math (e.g. 10 * 4)...',
-                    value: this.data.code,
-                    readonly: this.readOnly ? true : null,
-                    oninput: () => {
-                        this.input.style.height = 'auto'; this.input.style.height = this.input.scrollHeight + 'px';
-                        this.data.code = this.input.value;
-                        this.scheduleEval();
-                    }
+                    className: 'raw-input compute-code', placeholder: 'type logic or math (e.g. 10 * 4)...',
+                    value: this.data.code, readonly: this.readOnly ? true : null,
+                    oninput: () => { this.input.style.height = 'auto'; this.input.style.height = this.input.scrollHeight + 'px'; this.data.code = this.input.value; this.scheduleEval(); }
                 });
-                
                 this.output = el('div', { className: 'compute-output', innerHTML: this.data.output });
                 this.scheduleEval = debounce(() => this.evaluateLogic(), 400);
-
                 setTimeout(() => { if(this.input) this.input.style.height = this.input.scrollHeight + 'px'; }, 0);
                 return this.renderContainer([this.input, this.output]);
             }
             evaluateLogic() {
                 if (!this.data.code.trim()) { this.output.innerHTML = ''; this.data.output = ''; if(this.onChange) this.onChange(); return; }
-                
                 const find = (query) => {
                     let results = []; const q = query.toLowerCase();
-                    Object.values(appDB.cache).forEach(day => {
+                    Object.values(pgDB.cache).forEach(day => {
                         if (!day.blocks) return;
                         day.blocks.forEach(b => {
                             if (b.type === 'compute' || b.type === 'recall') return;
@@ -839,12 +765,7 @@
             render() {
                 this.btn = UI.button('record', () => this.handleAction(), 'danger');
                 this.statusTxt = el('span', { className: 'voice-status-text' });
-                this.audio = el('audio', {
-                    onplay: () => { this.isPlaying = true; this.updateUI(); },
-                    onpause: () => { this.isPlaying = false; this.updateUI(); },
-                    onended: () => { this.isPlaying = false; this.updateUI(); }
-                });
-
+                this.audio = el('audio', { onplay: () => { this.isPlaying = true; this.updateUI(); }, onpause: () => { this.isPlaying = false; this.updateUI(); }, onended: () => { this.isPlaying = false; this.updateUI(); } });
                 this.updateUI(); void this.hydrate();
                 return this.renderContainer([UI.row(this.btn, this.statusTxt, this.audio)]);
             }
@@ -891,18 +812,14 @@
                 this.baseImageUrl = ''; this.currentColor = '#ef4444'; this.lineLayers = []; this.currentPolyline = null; this.currentPoints = [];
                 this.mainContainer = el('div'); 
             }
-
             render() {
                 this.mainContainer.innerHTML = '';
                 const baseEl = this.renderContainer([]); 
                 this.mainContainer.appendChild(baseEl);
 
                 if (!this.data.mode) {
-                    if (this.readOnly) {
-                        baseEl.appendChild(el('div', { style: { padding: '24px', textAlign: 'center', color: 'var(--muted-text)', fontSize: '14px' }, textContent: 'Blank Canvas' }));
-                    } else {
-                        baseEl.appendChild(this.renderSelector());
-                    }
+                    if (this.readOnly) baseEl.appendChild(el('div', { style: { padding: '24px', textAlign: 'center', color: 'var(--muted-text)', fontSize: '14px' }, textContent: 'Blank Canvas' }));
+                    else baseEl.appendChild(this.renderSelector());
                 } else {
                     this.controlsRow = this.buildControls();
                     this.relativeFrame = el('div', { className: 'canvas-relative-frame full-bleed' });
@@ -912,7 +829,6 @@
                 }
                 return this.mainContainer;
             }
-
             renderSelector() {
                 const fileInput = el('input', { type: 'file', accept: 'image/*', style: { display: 'none' } });
                 fileInput.onchange = async (e) => {
@@ -930,7 +846,6 @@
                         img.src = tempUrl;
                     }
                 };
-                
                 return el('div', { className: 'smart-canvas-selector' },
                     el('button', { className: 'smart-canvas-option', textContent: 'Map Mode', onclick: () => { this.data.mode = 'map'; this.render(); if(this.onChange) this.onChange(); } }),
                     el('button', { className: 'smart-canvas-option', textContent: 'Photo Overlay', onclick: () => fileInput.click() }),
@@ -938,7 +853,6 @@
                     fileInput
                 );
             }
-
             async hydrateBaseImage() {
                 if (this.baseImageUrl) return this.baseImageUrl;
                 if (!this.data.baseImageId) return '';
@@ -946,10 +860,8 @@
                 if (blob) { this.baseImageUrl = URL.createObjectURL(blob); }
                 return this.baseImageUrl;
             }
-
             buildControls() {
                 if (this.readOnly) return null;
-                
                 this.lockBtn = UI.button(this.data.isLocked ? 'LOCKED' : 'UNLOCK', () => { this.data.isLocked = !this.data.isLocked; this.updateInteractions(); if(this.onChange) this.onChange(); });
                 if (this.data.isLocked) this.lockBtn.classList.add('active');
                 
@@ -963,14 +875,11 @@
                 ['mouseup','mouseleave','touchend','touchcancel'].forEach(evt => this.drawBtn.addEventListener(evt, () => clearTimeout(this.pressTimer)));
 
                 this.clearBtn = UI.button('CLEAR', () => { this.lineLayers.forEach(layer => { if(this.map) this.map.removeLayer(layer); }); this.lineLayers = []; this.data.lines = []; if(this.onChange) this.onChange(); });
-
                 return UI.row(this.lockBtn, this.drawBtn, this.clearBtn, this.colorPicker);
             }
-
             renderMap() {
                 this.mediaContainer = el('div', { className: 'leaflet-container' });
                 this.relativeFrame.appendChild(this.mediaContainer);
-                
                 setTimeout(async () => {
                     if (!this.mediaContainer.isConnected) return;
                     if (this.data.mode === 'map') {
@@ -980,7 +889,6 @@
                     } else {
                         this.map = L.map(this.mediaContainer, { crs: L.CRS.Simple, zoomControl: false, attributionControl: false, minZoom: -4 });
                         const imageUrl = this.data.mode === 'image' ? await this.hydrateBaseImage() : '';
-                        
                         if (imageUrl) {
                             const bounds = [[0, 0], [this.data.imgHeight || 600, this.data.imgWidth || 800]];
                             L.imageOverlay(imageUrl, bounds).addTo(this.map);
@@ -992,43 +900,35 @@
                     this.map.on('moveend', () => { if(this.onChange) this.onChange(); });
                 }, 100);
             }
-
             renderExistingLines() {
                 if(!this.map) return;
                 this.lineLayers.forEach(layer => this.map.removeLayer(layer)); this.lineLayers = [];
                 this.data.lines.forEach(line => { this.lineLayers.push(L.polyline(line.points, { color: line.color, weight: line.weight, lineCap: 'round', lineJoin: 'round', smoothFactor: 1.5 }).addTo(this.map)); });
             }
-
             initDrawingTracker() {
                 if (this.readOnly) return; 
                 let isPointerDown = false;
-                
                 this.mediaContainer.addEventListener('pointerdown', (e) => {
                     if (!this.data.isDrawingActive || !this.map) return; 
                     isPointerDown = true; this.mediaContainer.setPointerCapture(e.pointerId);
                     this.currentPoints = [this.map.mouseEventToLatLng(e)];
                     this.currentPolyline = L.polyline(this.currentPoints, { color: this.currentColor, weight: 4, lineCap: 'round', lineJoin: 'round', smoothFactor: 1.5 }).addTo(this.map);
                 });
-                
                 this.mediaContainer.addEventListener('pointermove', (e) => {
                     if (!this.data.isDrawingActive || !isPointerDown || !this.currentPolyline || !this.map) return;
                     this.currentPoints.push(this.map.mouseEventToLatLng(e)); this.currentPolyline.setLatLngs(this.currentPoints);
                 });
-                
                 const endDraw = () => {
                     if (!isPointerDown) return; isPointerDown = false; 
                     if (!this.currentPolyline || !this.data.isDrawingActive) return;
                     this.data.lines.push({ color: this.currentColor, weight: 4, points: this.currentPoints.map(p => [p.lat, p.lng]) });
                     this.lineLayers.push(this.currentPolyline); this.currentPolyline = null; this.currentPoints = []; if(this.onChange) this.onChange();
                 };
-                
                 this.mediaContainer.addEventListener('pointerup', endDraw); this.mediaContainer.addEventListener('pointercancel', endDraw);
             }
-
             updateInteractions() {
                 if(!this.map || !this.mediaContainer) return;
                 this.mediaContainer.classList.remove('drawing-mode', 'locked-mode');
-                
                 const toggleMoves = (enable) => { const action = enable ? 'enable' : 'disable'; this.map.dragging[action](); this.map.touchZoom[action](); this.map.doubleClickZoom[action](); this.map.scrollWheelZoom[action](); this.map.boxZoom[action](); this.map.keyboard[action](); if(this.map.tap) this.map.tap[action](); };
 
                 if(this.readOnly) { toggleMoves(false); this.mediaContainer.classList.add('locked-mode'); if (this.controlsRow) this.controlsRow.style.display = 'none'; return; }
@@ -1049,7 +949,6 @@
                     if (this.clearBtn) { this.clearBtn.style.display = 'flex'; }
                 }
             }
-
             save() {
                 if (this.map && this.data.mode) { const center = this.map.getCenter(); this.data.lat = center.lat; this.data.lng = center.lng; this.data.zoom = this.map.getZoom(); }
                 return this.data;
@@ -1083,7 +982,6 @@
                 });
 
                 const actions = [exportBtn];
-
                 if (!this.readOnly) {
                     const notifyLabel = (typeof Notification !== 'undefined' && Notification.permission === 'granted') ? 'notifications on' : 'notify me';
                     actions.push(UI.button(notifyLabel, async (e) => { 
@@ -1091,7 +989,6 @@
                         if (await Notification.requestPermission() === 'granted') { e.target.textContent = 'notifications on'; NotificationEngine.schedule(this.data.id, this.data.datetime, this.data.title); } 
                     }));
                 }
-
                 return this.renderContainer([this.dateDisp, UI.row(...actions)]);
             }
             updateDateDisplay() {
@@ -1101,14 +998,10 @@
         }
 
         class ScanTool extends BaseTool {
-            constructor(data, isReadOnly, onChange) {
-                super({ title: data.title || '', text: data.text || '' }, isReadOnly, onChange);
-                this.mainContainer = el('div');
-            }
+            constructor(data, isReadOnly, onChange) { super({ title: data.title || '', text: data.text || '' }, isReadOnly, onChange); this.mainContainer = el('div'); }
             render() {
                 this.mainContainer.innerHTML = '';
                 const baseElements = [];
-
                 if (this.data.text || this.readOnly) {
                     this.output = UI.textarea({
                         className: 'raw-input scan-output', value: this.data.text, readonly: this.readOnly ? true : null,
@@ -1121,7 +1014,6 @@
                     this.btn = UI.button('select image', () => this.fileInput.click());
                     baseElements.push(el('br'), this.btn, this.fileInput);
                 }
-                
                 this.mainContainer.appendChild(this.renderContainer(baseElements));
                 return this.mainContainer;
             }
@@ -1152,7 +1044,6 @@
                 if (this.data.recalled) contentEl = this.renderRecalledState();
                 else if (!this.readOnly) contentEl = this.renderSearchState();
                 else contentEl = el('div', { style: { color: 'var(--muted-text)', fontSize: '13px' }, textContent: 'Empty Recall Block' });
-
                 this.mainContainer.appendChild(this.renderContainer([contentEl]));
                 return this.mainContainer;
             }
@@ -1164,26 +1055,31 @@
                     dropdown.innerHTML = '';
                     if (!query) { dropdown.classList.remove('active'); return; }
 
-                    dropdown.appendChild(el('div', { className: 'recall-result-item', textContent: 'Searching...' }));
+                    dropdown.appendChild(el('div', { className: 'recall-result-item', textContent: 'Searching Postgres Vector...' }));
                     dropdown.classList.add('active');
 
-                    const keywordResults = collectKeywordRecallResults(query, window.currentDateStr);
-                    let semanticResults = [];
+                    let keywordResults = [], semanticResults = [];
                     try {
-                        const semanticHits = await vectorDB.search(query, { excludeDate: window.currentDateStr });
-                        semanticResults = semanticHits.map(r => {
-                            const block = appDB.cache[r.date]?.blocks?.find(b => b.id === r.blockId);
-                            return block && block.type !== 'recall' ? { date: r.date, block, timestamp: r.timestamp || 0, source: 'semantic', score: r.score } : null;
+                        const kwHits = await pgDB.searchKeyword(query, window.currentDateStr);
+                        keywordResults = kwHits.map(r => {
+                            const block = pgDB.cache[r.date]?.blocks?.find(b => b.id === r.blockId);
+                            return block ? { date: r.date, block, timestamp: r.timestamp || 0, source: 'pg_ilike', score: 1 } : null;
                         }).filter(Boolean);
-                    } catch (e) { console.warn('Semantic recall err', e); }
+
+                        const semanticHits = await pgDB.searchSemantic(query, window.currentDateStr, 8);
+                        semanticResults = semanticHits.map(r => {
+                            const block = pgDB.cache[r.date]?.blocks?.find(b => b.id === r.blockId);
+                            return block && block.type !== 'recall' ? { date: r.date, block, timestamp: r.timestamp || 0, source: 'pg_vector', score: r.score } : null;
+                        }).filter(Boolean);
+                    } catch (e) { console.warn('Search err', e); }
 
                     if (currentQuery !== queryVersion) return;
                     dropdown.innerHTML = '';
                     
                     const merged = new Map();
-                    const upsert = (res) => { const key = `${res.date}::${res.block.id}`; if (merged.has(key)) merged.get(key).source = 'hybrid'; else merged.set(key, {...res}); };
-                    keywordResults.slice(0, 12).forEach(r => upsert({...r, score: 1.1}));
-                    semanticResults.slice(0, 12).forEach(upsert);
+                    const upsert = (res) => { const key = `${res.date}::${res.block.id}`; if (merged.has(key)) merged.get(key).source = 'hybrid_pg'; else merged.set(key, {...res}); };
+                    keywordResults.forEach(r => upsert({...r, score: 1.1}));
+                    semanticResults.forEach(upsert);
                     
                     const results = Array.from(merged.values()).sort((a,b) => (b.score||0) - (a.score||0)).slice(0, 12);
 
@@ -1450,45 +1346,89 @@
                 
                 aiStatusEl.className = 'neon-status ai-status loading'; aiStatusEl.textContent = 'sys.ai.generating';
 
+                let docContext = this.blocks.map(b => ['text','h1','h2','h3'].includes(b.type) ? b.dom.innerText : `[${b.type}]`).join('\n');
+                
+                let messages = [
+                    { role: 'system', content: `${CONFIG.AI_PERSONALITY}\nCurrent Date: ${new Date(window.currentDateStr).toDateString()}\nContext:\n${docContext}` },
+                    { role: 'user', content: prompt }
+                ];
+
                 try {
-                    let docContext = this.blocks.map(b => ['text','h1','h2','h3'].includes(b.type) ? b.dom.innerText : `[${b.type}]`).join('\n');
-                    let memoryContext = "";
-                    try {
-                        const hits = await vectorDB.search(prompt, { excludeDate: todayStr });
-                        if(hits.length > 0) memoryContext = hits.map(h => `[${h.date}] ${buildRecallSnippet(appDB.cache[h.date]?.blocks?.find(x => x.id === h.blockId))}`).join('\n');
-                    } catch(e) {}
+                    const response = await aiEngine.chat.completions.create({ messages, tools: AI_TOOLS, temperature: 0.1 });
+                    const msg = response.choices[0].message;
 
-                    const chunks = await aiEngine.chat.completions.create({
-                        messages: [{ role: 'system', content: `${CONFIG.AI_PERSONALITY}\nContext:\n${docContext}\nMemories:\n${memoryContext || 'none'}` }, { role: 'user', content: prompt }], stream: true
-                    });
+                    if (msg.tool_calls && msg.tool_calls.length > 0) {
+                        aiContentNode.innerHTML = `<em>executing AI functions...</em>`;
+                        messages.push(msg); 
+                        
+                        for (const toolCall of msg.tool_calls) {
+                            let toolResultStr = "Success.";
+                            try {
+                                const args = JSON.parse(toolCall.function.arguments || "{}");
+                                if (toolCall.function.name === 'create_compute_block') {
+                                    let tempResult = "Evaluation delayed.";
+                                    try { tempResult = new Function(`return (${args.code})`)(); } catch(e){}
+                                    this.addToolBlock('compute', { code: args.code, title: args.title || 'Calculation' }, 'ai');
+                                    toolResultStr = `Compute block successfully created. Computed Result: ${tempResult}`;
+                                } else if (toolCall.function.name === 'create_calendar_event') {
+                                    this.addToolBlock('calendar', { title: args.title, datetime: args.datetime }, 'ai');
+                                    toolResultStr = `Calendar event scheduled successfully for time: ${args.datetime}.`;
+                                } else if (toolCall.function.name === 'search_memory') {
+                                    aiContentNode.innerHTML = `<em>searching semantic pgvector for "${args.query}"...</em>`;
+                                    const hits = await pgDB.searchSemantic(args.query, null, 4);
+                                    toolResultStr = hits.length ? hits.map(h => `[Date: ${h.date}] ${h.searchText}`).join('\n') : "No relevant memories found.";
+                                }
+                            } catch(err) { toolResultStr = `Tool execution failed: ${err.message}`; }
+                            messages.push({ role: "tool", tool_call_id: toolCall.id, content: toolResultStr });
+                        }
 
-                    let fullHtml = '';
-                    for await (const chunk of chunks) { fullHtml += (chunk.choices[0]?.delta?.content || '').replace(/\n/g, '<br>'); aiContentNode.innerHTML = fullHtml; }
-                    aiContentNode.contentEditable = true; 
+                        aiContentNode.innerHTML = `<em>synthesizing final response...</em>`;
+                        const finalStream = await aiEngine.chat.completions.create({ messages, stream: true, temperature: 0.4 });
+                        
+                        let fullHtml = '';
+                        for await (const chunk of finalStream) { 
+                            fullHtml += (chunk.choices[0]?.delta?.content || '').replace(/\n/g, '<br>'); 
+                            aiContentNode.innerHTML = fullHtml; 
+                        }
+                    } else {
+                        aiContentNode.innerHTML = (msg.content || '').replace(/\n/g, '<br>');
+                    }
                     
+                    aiContentNode.contentEditable = true; 
                     this.activeBlockId = aiBlock.id; const textBlock = this.addBasicBlock('text', '', 'user');
                     setTimeout(() => textBlock.dom.querySelector('.text-content').focus(), 50); scheduleSave();
-                } catch (e) { aiContentNode.innerHTML = "<em>error. connection lost.</em>"; } 
-                finally { aiStatusEl.className = 'neon-status ai-status'; aiStatusEl.textContent = 'sys.ai.online'; }
+                } catch (e) { 
+                    aiContentNode.innerHTML = "<em>error. connection lost.</em>"; 
+                    console.error("AI Generation Error", e);
+                } finally { 
+                    aiStatusEl.className = 'neon-status ai-status'; aiStatusEl.textContent = 'sys.ai.online'; 
+                }
             }
         }
 
         const editor = new LeanStreamEditor('lean-editor');
 
         // ============================================================================
-        // APP LIFECYCLE & STORAGE SYNC
+        // APP LIFECYCLE: INSTANT-ON BOOT PIPELINE
         // ============================================================================
         const saveIndicator = document.getElementById('save-indicator');
 
         const scheduleSave = debounce((immediate = false) => {
-            if (window.currentDateStr !== todayStr || appDB.isMemoryOnly) return;
             const data = editor.save();
-            appDB.save(window.currentDateStr, data).then(() => {
-                saveIndicator.classList.add('visible');
-                setTimeout(() => saveIndicator.classList.remove('visible'), 1500);
-                vectorDB.scheduleIndexDay(window.currentDateStr, data);
-            });
-        }, 800);
+            
+            // 1. Immediately cache today locally so it's instantly available next refresh
+            if (window.currentDateStr === todayStr) {
+                localStorage.setItem(`infinotes_${todayStr}`, JSON.stringify(data));
+            }
+            
+            // 2. Sync to PGlite when ready
+            if (pgDB.isReady) {
+                pgDB.saveNote(window.currentDateStr, data).then(() => {
+                    saveIndicator.classList.add('visible');
+                    setTimeout(() => saveIndicator.classList.remove('visible'), 1500);
+                });
+            }
+        }, 500);
 
         function renderDateHeader() {
             document.getElementById('date-header').textContent = new Date(window.currentDateStr + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).toLowerCase();
@@ -1496,7 +1436,7 @@
 
         async function loadDay(dateStr) {
             window.currentDateStr = dateStr; renderDateHeader();
-            editor.load((appDB.cache[dateStr] || { blocks: [] }).blocks);
+            editor.load((pgDB.cache[dateStr] || { blocks: [] }).blocks);
         }
 
         document.getElementById('date-header').onclick = () => {
@@ -1507,10 +1447,28 @@
             });
         };
 
-        // Boot Pipeline
-        Promise.all([appDB.init(), vectorDB.init(), mediaStore.init()]).then(() => { 
-            loadDay(todayStr); vectorDB.ensureBackfill(appDB.cache);
-        });
+        // --- THE INSTANT BOOT PROCESS ---
+        function fastBootApp() {
+            renderDateHeader();
+            
+            // 1. Instantly render the UI from LocalStorage (Zero Blocking)
+            const localCache = localStorage.getItem(`infinotes_${todayStr}`);
+            if (localCache) editor.load(JSON.parse(localCache).blocks);
+            else editor.load([]);
+
+            // 2. Boot heavy Postgres DB in the background
+            Promise.all([pgDB.init(), mediaStore.init()]).then(() => { 
+                // Only merge PGlite data if we didn't have local cache, or we are viewing the past
+                if (!localCache && pgDB.cache[todayStr]) {
+                    editor.load(pgDB.cache[todayStr].blocks);
+                }
+            });
+
+            // 3. Boot heavy AI WebGPU entirely inside a Web Worker thread
+            initializeWorkerAI();
+        }
+
+        fastBootApp();
 
     </script>
 </body>
