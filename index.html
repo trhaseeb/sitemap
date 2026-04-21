@@ -225,6 +225,9 @@
         .voice-status-text { font-family: var(--font-mono); font-size: 11px; color: var(--muted-text); }
         
         .scan-output { font-family: var(--font-mono); font-size: 14px; min-height: 80px; resize: none; line-height: 1.5; color: var(--baritone-text); }
+        
+        .calendar-date-display { font-family: var(--font-mono); font-size: 15px; color: var(--neon-purple); font-weight: 700; display: inline-block; transition: opacity 0.2s; margin-bottom: 4px; }
+        .calendar-date-display:hover { opacity: 0.8; }
 
         /* Recall Tool Specific */
         .recall-search-wrapper { position: relative; width: 100%; }
@@ -240,7 +243,7 @@
         .recalled-block { padding: 12px 16px; background: var(--bg-color); border-left: 4px solid var(--neon-purple); margin-top: 12px;}
         .recalled-orig-meta { font-family: var(--font-mono); font-size: 10px; color: var(--muted-text); font-weight: bold; text-transform: uppercase; margin-bottom: 12px; }
 
-        /* --- SMART CANVAS OVERHAUL (BLOCK BLEED + ROW CONTROLS) --- */
+        /* --- SMART CANVAS --- */
         .smart-canvas-selector { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; justify-content: center; }
         .smart-canvas-option {
             flex: 1; min-width: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
@@ -356,6 +359,42 @@
             SEMANTIC_MIN_SCORE: 0.22
         };
 
+        // DOM Builder Utility (JSX alternative for Vanilla JS)
+        function el(tag, attributes = {}, ...children) {
+            const element = document.createElement(tag);
+            for (const [key, value] of Object.entries(attributes || {})) {
+                if (key === 'style' && typeof value === 'object') Object.assign(element.style, value);
+                else if (key === 'className') element.className = value;
+                else if (key === 'innerHTML') element.innerHTML = value;
+                else if (key === 'textContent') element.textContent = value; // Explicitly assign textContent
+                else if (key === 'value') element.value = value;             // Explicitly assign value
+                else if (key.startsWith('on') && typeof value === 'function') element[key] = value;
+                else if (value !== false && value !== undefined && value !== null) element.setAttribute(key, value);
+            }
+            children.flat().filter(Boolean).forEach(child => {
+                if (typeof child === 'string' || typeof child === 'number') element.appendChild(document.createTextNode(child));
+                else if (child instanceof Node) element.appendChild(child);
+            });
+            return element;
+        }
+
+        // Standardized Debounce Helper
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => { clearTimeout(timeout); func(...args); };
+                clearTimeout(timeout); timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Centralized UI Component Factory
+        const UI = {
+            button: (text, onClick, className = '') => el('button', { className: `raw-btn ${className}`.trim(), textContent: text, onclick: (e) => { if (onClick) onClick(e); } }),
+            row: (...children) => el('div', { style: { display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' } }, ...children),
+            textarea: (props) => el('textarea', { className: 'raw-input', ...props })
+        };
+
+        // PWA Setup
         document.getElementById('pwa-icon').href = CONFIG.PWA_LOGO_URL;
         document.getElementById('pwa-manifest').href = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify({
             "name": "Infinite Notes", "short_name": "Notes", "start_url": ".", "display": "standalone",
@@ -364,10 +403,10 @@
             "icons": [{"src": CONFIG.PWA_LOGO_URL, "sizes": "192x192", "type": "image/svg+xml"}]
         }));
 
-        function getLocalYYYYMMDD(date) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; }
-        function normalizePlainText(text = '') { return String(text).replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim(); }
-        function clampText(text = '', maxLength = 1200) { return text.length <= maxLength ? text : text.slice(0, maxLength).trimEnd() + '...'; }
-        function escapeHTML(text = '') { return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+        const getLocalYYYYMMDD = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        const normalizePlainText = (text = '') => String(text).replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim();
+        const clampText = (text = '', maxLength = 1200) => text.length <= maxLength ? text : text.slice(0, maxLength).trimEnd() + '...';
+        const escapeHTML = (text = '') => String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         
         let todayStr = getLocalYYYYMMDD(new Date());
         window.currentDateStr = todayStr;
@@ -411,18 +450,15 @@
                     } catch(e) { this.enableFallback(resolve); }
                 });
             }
-            enableFallback(resolve) {
-                this.isMemoryOnly = true; document.getElementById('storage-warning').style.display = 'inline'; resolve();
-            }
+            enableFallback(resolve) { this.isMemoryOnly = true; document.getElementById('storage-warning').style.display = 'inline'; resolve(); }
             save(dateStr, data) {
                 this.cache[dateStr] = data;
                 if (this.isMemoryOnly || !this.db) return Promise.resolve();
-                this.saveQueue = this.saveQueue.then(() => new Promise((resolve) => {
+                this.saveQueue = this.saveQueue.then(() => new Promise(resolve => {
                     const tx = this.db.transaction('daily_notes', 'readwrite');
                     tx.objectStore('daily_notes').put(data, dateStr);
-                    tx.oncomplete = () => resolve();
-                    tx.onerror = () => resolve();
-                }));
+                    tx.oncomplete = () => resolve(); tx.onerror = () => resolve();
+                })).catch(() => {}); // Prevent queue collapse on individual errors
                 return this.saveQueue;
             }
             loadAll() {
@@ -457,15 +493,13 @@
                     if (!this.db || !this.isAvailable) return resolve();
                     const tx = this.db.transaction('media_blobs', 'readwrite');
                     tx.objectStore('media_blobs').put({ id, blob, kind, updatedAt: Date.now() });
-                    tx.oncomplete = () => resolve();
-                    tx.onerror = () => resolve();
+                    tx.oncomplete = () => resolve(); tx.onerror = () => resolve();
                 });
             }
             getBlob(id) {
                 return new Promise(resolve => {
                     if (!this.db || !this.isAvailable) return resolve(null);
-                    const tx = this.db.transaction('media_blobs', 'readonly');
-                    const req = tx.objectStore('media_blobs').get(id);
+                    const req = this.db.transaction('media_blobs', 'readonly').objectStore('media_blobs').get(id);
                     req.onsuccess = () => resolve(req.result?.blob || null);
                     req.onerror = () => resolve(null);
                 });
@@ -482,10 +516,7 @@
                     try {
                         const req = indexedDB.open('InfiniteNotesDB', DB_VERSION);
                         req.onupgradeneeded = e => ensureDatabaseStores(e.target.result);
-                        req.onsuccess = e => {
-                            this.db = e.target.result;
-                            this.loadAll().then(entries => { entries.forEach(entry => this.cache.set(entry.key, entry)); resolve(); });
-                        };
+                        req.onsuccess = e => { this.db = e.target.result; this.loadAll().then(entries => { entries.forEach(entry => this.cache.set(entry.key, entry)); resolve(); }); };
                         req.onerror = () => { this.isAvailable = false; resolve(); };
                     } catch (e) { this.isAvailable = false; resolve(); }
                 });
@@ -493,10 +524,8 @@
             loadAll() {
                 return new Promise(resolve => {
                     if (!this.isAvailable || !this.db) return resolve([]);
-                    const tx = this.db.transaction('semantic_index', 'readonly');
-                    const req = tx.objectStore('semantic_index').getAll();
-                    req.onsuccess = () => resolve(req.result || []);
-                    req.onerror = () => resolve([]);
+                    const req = this.db.transaction('semantic_index', 'readonly').objectStore('semantic_index').getAll();
+                    req.onsuccess = () => resolve(req.result || []); req.onerror = () => resolve([]);
                 });
             }
             async ensureEmbedder() {
@@ -528,10 +557,7 @@
                 if (!dayData || !dayData.blocks) return [];
                 return dayData.blocks.map(block => {
                     if (block.type === 'recall' || !block.data) return null;
-                    let searchText = '';
-                    if (['text','h1','h2','h3'].includes(block.type)) searchText = normalizePlainText(block.data.text);
-                    else searchText = normalizePlainText(JSON.stringify(block.data));
-                    
+                    let searchText = ['text','h1','h2','h3'].includes(block.type) ? normalizePlainText(block.data.text) : normalizePlainText(JSON.stringify(block.data));
                     if (!searchText) return null;
                     return { key: `${dateStr}::${block.id}`, date: dateStr, blockId: block.id, type: block.type, searchText, timestamp: block.timestamp || 0 };
                 }).filter(Boolean);
@@ -569,8 +595,7 @@
                     if (!this.db) return resolve();
                     const tx = this.db.transaction('semantic_index', 'readwrite');
                     const store = tx.objectStore('semantic_index');
-                    const dateIndex = store.index('by_date');
-                    const removeReq = dateIndex.openCursor(IDBKeyRange.only(dateStr));
+                    const removeReq = store.index('by_date').openCursor(IDBKeyRange.only(dateStr));
                     
                     removeReq.onsuccess = (e) => {
                         const cursor = e.target.result;
@@ -589,7 +614,6 @@
                 const queryVector = await this.embedText(normalized);
                 if (!queryVector) return [];
                 const results = [];
-                
                 const dotProduct = (a, b) => { let sum = 0; for(let i=0; i<Math.min(a.length, b.length); i++) sum += a[i]*b[i]; return sum; };
 
                 for (const entry of this.cache.values()) {
@@ -606,13 +630,13 @@
         const vectorDB = new VectorDBAdapter();
 
         // Recall Helpers
-        function getBlockSearchText(block) {
+        const getBlockSearchText = (block) => {
             if (!block || !block.data || block.type === 'recall') return '';
             if (['text','h1','h2','h3'].includes(block.type)) return normalizePlainText(block.data.text);
             if (block.type === 'compute') return `${block.data.code} = ${block.data.output}`;
             return normalizePlainText(JSON.stringify(block.data));
-        }
-        function buildRecallSnippet(block) {
+        };
+        const buildRecallSnippet = (block) => {
             if (!block || !block.data) return 'Empty';
             if (['text','h1','h2','h3'].includes(block.type)) return normalizePlainText(block.data.text) || 'Empty text';
             if (block.type === 'calendar') return `Event: ${block.data.title}`;
@@ -620,8 +644,8 @@
             if (block.type === 'smartCanvas') return `Canvas: ${block.data.title || block.data.mode}`;
             if (block.type === 'compute') return `Compute: ${block.data.code}`;
             return `[${block.type}] block`;
-        }
-        function collectKeywordRecallResults(query, excludeDate) {
+        };
+        const collectKeywordRecallResults = (query, excludeDate) => {
             const norm = normalizePlainText(query).toLowerCase();
             if (!norm) return [];
             const results = [];
@@ -629,14 +653,13 @@
                 if (excludeDate && dateStr === excludeDate) return;
                 if (!dayData || !dayData.blocks) return;
                 dayData.blocks.forEach(block => {
-                    if (block.type === 'recall') return;
-                    if (`${block.type} ${getBlockSearchText(block)}`.toLowerCase().includes(norm)) {
+                    if (block.type !== 'recall' && `${block.type} ${getBlockSearchText(block)}`.toLowerCase().includes(norm)) {
                         results.push({ date: dateStr, block, timestamp: block.timestamp || 0, source: 'keyword', score: 1 });
                     }
                 });
             });
             return results.sort((a, b) => b.timestamp - a.timestamp);
-        }
+        };
 
         // ============================================================================
         // 🤖 ON-DEVICE AI COLLABORATOR (WebLLM)
@@ -652,19 +675,12 @@
             try {
                 const { CreateMLCEngine } = await import("https://esm.run/@mlc-ai/web-llm");
                 aiEngine = await CreateMLCEngine(AI_MODEL_ID, {
-                    initProgressCallback: (progress) => {
-                        aiStatusEl.textContent = `sys.ai.loading [${Math.round(progress.progress * 100)}%]`;
-                    }
+                    initProgressCallback: (progress) => { aiStatusEl.textContent = `sys.ai.loading [${Math.round(progress.progress * 100)}%]`; }
                 });
-                aiStatusEl.className = 'neon-status ai-status';
-                aiStatusEl.textContent = `sys.ai.online`;
+                aiStatusEl.className = 'neon-status ai-status'; aiStatusEl.textContent = `sys.ai.online`;
             } catch (err) {
-                aiStatusEl.className = 'neon-status ai-status error';
-                aiStatusEl.textContent = 'sys.ai.offline';
-                aiEngine = null;
-            } finally {
-                isAILoading = false;
-            }
+                aiStatusEl.className = 'neon-status ai-status error'; aiStatusEl.textContent = 'sys.ai.offline'; aiEngine = null;
+            } finally { isAILoading = false; }
         }
         setTimeout(() => initializeAI(), 1500);
 
@@ -684,26 +700,22 @@
                 grid.innerHTML = '';
                 
                 const firstDay = new Date(year, month, 1).getDay();
-                for(let i=0; i<firstDay; i++) {
-                    const d = document.createElement('div'); d.className = 'cal-day muted'; grid.appendChild(d);
-                }
+                for(let i=0; i<firstDay; i++) grid.appendChild(el('div', { className: 'cal-day muted' }));
 
                 const daysInMonth = new Date(year, month + 1, 0).getDate();
                 for(let i=1; i<=daysInMonth; i++) {
-                    const d = document.createElement('div'); d.className = 'cal-day'; d.textContent = i;
                     const cellDateStr = getLocalYYYYMMDD(new Date(year, month, i));
+                    const isSelected = (year === activeDate.getFullYear() && month === activeDate.getMonth() && i === activeDate.getDate());
+                    const isMuted = !requireTime && cellDateStr > todayStr;
                     
-                    if (year === activeDate.getFullYear() && month === activeDate.getMonth() && i === activeDate.getDate()) {
-                        d.classList.add('selected');
-                    }
-                    if (!requireTime && cellDateStr > todayStr) d.classList.add('muted'); 
-
-                    d.onclick = () => {
-                        if (!requireTime && cellDateStr > todayStr) return;
-                        activeDate = new Date(year, month, i);
-                        render(); 
-                    };
-                    grid.appendChild(d);
+                    grid.appendChild(el('div', {
+                        className: `cal-day ${isSelected ? 'selected' : ''} ${isMuted ? 'muted' : ''}`,
+                        textContent: i,
+                        onclick: () => {
+                            if (isMuted) return;
+                            activeDate = new Date(year, month, i); render(); 
+                        }
+                    }));
                 }
             }
 
@@ -732,47 +744,54 @@
         })();
 
         // ============================================================================
-        // ⬛ BARITONE TOOL COMPONENTS
+        // ⬛ BARITONE TOOL COMPONENTS (Refactored using el & BaseTool)
         // ============================================================================
-        
-        function appendTitleInput(data, readOnly, container, onChange) {
-            const titleInput = document.createElement('input');
-            titleInput.type = 'text'; titleInput.className = 'panel-title-input';
-            titleInput.placeholder = 'block title...'; titleInput.value = data.title || '';
-            if (readOnly) titleInput.readOnly = true;
-            titleInput.addEventListener('input', (e) => { data.title = e.target.value; if (onChange) onChange(); });
-            container.appendChild(titleInput);
-        }
 
-        class ComputeTool {
+        class BaseTool {
             constructor(data, isReadOnly, onChange) {
-                this.data = { title: data.title || '', code: data.code || '', output: data.output || '' };
-                this.readOnly = isReadOnly; this.onChange = onChange;
+                this.data = data || {};
+                this.readOnly = isReadOnly;
+                this.onChange = onChange;
             }
-            render() {
-                const container = document.createElement('div');
-                appendTitleInput(this.data, this.readOnly, container, this.onChange);
 
-                this.input = document.createElement('textarea');
-                this.input.className = 'raw-input compute-code';
-                this.input.placeholder = 'type logic or math (e.g. 10 * 4)...';
-                this.input.value = this.data.code;
-                if (this.readOnly) this.input.readOnly = true;
-                
-                this.output = document.createElement('div');
-                this.output.className = 'compute-output';
-                this.output.innerHTML = this.data.output;
-
-                const adjustHeight = () => { this.input.style.height = 'auto'; this.input.style.height = this.input.scrollHeight + 'px'; };
-                setTimeout(adjustHeight, 0);
-
-                let evalTimeout;
-                this.input.addEventListener('input', () => {
-                    adjustHeight(); this.data.code = this.input.value; 
-                    clearTimeout(evalTimeout); evalTimeout = setTimeout(() => this.evaluateLogic(), 400);
+            renderContainer(contentElements) {
+                const titleInput = el('input', {
+                    className: 'panel-title-input',
+                    type: 'text',
+                    placeholder: 'block title...',
+                    value: this.data.title || '',
+                    readonly: this.readOnly ? true : null,
+                    oninput: (e) => { this.data.title = e.target.value; if (this.onChange) this.onChange(); }
                 });
 
-                container.append(this.input, this.output); return container;
+                return el('div', {}, titleInput, ...contentElements); // Returns content wrapper
+            }
+
+            save() { return this.data; }
+        }
+
+        class ComputeTool extends BaseTool {
+            constructor(data, isReadOnly, onChange) {
+                super({ title: data.title || '', code: data.code || '', output: data.output || '' }, isReadOnly, onChange);
+            }
+            render() {
+                this.input = UI.textarea({
+                    className: 'raw-input compute-code',
+                    placeholder: 'type logic or math (e.g. 10 * 4)...',
+                    value: this.data.code,
+                    readonly: this.readOnly ? true : null,
+                    oninput: () => {
+                        this.input.style.height = 'auto'; this.input.style.height = this.input.scrollHeight + 'px';
+                        this.data.code = this.input.value;
+                        this.scheduleEval();
+                    }
+                });
+                
+                this.output = el('div', { className: 'compute-output', innerHTML: this.data.output });
+                this.scheduleEval = debounce(() => this.evaluateLogic(), 400);
+
+                setTimeout(() => { if(this.input) this.input.style.height = this.input.scrollHeight + 'px'; }, 0);
+                return this.renderContainer([this.input, this.output]);
             }
             evaluateLogic() {
                 if (!this.data.code.trim()) { this.output.innerHTML = ''; this.data.output = ''; if(this.onChange) this.onChange(); return; }
@@ -783,8 +802,7 @@
                         if (!day.blocks) return;
                         day.blocks.forEach(b => {
                             if (b.type === 'compute' || b.type === 'recall') return;
-                            let text = JSON.stringify(b.data).toLowerCase();
-                            if (text.includes(q) && b.data.text) results.push(normalizePlainText(b.data.text));
+                            if (JSON.stringify(b.data).toLowerCase().includes(q) && b.data.text) results.push(normalizePlainText(b.data.text));
                         });
                     });
                     return results;
@@ -794,29 +812,23 @@
                 const avg = (query) => { let n = nums(query); return n.length ? sum(query)/n.length : 0; };
                 
                 try {
-                    const code = this.data.code.replace(/sum\(['"](.*?)['"]\)/g, (_, q) => sum(q))
-                                               .replace(/avg\(['"](.*?)['"]\)/g, (_, q) => avg(q));
-                    
+                    const code = this.data.code.replace(/sum\(['"](.*?)['"]\)/g, (_, q) => sum(q)).replace(/avg\(['"](.*?)['"]\)/g, (_, q) => avg(q));
                     const result = new Function(`return (${code})`)();
                     
                     if (Array.isArray(result) && result.length >= 2 && result.every(n => typeof n === 'number')) {
                         const min = Math.min(...result); const max = Math.max(...result); const range = (max - min) || 1;
                         const points = result.map((val, i) => `${(i / (result.length - 1)) * 100},${40 - ((val - min) / range) * 40}`).join(' ');
                         this.data.output = `<div style="font-size: 11px; color: var(--muted-text); margin-bottom: 4px;">[${result.join(', ')}]</div><svg viewBox="0 -5 100 50" style="width: 100%; height: 60px; overflow: visible;" preserveAspectRatio="none"><polyline fill="none" stroke="var(--neon-purple)" stroke-width="2" points="${points}"></polyline></svg>`;
-                    } else {
-                        this.data.output = typeof result === 'object' ? escapeHTML(JSON.stringify(result)) : escapeHTML(String(result));
-                    }
+                    } else { this.data.output = typeof result === 'object' ? escapeHTML(JSON.stringify(result)) : escapeHTML(String(result)); }
                     this.output.innerHTML = this.data.output; this.output.classList.remove('compute-error');
                 } catch(e) { this.data.output = `<span class="compute-error">${escapeHTML(e.message)}</span>`; this.output.innerHTML = this.data.output; }
                 if(this.onChange) this.onChange();
             }
-            save() { return this.data; }
         }
 
-        class VoiceTool {
+        class VoiceTool extends BaseTool {
             constructor(data, isReadOnly, onChange) {
-                this.data = { title: data.title || '', mediaId: data.mediaId || null };
-                this.readOnly = isReadOnly; this.onChange = onChange;
+                super({ title: data.title || '', mediaId: data.mediaId || null }, isReadOnly, onChange);
                 this.recorder = null; this.chunks = []; this.isPlaying = false; this.isRecording = false; this.objectUrl = '';
             }
             async hydrate() {
@@ -825,23 +837,16 @@
                 if (blob) { this.objectUrl = URL.createObjectURL(blob); this.audio.src = this.objectUrl; this.updateUI(); }
             }
             render() {
-                const container = document.createElement('div');
-                appendTitleInput(this.data, this.readOnly, container, this.onChange);
-
-                const controls = document.createElement('div'); controls.className = 'voice-controls';
-                this.btn = document.createElement('button'); this.btn.className = 'raw-btn';
-                this.statusTxt = document.createElement('span'); this.statusTxt.className = 'voice-status-text';
-                this.audio = document.createElement('audio');
-
-                this.audio.onplay = () => { this.isPlaying = true; this.updateUI(); };
-                this.audio.onpause = () => { this.isPlaying = false; this.updateUI(); };
-                this.audio.onended = () => { this.isPlaying = false; this.updateUI(); };
-                this.btn.onclick = () => this.handleAction();
+                this.btn = UI.button('record', () => this.handleAction(), 'danger');
+                this.statusTxt = el('span', { className: 'voice-status-text' });
+                this.audio = el('audio', {
+                    onplay: () => { this.isPlaying = true; this.updateUI(); },
+                    onpause: () => { this.isPlaying = false; this.updateUI(); },
+                    onended: () => { this.isPlaying = false; this.updateUI(); }
+                });
 
                 this.updateUI(); void this.hydrate();
-                controls.append(this.btn, this.statusTxt, this.audio);
-                container.appendChild(controls);
-                return container;
+                return this.renderContainer([UI.row(this.btn, this.statusTxt, this.audio)]);
             }
             updateUI() {
                 if (this.isPlaying) { this.btn.textContent = 'pause'; this.btn.className = 'raw-btn active'; this.statusTxt.textContent = 'playing...'; }
@@ -873,64 +878,47 @@
                     }
                 }
             }
-            save() { return this.data; }
         }
 
-        // --- OVERHAULED SMART CANVAS TOOL (BLOCK BLEED + ROW CONTROLS) ---
-        class SmartCanvasTool {
+        class SmartCanvasTool extends BaseTool {
             constructor(data, isReadOnly, onChange) {
-                this.data = { 
+                super({ 
                     title: data.title || '', mode: data.mode || null, lat: data.lat || 51.505, lng: data.lng || -0.09, 
                     zoom: data.zoom || 13, isLocked: data.isLocked || false, baseImageId: data.baseImageId || null, 
                     imgWidth: data.imgWidth || null, imgHeight: data.imgHeight || null, hasInitializedView: data.hasInitializedView || false, 
                     lines: data.lines || [], isDrawingActive: data.isDrawingActive || false 
-                };
-                this.readOnly = isReadOnly; this.onChange = onChange;
-                this.container = document.createElement('div'); 
-                this.container.className = 'baritone-panel stream-block';
+                }, isReadOnly, onChange);
                 this.baseImageUrl = ''; this.currentColor = '#ef4444'; this.lineLayers = []; this.currentPolyline = null; this.currentPoints = [];
+                this.mainContainer = el('div'); 
             }
 
             render() {
-                this.container.innerHTML = '';
-                appendTitleInput(this.data, this.readOnly, this.container, this.onChange);
+                this.mainContainer.innerHTML = '';
+                const baseEl = this.renderContainer([]); 
+                this.mainContainer.appendChild(baseEl);
 
                 if (!this.data.mode) {
                     if (this.readOnly) {
-                        this.container.innerHTML += '<div style="padding: 24px; text-align: center; color: var(--muted-text); font-size: 14px;">Blank Canvas</div>';
-                        return this.container;
+                        baseEl.appendChild(el('div', { style: { padding: '24px', textAlign: 'center', color: 'var(--muted-text)', fontSize: '14px' }, textContent: 'Blank Canvas' }));
+                    } else {
+                        baseEl.appendChild(this.renderSelector());
                     }
-                    this.renderSelector();
                 } else {
-                    this.buildControls();
-
-                    this.relativeFrame = document.createElement('div');
-                    this.relativeFrame.className = 'canvas-relative-frame full-bleed';
-                    this.container.appendChild(this.relativeFrame);
-                    
+                    this.controlsRow = this.buildControls();
+                    this.relativeFrame = el('div', { className: 'canvas-relative-frame full-bleed' });
+                    if(this.controlsRow) baseEl.appendChild(this.controlsRow);
+                    baseEl.appendChild(this.relativeFrame);
                     this.renderMap();
                 }
-                return this.container;
+                return this.mainContainer;
             }
 
             renderSelector() {
-                const selector = document.createElement('div'); 
-                selector.className = 'smart-canvas-selector';
-                
-                const mapBtn = document.createElement('button'); mapBtn.className = 'smart-canvas-option'; mapBtn.innerHTML = 'Map Mode';
-                const photoBtn = document.createElement('button'); photoBtn.className = 'smart-canvas-option'; photoBtn.innerHTML = 'Photo Overlay';
-                const blankBtn = document.createElement('button'); blankBtn.className = 'smart-canvas-option'; blankBtn.innerHTML = 'Blank Canvas';
-                const fileInput = document.createElement('input'); fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.style.display = 'none';
-
-                mapBtn.onclick = () => { this.data.mode = 'map'; this.data.isLocked = false; this.data.isDrawingActive = false; this.render(); if(this.onChange) this.onChange(); };
-                blankBtn.onclick = () => { this.data.mode = 'blank'; this.data.isLocked = false; this.data.isDrawingActive = false; this.render(); if(this.onChange) this.onChange(); };
-                photoBtn.onclick = () => fileInput.click();
-                
+                const fileInput = el('input', { type: 'file', accept: 'image/*', style: { display: 'none' } });
                 fileInput.onchange = async (e) => {
                     const file = e.target.files[0];
                     if (file) {
-                        const tempUrl = URL.createObjectURL(file);
-                        const img = new Image();
+                        const tempUrl = URL.createObjectURL(file); const img = new Image();
                         img.onload = async () => {
                             this.data.imgWidth = img.width; this.data.imgHeight = img.height; 
                             this.data.mode = 'image'; this.data.isLocked = false; this.data.isDrawingActive = false;
@@ -943,8 +931,12 @@
                     }
                 };
                 
-                selector.append(mapBtn, photoBtn, blankBtn, fileInput);
-                this.container.appendChild(selector);
+                return el('div', { className: 'smart-canvas-selector' },
+                    el('button', { className: 'smart-canvas-option', textContent: 'Map Mode', onclick: () => { this.data.mode = 'map'; this.render(); if(this.onChange) this.onChange(); } }),
+                    el('button', { className: 'smart-canvas-option', textContent: 'Photo Overlay', onclick: () => fileInput.click() }),
+                    el('button', { className: 'smart-canvas-option', textContent: 'Blank Canvas', onclick: () => { this.data.mode = 'blank'; this.render(); if(this.onChange) this.onChange(); } }),
+                    fileInput
+                );
             }
 
             async hydrateBaseImage() {
@@ -956,57 +948,34 @@
             }
 
             buildControls() {
-                if (this.readOnly) return;
-                this.controlsRow = document.createElement('div');
-                this.controlsRow.className = 'canvas-controls-row';
+                if (this.readOnly) return null;
                 
-                this.lockBtn = document.createElement('button'); this.lockBtn.className = 'raw-btn';
-                this.lockBtn.textContent = this.data.isLocked ? 'LOCKED' : 'UNLOCK';
-                this.lockBtn.onclick = () => { this.data.isLocked = !this.data.isLocked; this.updateInteractions(); if(this.onChange) this.onChange(); };
-
-                this.drawBtn = document.createElement('button'); this.drawBtn.className = 'raw-btn'; this.drawBtn.textContent = 'DRAW';
+                this.lockBtn = UI.button(this.data.isLocked ? 'LOCKED' : 'UNLOCK', () => { this.data.isLocked = !this.data.isLocked; this.updateInteractions(); if(this.onChange) this.onChange(); });
+                if (this.data.isLocked) this.lockBtn.classList.add('active');
                 
-                this.colorPicker = document.createElement('input'); this.colorPicker.type = 'color'; this.colorPicker.value = this.currentColor;
-                this.colorPicker.style.position = 'absolute'; this.colorPicker.style.opacity = '0'; this.colorPicker.style.width = '0'; this.colorPicker.style.height = '0'; this.colorPicker.style.pointerEvents = 'none';
-                this.colorPicker.addEventListener('input', (e) => this.currentColor = e.target.value);
-
+                this.colorPicker = el('input', { type: 'color', value: this.currentColor, style: { position: 'absolute', opacity: '0', width: '0', height: '0', pointerEvents: 'none' }, oninput: (e) => this.currentColor = e.target.value });
+                
+                this.drawBtn = UI.button('DRAW', (e) => { e.preventDefault(); e.stopPropagation(); if (this.wasLongPress) { this.wasLongPress = false; return; } this.data.isDrawingActive = !this.data.isDrawingActive; this.updateInteractions(); if(this.onChange) this.onChange(); });
                 this.drawBtn.addEventListener('dblclick', (e) => { e.preventDefault(); e.stopPropagation(); this.colorPicker.click(); });
-                this.drawBtn.addEventListener('click', (e) => {
-                    e.preventDefault(); e.stopPropagation(); if (this.wasLongPress) { this.wasLongPress = false; return; }
-                    this.data.isDrawingActive = !this.data.isDrawingActive; this.updateInteractions(); if(this.onChange) this.onChange();
-                });
 
-                const startPress = (e) => {
-                    if (e.type === 'touchstart') e.stopPropagation(); this.wasLongPress = false;
-                    this.pressTimer = setTimeout(() => { this.wasLongPress = true; this.colorPicker.click(); }, 600);
-                };
-                const cancelPress = () => clearTimeout(this.pressTimer);
+                const startPress = (e) => { if (e.type === 'touchstart') e.stopPropagation(); this.wasLongPress = false; this.pressTimer = setTimeout(() => { this.wasLongPress = true; this.colorPicker.click(); }, 600); };
                 ['mousedown','touchstart'].forEach(evt => this.drawBtn.addEventListener(evt, startPress, {passive: true}));
-                ['mouseup','mouseleave','touchend','touchcancel'].forEach(evt => this.drawBtn.addEventListener(evt, cancelPress));
+                ['mouseup','mouseleave','touchend','touchcancel'].forEach(evt => this.drawBtn.addEventListener(evt, () => clearTimeout(this.pressTimer)));
 
-                this.clearBtn = document.createElement('button'); this.clearBtn.className = 'raw-btn'; this.clearBtn.textContent = 'CLEAR';
-                this.clearBtn.onclick = () => {
-                    this.lineLayers.forEach(layer => { if(this.map) this.map.removeLayer(layer); });
-                    this.lineLayers = []; this.data.lines = []; if(this.onChange) this.onChange();
-                };
+                this.clearBtn = UI.button('CLEAR', () => { this.lineLayers.forEach(layer => { if(this.map) this.map.removeLayer(layer); }); this.lineLayers = []; this.data.lines = []; if(this.onChange) this.onChange(); });
 
-                this.controlsRow.append(this.lockBtn, this.drawBtn, this.clearBtn, this.colorPicker);
-                this.container.appendChild(this.controlsRow);
+                return UI.row(this.lockBtn, this.drawBtn, this.clearBtn, this.colorPicker);
             }
 
             renderMap() {
-                const existingMap = this.relativeFrame.querySelector('.leaflet-container');
-                if (existingMap) existingMap.remove();
-                
-                this.mediaContainer = document.createElement('div'); this.mediaContainer.className = 'leaflet-container';
+                this.mediaContainer = el('div', { className: 'leaflet-container' });
                 this.relativeFrame.appendChild(this.mediaContainer);
                 
                 setTimeout(async () => {
                     if (!this.mediaContainer.isConnected) return;
                     if (this.data.mode === 'map') {
                         this.map = L.map(this.mediaContainer, { zoomControl: false, attributionControl: false }).setView([this.data.lat, this.data.lng], this.data.zoom);
-                        const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                        const tileUrl = isDark ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+                        const tileUrl = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
                         L.tileLayer(tileUrl).addTo(this.map);
                     } else {
                         this.map = L.map(this.mediaContainer, { crs: L.CRS.Simple, zoomControl: false, attributionControl: false, minZoom: -4 });
@@ -1015,9 +984,8 @@
                         if (imageUrl) {
                             const bounds = [[0, 0], [this.data.imgHeight || 600, this.data.imgWidth || 800]];
                             L.imageOverlay(imageUrl, bounds).addTo(this.map);
-                            if (!this.data.hasInitializedView && !this.readOnly) {
-                                this.map.fitBounds(bounds); this.data.hasInitializedView = true; if(this.onChange) this.onChange();
-                            } else { this.map.setView([this.data.lat || (bounds[1][0]/2), this.data.lng || (bounds[1][1]/2)], this.data.zoom || 0); }
+                            if (!this.data.hasInitializedView && !this.readOnly) { this.map.fitBounds(bounds); this.data.hasInitializedView = true; if(this.onChange) this.onChange(); } 
+                            else { this.map.setView([this.data.lat || (bounds[1][0]/2), this.data.lng || (bounds[1][1]/2)], this.data.zoom || 0); }
                         } else { this.map.setView([this.data.lat || 0, this.data.lng || 0], this.data.zoom || 0); }
                     }
                     this.renderExistingLines(); this.initDrawingTracker(); this.updateInteractions(); this.map.invalidateSize();
@@ -1061,21 +1029,17 @@
                 if(!this.map || !this.mediaContainer) return;
                 this.mediaContainer.classList.remove('drawing-mode', 'locked-mode');
                 
-                const disableMoves = () => { this.map.dragging.disable(); this.map.touchZoom.disable(); this.map.doubleClickZoom.disable(); this.map.scrollWheelZoom.disable(); this.map.boxZoom.disable(); this.map.keyboard.disable(); if(this.map.tap) this.map.tap.disable(); };
-                const enableMoves = () => { this.map.dragging.enable(); this.map.touchZoom.enable(); this.map.doubleClickZoom.enable(); this.map.scrollWheelZoom.enable(); this.map.boxZoom.enable(); this.map.keyboard.enable(); if(this.map.tap) this.map.tap.enable(); };
+                const toggleMoves = (enable) => { const action = enable ? 'enable' : 'disable'; this.map.dragging[action](); this.map.touchZoom[action](); this.map.doubleClickZoom[action](); this.map.scrollWheelZoom[action](); this.map.boxZoom[action](); this.map.keyboard[action](); if(this.map.tap) this.map.tap[action](); };
 
-                if(this.readOnly) {
-                    disableMoves(); this.mediaContainer.classList.add('locked-mode');
-                    if (this.controlsRow) this.controlsRow.style.display = 'none'; return;
-                }
+                if(this.readOnly) { toggleMoves(false); this.mediaContainer.classList.add('locked-mode'); if (this.controlsRow) this.controlsRow.style.display = 'none'; return; }
 
                 if (!this.data.isLocked) {
-                    this.data.isDrawingActive = false; enableMoves();
+                    this.data.isDrawingActive = false; toggleMoves(true);
                     if (this.lockBtn) { this.lockBtn.textContent = 'UNLOCK'; this.lockBtn.classList.remove('active'); }
                     if (this.drawBtn) { this.drawBtn.style.display = 'none'; this.drawBtn.classList.remove('active', 'danger'); }
                     if (this.clearBtn) { this.clearBtn.style.display = 'none'; }
                 } else {
-                    disableMoves(); this.mediaContainer.classList.add('locked-mode');
+                    toggleMoves(false); this.mediaContainer.classList.add('locked-mode');
                     if (this.lockBtn) { this.lockBtn.textContent = 'LOCKED'; this.lockBtn.classList.add('active'); }
                     if (this.drawBtn) { 
                         this.drawBtn.style.display = 'flex'; 
@@ -1092,92 +1056,74 @@
             }
         }
 
-        class CalendarTool {
+        class CalendarTool extends BaseTool {
             constructor(data, isReadOnly, onChange) {
-                this.id = data.id || crypto.randomUUID();
-                this.data = { title: data.title || '', datetime: data.datetime || new Date().toISOString(), notified: data.notified || false };
-                this.readOnly = isReadOnly; this.onChange = onChange;
-                if (!this.data.notified && !this.readOnly && new Date(this.data.datetime) > new Date()) NotificationEngine.schedule(this.id, this.data.datetime, this.data.title);
+                super({ id: data.id || crypto.randomUUID(), title: data.title || '', datetime: data.datetime || new Date().toISOString(), notified: data.notified || false }, isReadOnly, onChange);
+                if (!this.data.notified && !this.readOnly && new Date(this.data.datetime) > new Date()) NotificationEngine.schedule(this.data.id, this.data.datetime, this.data.title);
             }
             render() {
-                const container = document.createElement('div');
-                appendTitleInput(this.data, this.readOnly, container, () => {
-                    NotificationEngine.schedule(this.id, this.data.datetime, this.data.title);
-                    if(this.onChange) this.onChange();
-                });
-
-                this.dateDisp = document.createElement('div'); 
-                this.dateDisp.style.fontFamily = 'var(--font-mono)'; this.dateDisp.style.fontSize = '14px';
-                this.dateDisp.style.color = 'var(--neon-purple)'; this.dateDisp.style.fontWeight = '700'; this.dateDisp.style.marginBottom = '12px';
-                this.updateDateDisplay();
-                
-                if(!this.readOnly) {
-                    this.dateDisp.style.cursor = 'pointer';
-                    this.dateDisp.onclick = () => {
+                this.dateDisp = el('div', { 
+                    className: 'calendar-date-display',
+                    style: { cursor: this.readOnly ? 'default' : 'pointer' },
+                    onclick: this.readOnly ? null : () => {
                         EditorialCalendar.open(new Date(this.data.datetime), true, (nd) => {
                             this.data.datetime = nd.toISOString(); this.data.notified = false;
                             this.updateDateDisplay(); 
-                            NotificationEngine.schedule(this.id, this.data.datetime, this.data.title);
+                            NotificationEngine.schedule(this.data.id, this.data.datetime, this.data.title);
                             if(this.onChange) this.onChange();
                         });
-                    };
-                }
-                container.appendChild(this.dateDisp);
+                    }
+                });
+                this.updateDateDisplay();
 
-                const actions = document.createElement('div'); actions.style.display = 'flex'; actions.style.gap = '8px';
-                const exportBtn = document.createElement('button'); exportBtn.className = 'raw-btn'; exportBtn.textContent = 'export ics';
-                exportBtn.onclick = () => {
-                    const start = new Date(this.data.datetime); const formatICS = (date) => date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+                const exportBtn = UI.button('export ics', () => {
+                    const start = new Date(this.data.datetime); const formatICS = (d) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
                     const icsContent = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'BEGIN:VEVENT', `DTSTART:${formatICS(start)}`, `DTEND:${formatICS(new Date(start.getTime() + 3600000))}`, `SUMMARY:${this.data.title || 'Event'}`, 'END:VEVENT', 'END:VCALENDAR'].join('\n');
                     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([icsContent], { type: 'text/calendar;charset=utf-8' })); a.download = `${this.data.title ? this.data.title.replace(/\s+/g, '_') : 'event'}.ics`; a.click();
-                };
-                actions.appendChild(exportBtn);
+                });
+
+                const actions = [exportBtn];
 
                 if (!this.readOnly) {
-                    const notifyBtn = document.createElement('button'); notifyBtn.className = 'raw-btn'; 
-                    notifyBtn.textContent = (typeof Notification !== 'undefined' && Notification.permission === 'granted') ? 'notifications on' : 'notify me';
-                    notifyBtn.onclick = async () => { 
+                    const notifyLabel = (typeof Notification !== 'undefined' && Notification.permission === 'granted') ? 'notifications on' : 'notify me';
+                    actions.push(UI.button(notifyLabel, async (e) => { 
                         if (!('Notification' in window)) return alert('Not supported'); 
-                        if (await Notification.requestPermission() === 'granted') { notifyBtn.textContent = 'notifications on'; NotificationEngine.schedule(this.id, this.data.datetime, this.data.title); } 
-                    };
-                    actions.appendChild(notifyBtn);
+                        if (await Notification.requestPermission() === 'granted') { e.target.textContent = 'notifications on'; NotificationEngine.schedule(this.data.id, this.data.datetime, this.data.title); } 
+                    }));
                 }
 
-                container.appendChild(actions);
-                return container;
+                return this.renderContainer([this.dateDisp, UI.row(...actions)]);
             }
             updateDateDisplay() {
                 const d = new Date(this.data.datetime);
                 this.dateDisp.textContent = `${d.toLocaleDateString(undefined, {weekday: 'short', month:'short', day:'numeric'})} @ ${d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'})}`;
             }
-            save() { this.data.id = this.id; return this.data; }
         }
 
-        class ScanTool {
+        class ScanTool extends BaseTool {
             constructor(data, isReadOnly, onChange) {
-                this.data = { title: data.title || '', text: data.text || '' };
-                this.readOnly = isReadOnly; this.onChange = onChange;
-                this.container = document.createElement('div');
+                super({ title: data.title || '', text: data.text || '' }, isReadOnly, onChange);
+                this.mainContainer = el('div');
             }
             render() {
-                this.container.innerHTML = '';
-                appendTitleInput(this.data, this.readOnly, this.container, this.onChange);
+                this.mainContainer.innerHTML = '';
+                const baseElements = [];
 
                 if (this.data.text || this.readOnly) {
-                    this.output = document.createElement('textarea'); this.output.className = 'raw-input scan-output';
-                    this.output.value = this.data.text;
-                    if(this.readOnly) { this.output.readOnly = true; }
-                    else { this.output.addEventListener('input', e => { this.data.text = e.target.value; this.output.style.height = this.output.scrollHeight + 'px'; if(this.onChange) this.onChange(); }); }
-                    this.container.appendChild(this.output);
+                    this.output = UI.textarea({
+                        className: 'raw-input scan-output', value: this.data.text, readonly: this.readOnly ? true : null,
+                        oninput: e => { this.data.text = e.target.value; this.output.style.height = this.output.scrollHeight + 'px'; if(this.onChange) this.onChange(); }
+                    });
+                    baseElements.push(this.output);
                     setTimeout(() => { if(this.output) this.output.style.height = this.output.scrollHeight + 'px'; }, 0);
                 } else {
-                    this.btn = document.createElement('button'); this.btn.className = 'raw-btn'; this.btn.textContent = 'select image';
-                    this.fileInput = document.createElement('input'); this.fileInput.type = 'file'; this.fileInput.accept = 'image/*'; this.fileInput.style.display = 'none';
-                    this.btn.onclick = () => this.fileInput.click();
-                    this.fileInput.onchange = e => this.handleScan(e.target.files[0]);
-                    this.container.append(document.createElement('br'), this.btn, this.fileInput);
+                    this.fileInput = el('input', { type: 'file', accept: 'image/*', style: { display: 'none' }, onchange: e => this.handleScan(e.target.files[0]) });
+                    this.btn = UI.button('select image', () => this.fileInput.click());
+                    baseElements.push(el('br'), this.btn, this.fileInput);
                 }
-                return this.container;
+                
+                this.mainContainer.appendChild(this.renderContainer(baseElements));
+                return this.mainContainer;
             }
             async handleScan(file) {
                 if(!file) return;
@@ -1190,42 +1136,35 @@
                     const { data: { text } } = await worker.recognize(file);
                     await worker.terminate();
                     this.data.text = text.trim();
-                    this.render(); 
-                    if(this.onChange) this.onChange();
+                    this.render(); if(this.onChange) this.onChange();
                 } catch(e) { this.btn.textContent = 'failed. retry'; this.btn.classList.remove('active'); }
             }
-            save() { return this.data; }
         }
 
-        class RecallTool {
+        class RecallTool extends BaseTool {
             constructor(data, isReadOnly, onChange) {
-                this.data = data && data.recalled ? data : { title: data?.title || '', recalled: false, sourceDate: null, sourceBlock: null };
-                this.readOnly = isReadOnly; this.onChange = onChange;
-                this.container = document.createElement('div');
+                super(data && data.recalled ? data : { title: data?.title || '', recalled: false, sourceDate: null, sourceBlock: null }, isReadOnly, onChange);
+                this.mainContainer = el('div');
             }
             render() {
-                this.container.innerHTML = '';
-                appendTitleInput(this.data, this.readOnly, this.container, this.onChange);
-                
-                if (this.data.recalled) { this.container.appendChild(this.renderRecalledState()); }
-                else if (!this.readOnly) { this.container.appendChild(this.renderSearchState()); }
-                else { this.container.innerHTML = '<div style="color: var(--muted-text); font-size: 13px;">Empty Recall Block</div>'; }
-                return this.container;
+                this.mainContainer.innerHTML = '';
+                let contentEl;
+                if (this.data.recalled) contentEl = this.renderRecalledState();
+                else if (!this.readOnly) contentEl = this.renderSearchState();
+                else contentEl = el('div', { style: { color: 'var(--muted-text)', fontSize: '13px' }, textContent: 'Empty Recall Block' });
+
+                this.mainContainer.appendChild(this.renderContainer([contentEl]));
+                return this.mainContainer;
             }
             renderSearchState() {
-                const wrapper = document.createElement('div'); wrapper.className = 'recall-search-wrapper';
-                const input = document.createElement('input'); input.className = 'recall-search-input';
-                input.type = 'text'; input.placeholder = 'Search past memory...';
-                const dropdown = document.createElement('div'); dropdown.className = 'recall-dropdown';
+                const dropdown = el('div', { className: 'recall-dropdown' });
                 let queryVersion = 0;
 
-                input.addEventListener('focus', () => { scheduleSave(true); });
-                input.addEventListener('input', async (e) => {
-                    const query = e.target.value.trim(); const currentQuery = ++queryVersion;
+                const debouncedSearch = debounce(async (query, currentQuery) => {
                     dropdown.innerHTML = '';
                     if (!query) { dropdown.classList.remove('active'); return; }
 
-                    dropdown.appendChild(Object.assign(document.createElement('div'), { className: 'recall-result-item', textContent: 'Searching...' }));
+                    dropdown.appendChild(el('div', { className: 'recall-result-item', textContent: 'Searching...' }));
                     dropdown.classList.add('active');
 
                     const keywordResults = collectKeywordRecallResults(query, window.currentDateStr);
@@ -1242,10 +1181,7 @@
                     dropdown.innerHTML = '';
                     
                     const merged = new Map();
-                    const upsert = (res) => {
-                        const key = `${res.date}::${res.block.id}`;
-                        if (merged.has(key)) merged.get(key).source = 'hybrid'; else merged.set(key, {...res});
-                    };
+                    const upsert = (res) => { const key = `${res.date}::${res.block.id}`; if (merged.has(key)) merged.get(key).source = 'hybrid'; else merged.set(key, {...res}); };
                     keywordResults.slice(0, 12).forEach(r => upsert({...r, score: 1.1}));
                     semanticResults.slice(0, 12).forEach(upsert);
                     
@@ -1253,25 +1189,32 @@
 
                     if (results.length > 0) {
                         results.forEach(res => {
-                            const item = document.createElement('div'); item.className = 'recall-result-item';
                             const displayDate = new Date(res.date + 'T00:00:00').toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'});
-                            item.appendChild(Object.assign(document.createElement('div'), { className: 'recall-result-meta', textContent: `${displayDate} • ${res.source}` }));
-                            item.appendChild(Object.assign(document.createElement('div'), { className: 'recall-result-snippet', textContent: buildRecallSnippet(res.block) }));
-                            item.onclick = () => { this.data.recalled = true; this.data.sourceDate = res.date; this.data.sourceBlock = res.block; this.render(); if(this.onChange) this.onChange(); };
-                            dropdown.appendChild(item);
+                            dropdown.appendChild(el('div', { 
+                                className: 'recall-result-item',
+                                onclick: () => { this.data.recalled = true; this.data.sourceDate = res.date; this.data.sourceBlock = res.block; this.render(); if(this.onChange) this.onChange(); }
+                            }, 
+                                el('div', { className: 'recall-result-meta', textContent: `${displayDate} • ${res.source}` }),
+                                el('div', { className: 'recall-result-snippet', textContent: buildRecallSnippet(res.block) })
+                            ));
                         });
                         dropdown.classList.add('active');
-                    } else {
-                        dropdown.appendChild(Object.assign(document.createElement('div'), { className: 'recall-result-item', textContent: 'No matches found.' }));
-                    }
+                    } else { dropdown.appendChild(el('div', { className: 'recall-result-item', textContent: 'No matches found.' })); }
+                }, 300);
+
+                const input = el('input', {
+                    className: 'recall-search-input', type: 'text', placeholder: 'Search past memory...',
+                    onfocus: () => scheduleSave(true),
+                    oninput: (e) => debouncedSearch(e.target.value.trim(), ++queryVersion)
                 });
-                wrapper.addEventListener('focusout', () => { setTimeout(() => { if (!wrapper.contains(document.activeElement)) dropdown.classList.remove('active'); }, 100); });
-                wrapper.append(input, dropdown); setTimeout(() => input.focus(), 50); return wrapper;
+
+                const wrapper = el('div', { className: 'recall-search-wrapper', onfocusout: () => setTimeout(() => { if (!wrapper.contains(document.activeElement)) dropdown.classList.remove('active'); }, 100) }, input, dropdown);
+                setTimeout(() => input.focus(), 50); 
+                return wrapper;
             }
             renderRecalledState() {
-                const container = document.createElement('div'); container.className = 'recalled-block';
                 const displayDate = new Date(this.data.sourceDate + 'T00:00:00').toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'});
-                container.appendChild(Object.assign(document.createElement('div'), { className: 'recalled-orig-meta', textContent: `Recalled from ${displayDate}` }));
+                const container = el('div', { className: 'recalled-block' }, el('div', { className: 'recalled-orig-meta', textContent: `Recalled from ${displayDate}` }));
                 
                 const ToolClass = TOOLS_MAP[this.data.sourceBlock.type];
                 if (ToolClass) {
@@ -1282,11 +1225,10 @@
                         container.appendChild(rendered);
                     } catch(e) { container.appendChild(document.createTextNode('Render error.')); }
                 } else if (['text', 'h1', 'h2', 'h3'].includes(this.data.sourceBlock.type)) {
-                    const p = document.createElement('div'); p.className = `text-content ${this.data.sourceBlock.type}`; p.innerHTML = this.data.sourceBlock.data.text; p.style.fontSize = '18px'; container.appendChild(p);
+                    container.appendChild(el('div', { className: `text-content ${this.data.sourceBlock.type}`, style: { fontSize: '18px' }, innerHTML: this.data.sourceBlock.data.text }));
                 }
                 return container;
             }
-            save() { return this.data; }
         }
 
         const TOOLS_MAP = { compute: ComputeTool, voice: VoiceTool, smartCanvas: SmartCanvasTool, calendar: CalendarTool, scan: ScanTool, recall: RecallTool };
@@ -1310,14 +1252,9 @@
                         
                         if (['h1', 'h2', 'h3'].includes(toolType)) {
                             const activeBlock = this.blocks.find(b => b.id === this.activeBlockId);
-                            if (activeBlock && ['text', 'h1', 'h2', 'h3'].includes(activeBlock.type)) {
-                                this.replaceTextNodeType(activeBlock, toolType);
-                            } else {
-                                this.addBasicBlock(toolType, ''); 
-                            }
-                        } else {
-                            this.addToolBlock(toolType, {});
-                        }
+                            if (activeBlock && ['text', 'h1', 'h2', 'h3'].includes(activeBlock.type)) this.replaceTextNodeType(activeBlock, toolType);
+                            else this.addBasicBlock(toolType, ''); 
+                        } else { this.addToolBlock(toolType, {}); }
                         this.inlineMenu.classList.remove('expanded', 'visible');
                     };
                 });
@@ -1331,17 +1268,11 @@
                     this.addBasicBlock('text', '', 'user');
                 } else {
                     blocksData.forEach(b => {
-                        if (b.type === 'header') {
-                            const level = b.data?.level || 2;
-                            this.addBasicBlock(`h${level}`, b.data?.text || '', b.author || 'user', b.id, b.timestamp);
-                        } else if (['paragraph', 'text', 'h1', 'h2', 'h3', 'list', 'checklist'].includes(b.type)) {
-                            let textContent = b.data.text || '';
-                            let typeToUse = b.type;
-                            if (typeToUse === 'paragraph') typeToUse = 'text';
-                            
-                            if (b.type === 'list') { textContent = (b.data.items||[]).map(i => `• ${i.content||i.text}`).join('<br>'); typeToUse = 'text'; }
-                            if (b.type === 'checklist') { textContent = (b.data.items||[]).map(i => `${i.checked ? '[x]' : '[ ]'} ${i.text}`).join('<br>'); typeToUse = 'text'; }
-                            
+                        if (['paragraph', 'text', 'h1', 'h2', 'h3', 'header', 'list', 'checklist'].includes(b.type)) {
+                            let textContent = b.data?.text || '';
+                            let typeToUse = ['paragraph', 'list', 'checklist'].includes(b.type) ? 'text' : (b.type === 'header' ? `h${b.data?.level||2}` : b.type);
+                            if (b.type === 'list') textContent = (b.data.items||[]).map(i => `• ${i.content||i.text}`).join('<br>');
+                            if (b.type === 'checklist') textContent = (b.data.items||[]).map(i => `${i.checked ? '[x]' : '[ ]'} ${i.text}`).join('<br>');
                             this.addBasicBlock(typeToUse, textContent, b.author || 'user', b.id, b.timestamp);
                         } else {
                             this.addToolBlock(b.type, b.data, b.author || 'user', b.id, b.timestamp);
@@ -1363,47 +1294,35 @@
             }
 
             insertBlockIntoDOMArray(blockObj) {
-                let insertIndex = this.blocks.length;
-                if (this.activeBlockId) {
-                    const activeIndex = this.blocks.findIndex(b => b.id === this.activeBlockId);
-                    if (activeIndex !== -1) insertIndex = activeIndex + 1; 
-                }
+                const activeIndex = this.blocks.findIndex(b => b.id === this.activeBlockId);
+                const insertIndex = activeIndex !== -1 ? activeIndex + 1 : this.blocks.length;
                 
-                if (insertIndex >= this.blocks.length) {
-                    this.container.appendChild(blockObj.dom); this.blocks.push(blockObj);
-                } else {
-                    this.container.insertBefore(blockObj.dom, this.blocks[insertIndex].dom); this.blocks.splice(insertIndex, 0, blockObj);
-                }
+                if (insertIndex >= this.blocks.length) { this.container.appendChild(blockObj.dom); this.blocks.push(blockObj); } 
+                else { this.container.insertBefore(blockObj.dom, this.blocks[insertIndex].dom); this.blocks.splice(insertIndex, 0, blockObj); }
                 blockObj.dom.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
 
             replaceTextNodeType(block, newType) {
-                const div = block.dom;
-                const oldContent = div.querySelector('.text-content');
-                let tag = 'div';
-                if (newType === 'h1') tag = 'h1'; else if (newType === 'h2') tag = 'h2'; else if (newType === 'h3') tag = 'h3';
-
-                const newContent = document.createElement(tag); 
-                newContent.className = `text-content ${newType === 'text' ? '' : newType}`;
-                newContent.contentEditable = window.currentDateStr === todayStr; 
-                newContent.dataset.placeholder = newType === 'text' ? "start writing..." : "Heading...";
-                newContent.innerHTML = oldContent.innerHTML; 
+                const tag = newType === 'h1' ? 'h1' : (newType === 'h2' ? 'h2' : (newType === 'h3' ? 'h3' : 'div'));
+                const oldContent = block.dom.querySelector('.text-content');
                 
-                newContent.addEventListener('focus', () => { this.activeBlockId = block.id; this.updateInlineMenuPosition(div, newContent); });
-                newContent.addEventListener('input', () => { this.checkMarkdownShortcuts(block, newContent); this.updateInlineMenuPosition(div, newContent); scheduleSave(); });
-                newContent.addEventListener('blur', () => { setTimeout(() => { if (!this.container.contains(document.activeElement) && !this.inlineMenu.contains(document.activeElement)) { this.inlineMenu.classList.remove('visible', 'expanded'); } }, 100); });
-                newContent.addEventListener('keydown', (e) => this.handleTextKeydown(e, block, newContent));
+                const newContent = el(tag, {
+                    className: `text-content ${newType === 'text' ? '' : newType}`,
+                    contentEditable: window.currentDateStr === todayStr,
+                    'data-placeholder': newType === 'text' ? "start writing..." : "Heading...",
+                    innerHTML: oldContent.innerHTML,
+                    onfocus: () => { this.activeBlockId = block.id; this.updateInlineMenuPosition(block.dom, newContent); },
+                    oninput: () => { this.checkMarkdownShortcuts(block, newContent); this.updateInlineMenuPosition(block.dom, newContent); scheduleSave(); },
+                    onblur: () => setTimeout(() => { if (!this.container.contains(document.activeElement) && !this.inlineMenu.contains(document.activeElement)) this.inlineMenu.classList.remove('visible', 'expanded'); }, 100),
+                    onkeydown: (e) => this.handleTextKeydown(e, block, newContent)
+                });
 
-                div.replaceChild(newContent, oldContent);
-                block.type = newType;
-                newContent.focus();
+                block.dom.replaceChild(newContent, oldContent);
+                block.type = newType; newContent.focus();
                 
-                const range = document.createRange();
-                const sel = window.getSelection();
-                range.selectNodeContents(newContent);
-                range.collapse(false);
-                sel.removeAllRanges();
-                sel.addRange(range);
+                const range = document.createRange(); const sel = window.getSelection();
+                range.selectNodeContents(newContent); range.collapse(false);
+                sel.removeAllRanges(); sel.addRange(range);
             }
 
             checkMarkdownShortcuts(block, content) {
@@ -1415,54 +1334,46 @@
             }
 
             addBasicBlock(type = 'text', html = '', author = 'user', id = crypto.randomUUID(), timestamp = Date.now()) {
+                const tag = type === 'h1' ? 'h1' : (type === 'h2' ? 'h2' : (type === 'h3' ? 'h3' : 'div'));
                 const block = { id, type, data: {text: html}, author, timestamp, dom: null };
-                const div = document.createElement('div'); div.className = `stream-block author-${author}`; div.dataset.id = id;
-
-                let tag = 'div';
-                if (type === 'h1') tag = 'h1'; else if (type === 'h2') tag = 'h2'; else if (type === 'h3') tag = 'h3';
-
-                const content = document.createElement(tag); 
-                content.className = `text-content ${type === 'text' ? '' : type}`;
-                content.contentEditable = window.currentDateStr === todayStr; 
-                content.dataset.placeholder = author === 'user' ? (type==='text' ? "start writing..." : "Heading...") : "";
-                content.innerHTML = html;
                 
-                content.addEventListener('focus', () => { this.activeBlockId = id; this.updateInlineMenuPosition(div, content); });
-                content.addEventListener('input', () => { this.checkMarkdownShortcuts(block, content); this.updateInlineMenuPosition(div, content); scheduleSave(); });
-                content.addEventListener('blur', () => { setTimeout(() => { if (!this.container.contains(document.activeElement) && !this.inlineMenu.contains(document.activeElement)) { this.inlineMenu.classList.remove('visible', 'expanded'); } }, 100); });
-                content.addEventListener('keydown', (e) => this.handleTextKeydown(e, block, content));
+                const content = el(tag, {
+                    className: `text-content ${type === 'text' ? '' : type}`,
+                    contentEditable: window.currentDateStr === todayStr,
+                    'data-placeholder': author === 'user' ? (type==='text' ? "start writing..." : "Heading...") : "",
+                    innerHTML: html,
+                    onfocus: () => { this.activeBlockId = id; this.updateInlineMenuPosition(block.dom, content); },
+                    oninput: () => { this.checkMarkdownShortcuts(block, content); this.updateInlineMenuPosition(block.dom, content); scheduleSave(); },
+                    onblur: () => setTimeout(() => { if (!this.container.contains(document.activeElement) && !this.inlineMenu.contains(document.activeElement)) this.inlineMenu.classList.remove('visible', 'expanded'); }, 100),
+                    onkeydown: (e) => this.handleTextKeydown(e, block, content)
+                });
 
-                div.appendChild(content); block.dom = div; this.insertBlockIntoDOMArray(block); return block;
+                block.dom = el('div', { className: `stream-block author-${author}`, 'data-id': id }, content);
+                this.insertBlockIntoDOMArray(block); return block;
             }
 
             addToolBlock(type, data, author = 'user', id = crypto.randomUUID(), timestamp = Date.now()) {
                 const ToolClass = TOOLS_MAP[type];
                 if (!ToolClass) return null;
 
-                const block = { id, type, data, author, timestamp, dom: null, instance: null };
                 const instance = new ToolClass(data, window.currentDateStr !== todayStr, () => scheduleSave());
-                block.instance = instance;
+                const block = { id, type, data, author, timestamp, instance, dom: null };
                 
-                const panel = document.createElement('div'); 
-                panel.className = 'baritone-panel stream-block';
-                panel.dataset.id = id;
-                const header = document.createElement('div'); header.className = 'panel-header';
-                
-                const titleSpan = document.createElement('span'); titleSpan.textContent = `[ ${type} ]`;
-                const controls = document.createElement('div'); controls.className = 'panel-controls';
-                
+                const controls = el('div', { className: 'panel-controls' });
                 if (window.currentDateStr === todayStr) {
-                    const upBtn = document.createElement('button'); upBtn.className = 'panel-ctrl-btn'; upBtn.innerHTML = '↑';
-                    const downBtn = document.createElement('button'); downBtn.className = 'panel-ctrl-btn'; downBtn.innerHTML = '↓';
-                    const delBtn = document.createElement('button'); delBtn.className = 'panel-ctrl-btn delete'; delBtn.innerHTML = '✕';
-                    upBtn.onclick = () => this.moveBlock(id, -1); downBtn.onclick = () => this.moveBlock(id, 1); delBtn.onclick = () => this.deleteBlock(id);
-                    controls.append(upBtn, downBtn, delBtn);
+                    controls.append(
+                        el('button', { className: 'panel-ctrl-btn', textContent: '↑', onclick: () => this.moveBlock(id, -1) }),
+                        el('button', { className: 'panel-ctrl-btn', textContent: '↓', onclick: () => this.moveBlock(id, 1) }),
+                        el('button', { className: 'panel-ctrl-btn delete', textContent: '✕', onclick: () => this.deleteBlock(id) })
+                    );
                 }
+
+                block.dom = el('div', { className: 'baritone-panel stream-block', 'data-id': id },
+                    el('div', { className: 'panel-header' }, el('span', { textContent: `[ ${type} ]` }), controls),
+                    instance.render()
+                );
                 
-                header.append(titleSpan, controls); 
-                panel.append(header, instance.render());
-                
-                block.dom = panel; this.insertBlockIntoDOMArray(block);
+                this.insertBlockIntoDOMArray(block);
                 
                 if (window.currentDateStr === todayStr) {
                     this.activeBlockId = id; const textBlock = this.addBasicBlock('text', '', 'user');
@@ -1490,22 +1401,20 @@
 
             updateInlineMenuPosition(blockDiv, contentNode) {
                 if (window.currentDateStr !== todayStr) return;
-                const isEmpty = contentNode.innerText.trim() === '';
-                if (isEmpty) {
-                    this.inlineMenu.style.top = `${blockDiv.offsetTop}px`; this.inlineMenu.classList.add('visible');
-                } else { this.inlineMenu.classList.remove('visible', 'expanded'); }
+                if (contentNode.innerText.trim() === '') { this.inlineMenu.style.top = `${blockDiv.offsetTop}px`; this.inlineMenu.classList.add('visible'); } 
+                else { this.inlineMenu.classList.remove('visible', 'expanded'); }
             }
 
             handleTextKeydown(e, block, content) {
                 if (e.key === 'Enter' && !e.shiftKey) {
-                    const textContent = content.innerText; const lines = textContent.split('\n');
-                    const lastLine = lines[lines.length - 1].trim(); const trigger = `@${CONFIG.AI_NAME} `;
+                    const lines = content.innerText.split('\n'); const lastLine = lines[lines.length - 1].trim(); 
+                    const trigger = `@${CONFIG.AI_NAME} `;
 
                     if (lastLine.toLowerCase().startsWith(trigger.toLowerCase())) {
                         e.preventDefault(); const prompt = lastLine.substring(trigger.length).trim();
                         lines.pop(); content.innerHTML = lines.join('<br>') || '<br>';
                         this.triggerAI(prompt, block.id);
-                    } else if (textContent.trim() !== '') {
+                    } else if (content.innerText.trim() !== '') {
                         const sel = window.getSelection();
                         if (sel.getRangeAt(0).endOffset >= content.innerText.length) {
                             e.preventDefault(); this.activeBlockId = block.id; 
@@ -1539,49 +1448,28 @@
                 const aiContentNode = aiBlock.dom.querySelector('.text-content');
                 aiContentNode.contentEditable = false;
                 
-                aiStatusEl.className = 'neon-status ai-status loading';
-                aiStatusEl.textContent = 'sys.ai.generating';
+                aiStatusEl.className = 'neon-status ai-status loading'; aiStatusEl.textContent = 'sys.ai.generating';
 
                 try {
                     let docContext = this.blocks.map(b => ['text','h1','h2','h3'].includes(b.type) ? b.dom.innerText : `[${b.type}]`).join('\n');
-                    
-                    // Pull memory
                     let memoryContext = "";
                     try {
                         const hits = await vectorDB.search(prompt, { excludeDate: todayStr });
-                        if(hits.length > 0) {
-                            memoryContext = hits.map(h => {
-                                const b = appDB.cache[h.date]?.blocks?.find(x => x.id === h.blockId);
-                                return `[${h.date}] ${buildRecallSnippet(b)}`;
-                            }).join('\n');
-                        }
+                        if(hits.length > 0) memoryContext = hits.map(h => `[${h.date}] ${buildRecallSnippet(appDB.cache[h.date]?.blocks?.find(x => x.id === h.blockId))}`).join('\n');
                     } catch(e) {}
 
-                    const systemMsg = `${CONFIG.AI_PERSONALITY}\nContext:\n${docContext}\nMemories:\n${memoryContext || 'none'}`;
-                    
                     const chunks = await aiEngine.chat.completions.create({
-                        messages: [{ role: 'system', content: systemMsg }, { role: 'user', content: prompt }],
-                        stream: true
+                        messages: [{ role: 'system', content: `${CONFIG.AI_PERSONALITY}\nContext:\n${docContext}\nMemories:\n${memoryContext || 'none'}` }, { role: 'user', content: prompt }], stream: true
                     });
 
                     let fullHtml = '';
-                    for await (const chunk of chunks) {
-                        const delta = chunk.choices[0]?.delta?.content || '';
-                        fullHtml += delta.replace(/\n/g, '<br>');
-                        aiContentNode.innerHTML = fullHtml;
-                    }
+                    for await (const chunk of chunks) { fullHtml += (chunk.choices[0]?.delta?.content || '').replace(/\n/g, '<br>'); aiContentNode.innerHTML = fullHtml; }
                     aiContentNode.contentEditable = true; 
                     
-                    this.activeBlockId = aiBlock.id;
-                    const textBlock = this.addBasicBlock('text', '', 'user');
-                    setTimeout(() => textBlock.dom.querySelector('.text-content').focus(), 50);
-
-                    scheduleSave();
+                    this.activeBlockId = aiBlock.id; const textBlock = this.addBasicBlock('text', '', 'user');
+                    setTimeout(() => textBlock.dom.querySelector('.text-content').focus(), 50); scheduleSave();
                 } catch (e) { aiContentNode.innerHTML = "<em>error. connection lost.</em>"; } 
-                finally {
-                    aiStatusEl.className = 'neon-status ai-status';
-                    aiStatusEl.textContent = 'sys.ai.online';
-                }
+                finally { aiStatusEl.className = 'neon-status ai-status'; aiStatusEl.textContent = 'sys.ai.online'; }
             }
         }
 
@@ -1590,51 +1478,38 @@
         // ============================================================================
         // APP LIFECYCLE & STORAGE SYNC
         // ============================================================================
-        let saveTimeout;
         const saveIndicator = document.getElementById('save-indicator');
 
-        function scheduleSave(immediate = false) {
+        const scheduleSave = debounce((immediate = false) => {
             if (window.currentDateStr !== todayStr || appDB.isMemoryOnly) return;
-            clearTimeout(saveTimeout);
-            const doSave = () => {
-                const data = editor.save();
-                appDB.save(window.currentDateStr, data).then(() => {
-                    saveIndicator.classList.add('visible');
-                    setTimeout(() => saveIndicator.classList.remove('visible'), 1500);
-                    vectorDB.scheduleIndexDay(window.currentDateStr, data);
-                });
-            };
-            if(immediate) doSave(); else saveTimeout = setTimeout(doSave, 800);
-        }
+            const data = editor.save();
+            appDB.save(window.currentDateStr, data).then(() => {
+                saveIndicator.classList.add('visible');
+                setTimeout(() => saveIndicator.classList.remove('visible'), 1500);
+                vectorDB.scheduleIndexDay(window.currentDateStr, data);
+            });
+        }, 800);
 
         function renderDateHeader() {
-            const d = new Date(window.currentDateStr + 'T00:00:00');
-            const str = d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
-            document.getElementById('date-header').textContent = str.toLowerCase();
+            document.getElementById('date-header').textContent = new Date(window.currentDateStr + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).toLowerCase();
         }
 
         async function loadDay(dateStr) {
-            window.currentDateStr = dateStr;
-            renderDateHeader();
-            const data = appDB.cache[dateStr] || { blocks: [] };
-            editor.load(data.blocks);
+            window.currentDateStr = dateStr; renderDateHeader();
+            editor.load((appDB.cache[dateStr] || { blocks: [] }).blocks);
         }
 
         document.getElementById('date-header').onclick = () => {
             const [y, m, d] = window.currentDateStr.split('-');
             EditorialCalendar.open(new Date(y, m-1, d), false, (selectedDate) => {
                 const selectedStr = getLocalYYYYMMDD(selectedDate);
-                if (window.currentDateStr !== selectedStr) {
-                    scheduleSave(true);
-                    loadDay(selectedStr);
-                }
+                if (window.currentDateStr !== selectedStr) { scheduleSave(true); loadDay(selectedStr); }
             });
         };
 
         // Boot Pipeline
         Promise.all([appDB.init(), vectorDB.init(), mediaStore.init()]).then(() => { 
-            loadDay(todayStr); 
-            vectorDB.ensureBackfill(appDB.cache);
+            loadDay(todayStr); vectorDB.ensureBackfill(appDB.cache);
         });
 
     </script>
