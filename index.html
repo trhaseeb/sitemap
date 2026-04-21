@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -233,18 +232,37 @@
         .recalled-block { padding: 12px 16px; background: var(--bg-color); border-left: 4px solid var(--neon-purple); margin-top: 12px;}
         .recalled-orig-meta { font-family: var(--font-mono); font-size: 10px; color: var(--muted-text); font-weight: bold; text-transform: uppercase; margin-bottom: 12px; }
 
-        /* Canvas Tool Specific */
-        .leaflet-container { background: var(--baritone-bg) !important; width: 100%; height: 350px; z-index: 1; border-radius: 2px; position: relative; }
+        /* --- SMART CANVAS OVERHAUL --- */
+        .smart-canvas-selector { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; justify-content: center; }
+        .smart-canvas-option {
+            flex: 1; min-width: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+            padding: 24px 16px; background: transparent; border: 2px dashed var(--muted-text); border-radius: 2px;
+            color: var(--text-color); font-family: var(--font-mono); font-size: 13px; font-weight: 700; text-transform: uppercase;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .smart-canvas-option:hover { border-color: var(--text-color); border-style: solid; background: var(--text-color); color: var(--bg-color); }
+        
+        .canvas-relative-frame { position: relative; width: 100%; border-radius: 2px; overflow: hidden; margin-top: 8px; border: 2px solid var(--baritone-text); }
+        .block-controls-stack { position: absolute; top: 12px; left: 12px; display: flex; flex-direction: column; gap: 8px; z-index: 401; }
+        
+        .canvas-action-btn {
+            background: var(--bg-color); border: 2px solid var(--text-color); color: var(--text-color);
+            font-family: var(--font-mono); font-size: 11px; font-weight: 800; text-transform: uppercase; 
+            cursor: pointer; transition: all 0.2s; padding: 8px 12px; border-radius: 2px;
+            box-shadow: 4px 4px 0 rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center;
+        }
+        .canvas-action-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 rgba(0,0,0,0.15); }
+        .canvas-action-btn.active { background: var(--text-color); color: var(--bg-color); }
+        .canvas-action-btn.danger { color: #ef4444; border-color: #ef4444; }
+        .canvas-action-btn.danger.active { background: #ef4444; border-color: #ef4444; color: #fff; }
+
+        .leaflet-container { background: var(--baritone-bg) !important; width: 100%; height: 350px; z-index: 1; position: relative; }
         .leaflet-container.drawing-mode, .leaflet-container.drawing-mode .leaflet-interactive { 
             cursor: crosshair !important; 
             touch-action: none !important; 
         }
         .leaflet-container.locked-mode { 
             cursor: default !important; 
-        }
-        
-        .canvas-controls-row {
-            display: flex; gap: 12px; margin-bottom: 12px; align-items: center;
         }
 
         /* --- EDITORIAL CALENDAR OVERLAY --- */
@@ -289,7 +307,6 @@
             <span id="storage-warning" class="neon-status storage-warning">private.mode [no save]</span>
         </div>
         
-        <!-- Custom Lean Editor with contextual right-aligned inline menu -->
         <div id="lean-editor">
             <!-- Inline Action Menu dynamically positions itself here -->
             <div id="inline-menu">
@@ -349,7 +366,6 @@
         let todayStr = getLocalYYYYMMDD(new Date());
         window.currentDateStr = todayStr;
 
-        // Notification Engine
         const NotificationEngine = {
             timers: new Map(),
             schedule: function(id, dt, title) {
@@ -854,119 +870,195 @@
             save() { return this.data; }
         }
 
+        // --- OVERHAULED SMART CANVAS TOOL ---
         class SmartCanvasTool {
             constructor(data, isReadOnly, onChange) {
-                this.data = { title: data.title || '', mode: data.mode || null, lat: data.lat || 51.505, lng: data.lng || -0.09, zoom: data.zoom || 13, isLocked: data.isLocked || false, baseImageId: data.baseImageId || null, imgWidth: data.imgWidth || null, imgHeight: data.imgHeight || null, lines: data.lines || [], isDrawingActive: false };
-                this.readOnly = isReadOnly; this.onChange = onChange;
-                this.container = document.createElement('div'); this.baseImageUrl = '';
-                this.currentColor = '#ef4444'; this.lineLayers = []; this.currentPolyline = null; this.currentPoints = [];
+                this.data = { 
+                    title: data.title || '', 
+                    mode: data.mode || null, 
+                    lat: data.lat || 51.505, 
+                    lng: data.lng || -0.09, 
+                    zoom: data.zoom || 13, 
+                    isLocked: data.isLocked || false, 
+                    baseImageId: data.baseImageId || null, 
+                    imgWidth: data.imgWidth || null, 
+                    imgHeight: data.imgHeight || null, 
+                    hasInitializedView: data.hasInitializedView || false, 
+                    lines: data.lines || [], 
+                    isDrawingActive: data.isDrawingActive || false 
+                };
+                this.readOnly = isReadOnly; 
+                this.onChange = onChange;
+                this.container = document.createElement('div'); 
+                this.baseImageUrl = '';
+                this.currentColor = '#ef4444'; 
+                this.lineLayers = []; 
+                this.currentPolyline = null; 
+                this.currentPoints = [];
             }
+
             render() {
                 this.container.innerHTML = '';
                 appendTitleInput(this.data, this.readOnly, this.container, this.onChange);
 
                 if (!this.data.mode) {
-                    if (this.readOnly) return this.container;
-                    const actionRow = document.createElement('div');
-                    actionRow.style.display = 'flex'; actionRow.style.gap = '8px'; actionRow.style.marginTop = '8px';
+                    if (this.readOnly) {
+                        this.container.innerHTML += '<div style="padding: 24px; text-align: center; color: var(--muted-text); font-size: 14px;">Blank Canvas</div>';
+                        return this.container;
+                    }
+                    this.renderSelector();
+                } else {
+                    this.relativeFrame = document.createElement('div');
+                    this.relativeFrame.className = 'canvas-relative-frame';
+                    this.container.appendChild(this.relativeFrame);
                     
-                    const mapBtn = document.createElement('button'); mapBtn.className = 'raw-btn'; mapBtn.textContent = 'load map';
-                    mapBtn.onclick = () => { this.data.mode = 'map'; this.renderMap(); if(this.onChange) this.onChange(); };
-                    
-                    const photoBtn = document.createElement('button'); photoBtn.className = 'raw-btn'; photoBtn.textContent = 'photo overlay';
-                    const fileInput = document.createElement('input'); fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.style.display = 'none';
-                    photoBtn.onclick = () => fileInput.click();
-                    fileInput.onchange = async (e) => {
-                        const file = e.target.files[0];
-                        if (file) {
-                            const tempUrl = URL.createObjectURL(file);
-                            const img = new Image();
-                            img.onload = async () => {
-                                this.data.imgWidth = img.width; this.data.imgHeight = img.height; this.data.mode = 'image';
-                                const mediaId = this.data.baseImageId || crypto.randomUUID();
-                                await mediaStore.saveBlob(mediaId, file, 'image');
-                                this.data.baseImageId = mediaId; this.baseImageUrl = tempUrl;
-                                this.renderMap(); if(this.onChange) this.onChange();
-                            };
-                            img.src = tempUrl;
-                        }
-                    };
-
-                    const blankBtn = document.createElement('button'); blankBtn.className = 'raw-btn'; blankBtn.textContent = 'blank canvas';
-                    blankBtn.onclick = () => { this.data.mode = 'blank'; this.renderMap(); if(this.onChange) this.onChange(); };
-                    
-                    actionRow.append(mapBtn, photoBtn, fileInput, blankBtn);
-                    this.container.appendChild(actionRow);
-                } else { 
-                    this.buildControls(); 
-                    this.renderMap(); 
+                    this.buildControls();
+                    this.renderMap();
                 }
                 return this.container;
             }
+
+            renderSelector() {
+                const selector = document.createElement('div'); 
+                selector.className = 'smart-canvas-selector';
+                
+                const mapBtn = document.createElement('button'); mapBtn.className = 'smart-canvas-option'; mapBtn.innerHTML = 'Map Mode';
+                const photoBtn = document.createElement('button'); photoBtn.className = 'smart-canvas-option'; photoBtn.innerHTML = 'Photo Overlay';
+                const blankBtn = document.createElement('button'); blankBtn.className = 'smart-canvas-option'; blankBtn.innerHTML = 'Blank Canvas';
+                const fileInput = document.createElement('input'); fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.style.display = 'none';
+
+                mapBtn.onclick = () => { this.data.mode = 'map'; this.data.isLocked = false; this.data.isDrawingActive = false; this.render(); if(this.onChange) this.onChange(); };
+                blankBtn.onclick = () => { this.data.mode = 'blank'; this.data.isLocked = false; this.data.isDrawingActive = false; this.render(); if(this.onChange) this.onChange(); };
+                photoBtn.onclick = () => fileInput.click();
+                
+                fileInput.onchange = async (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const tempUrl = URL.createObjectURL(file);
+                        const img = new Image();
+                        img.onload = async () => {
+                            this.data.imgWidth = img.width; this.data.imgHeight = img.height; 
+                            this.data.mode = 'image'; this.data.isLocked = false; this.data.isDrawingActive = false;
+                            
+                            const mediaId = this.data.baseImageId || crypto.randomUUID();
+                            await mediaStore.saveBlob(mediaId, file, 'image');
+                            
+                            this.data.baseImageId = mediaId; this.baseImageUrl = tempUrl;
+                            this.render(); if(this.onChange) this.onChange();
+                        };
+                        img.src = tempUrl;
+                    }
+                };
+                
+                selector.append(mapBtn, photoBtn, blankBtn, fileInput);
+                this.container.appendChild(selector);
+            }
+
+            async hydrateBaseImage() {
+                if (this.baseImageUrl) return this.baseImageUrl;
+                if (!this.data.baseImageId) return '';
+                const blob = await mediaStore.getBlob(this.data.baseImageId);
+                if (blob) {
+                    this.baseImageUrl = URL.createObjectURL(blob);
+                }
+                return this.baseImageUrl;
+            }
+
             buildControls() {
                 if (this.readOnly) return;
-                this.controlsRow = document.createElement('div');
-                this.controlsRow.className = 'canvas-controls-row';
+                this.controlsStack = document.createElement('div');
+                this.controlsStack.className = 'block-controls-stack';
                 
-                this.drawBtn = document.createElement('button');
-                this.drawBtn.className = 'raw-btn';
-                this.drawBtn.textContent = 'draw';
-                this.drawBtn.onclick = () => {
-                    this.data.isDrawingActive = !this.data.isDrawingActive;
+                this.lockBtn = document.createElement('button');
+                this.lockBtn.className = 'canvas-action-btn';
+                this.lockBtn.textContent = this.data.isLocked ? 'LOCKED' : 'UNLOCK';
+                this.lockBtn.onclick = () => {
+                    this.data.isLocked = !this.data.isLocked;
                     this.updateInteractions();
                     if(this.onChange) this.onChange();
                 };
 
+                this.drawBtn = document.createElement('button');
+                this.drawBtn.className = 'canvas-action-btn';
+                this.drawBtn.textContent = 'DRAW';
+                
+                // Hidden Color Picker
                 this.colorPicker = document.createElement('input');
                 this.colorPicker.type = 'color';
                 this.colorPicker.value = this.currentColor;
-                this.colorPicker.style.border = 'none';
-                this.colorPicker.style.background = 'none';
-                this.colorPicker.style.cursor = 'pointer';
+                this.colorPicker.style.position = 'absolute'; this.colorPicker.style.opacity = '0'; 
+                this.colorPicker.style.width = '0'; this.colorPicker.style.height = '0'; this.colorPicker.style.pointerEvents = 'none';
                 this.colorPicker.addEventListener('input', (e) => this.currentColor = e.target.value);
 
+                // Drawing & Color Actions
+                this.drawBtn.addEventListener('dblclick', (e) => { 
+                    e.preventDefault(); e.stopPropagation(); this.colorPicker.click(); 
+                });
+                
+                this.drawBtn.addEventListener('click', (e) => {
+                    e.preventDefault(); e.stopPropagation(); 
+                    if (this.wasLongPress) { this.wasLongPress = false; return; }
+                    this.data.isDrawingActive = !this.data.isDrawingActive; 
+                    this.updateInteractions(); 
+                    if(this.onChange) this.onChange();
+                });
+
+                // Long press logic for color picker
+                const startPress = (e) => {
+                    if (e.type === 'touchstart') e.stopPropagation(); this.wasLongPress = false;
+                    this.pressTimer = setTimeout(() => { this.wasLongPress = true; this.colorPicker.click(); }, 600);
+                };
+                const cancelPress = () => clearTimeout(this.pressTimer);
+                ['mousedown','touchstart'].forEach(evt => this.drawBtn.addEventListener(evt, startPress, {passive: true}));
+                ['mouseup','mouseleave','touchend','touchcancel'].forEach(evt => this.drawBtn.addEventListener(evt, cancelPress));
+
                 this.clearBtn = document.createElement('button');
-                this.clearBtn.className = 'raw-btn';
-                this.clearBtn.textContent = 'clear lines';
+                this.clearBtn.className = 'canvas-action-btn';
+                this.clearBtn.textContent = 'CLEAR';
                 this.clearBtn.onclick = () => {
                     this.lineLayers.forEach(layer => { if(this.map) this.map.removeLayer(layer); });
                     this.lineLayers = []; this.data.lines = [];
                     if(this.onChange) this.onChange();
                 };
 
-                this.controlsRow.append(this.drawBtn, this.colorPicker, this.clearBtn);
-                this.container.appendChild(this.controlsRow);
+                this.controlsStack.append(this.lockBtn, this.drawBtn, this.clearBtn, this.colorPicker);
+                this.relativeFrame.appendChild(this.controlsStack);
             }
-            async hydrateBaseImage() {
-                if (this.baseImageUrl) return this.baseImageUrl;
-                if (!this.data.baseImageId) return '';
-                const blob = await mediaStore.getBlob(this.data.baseImageId);
-                if (blob) this.baseImageUrl = URL.createObjectURL(blob);
-                return this.baseImageUrl;
-            }
+
             renderMap() {
-                const existingMap = this.container.querySelector('.leaflet-container');
+                const existingMap = this.relativeFrame.querySelector('.leaflet-container');
                 if (existingMap) existingMap.remove();
                 
                 this.mediaContainer = document.createElement('div'); 
                 this.mediaContainer.className = 'leaflet-container';
-                this.container.appendChild(this.mediaContainer);
+                this.relativeFrame.appendChild(this.mediaContainer);
                 
                 setTimeout(async () => {
+                    if (!this.mediaContainer.isConnected) return;
+                    
                     if (this.data.mode === 'map') {
-                        this.map = L.map(this.mediaContainer, { zoomControl: false }).setView([this.data.lat, this.data.lng], this.data.zoom);
+                        this.map = L.map(this.mediaContainer, { zoomControl: false, attributionControl: false }).setView([this.data.lat, this.data.lng], this.data.zoom);
                         const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
                         const tileUrl = isDark ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
                         L.tileLayer(tileUrl).addTo(this.map);
                     } else {
-                        this.map = L.map(this.mediaContainer, { crs: L.CRS.Simple, zoomControl: false, minZoom: -4 });
+                        this.map = L.map(this.mediaContainer, { crs: L.CRS.Simple, zoomControl: false, attributionControl: false, minZoom: -4 });
                         const imageUrl = this.data.mode === 'image' ? await this.hydrateBaseImage() : '';
+                        
                         if (imageUrl) {
                             const bounds = [[0, 0], [this.data.imgHeight || 600, this.data.imgWidth || 800]];
                             L.imageOverlay(imageUrl, bounds).addTo(this.map);
-                            this.map.setView([this.data.lat || (bounds[1][0]/2), this.data.lng || (bounds[1][1]/2)], this.data.zoom || 0);
+                            
+                            // Essential Viewport bounding fix for newly loaded images
+                            if (!this.data.hasInitializedView && !this.readOnly) {
+                                this.map.fitBounds(bounds);
+                                this.data.hasInitializedView = true;
+                                if(this.onChange) this.onChange();
+                            } else {
+                                this.map.setView([this.data.lat || (bounds[1][0]/2), this.data.lng || (bounds[1][1]/2)], this.data.zoom || 0);
+                            }
                         } else {
-                            this.map.setView([this.data.lat, this.data.lng], this.data.zoom);
+                            this.map.setView([this.data.lat || 0, this.data.lng || 0], this.data.zoom || 0);
                         }
                     }
                     
@@ -978,6 +1070,7 @@
                     this.map.on('moveend', () => { if(this.onChange) this.onChange(); });
                 }, 100);
             }
+
             renderExistingLines() {
                 if(!this.map) return;
                 this.lineLayers.forEach(layer => this.map.removeLayer(layer)); 
@@ -986,6 +1079,7 @@
                     this.lineLayers.push(L.polyline(line.points, { color: line.color, weight: line.weight, lineCap: 'round', lineJoin: 'round', smoothFactor: 1.5 }).addTo(this.map)); 
                 });
             }
+
             initDrawingTracker() {
                 if (this.readOnly) return; 
                 let isPointerDown = false;
@@ -1018,9 +1112,7 @@
                 this.mediaContainer.addEventListener('pointerup', endDraw); 
                 this.mediaContainer.addEventListener('pointercancel', endDraw);
             }
-            updateLock() {
-                this.updateInteractions();
-            }
+
             updateInteractions() {
                 if(!this.map || !this.mediaContainer) return;
                 this.mediaContainer.classList.remove('drawing-mode', 'locked-mode');
@@ -1028,33 +1120,45 @@
                 const disableMoves = () => { this.map.dragging.disable(); this.map.touchZoom.disable(); this.map.doubleClickZoom.disable(); this.map.scrollWheelZoom.disable(); this.map.boxZoom.disable(); this.map.keyboard.disable(); if(this.map.tap) this.map.tap.disable(); };
                 const enableMoves = () => { this.map.dragging.enable(); this.map.touchZoom.enable(); this.map.doubleClickZoom.enable(); this.map.scrollWheelZoom.enable(); this.map.boxZoom.enable(); this.map.keyboard.enable(); if(this.map.tap) this.map.tap.enable(); };
 
-                // ReadOnly or Globally Locked via header lock button (if LeanStreamEditor provides it)
-                if(this.readOnly || this.data.isLocked) {
+                if(this.readOnly) {
                     disableMoves();
                     this.mediaContainer.classList.add('locked-mode');
-                    if (this.controlsRow) this.controlsRow.style.display = 'none';
+                    if (this.controlsStack) this.controlsStack.style.display = 'none';
                     return;
                 }
 
-                if (this.controlsRow) this.controlsRow.style.display = 'flex';
-
-                if (this.data.isDrawingActive) {
-                    disableMoves();
-                    this.mediaContainer.classList.add('drawing-mode');
-                    if (this.drawBtn) {
-                        this.drawBtn.textContent = 'stop drawing';
-                        this.drawBtn.classList.add('active', 'danger');
-                    }
-                } else {
+                if (!this.data.isLocked) {
+                    this.data.isDrawingActive = false;
                     enableMoves();
-                    if (this.drawBtn) {
-                        this.drawBtn.textContent = 'draw';
-                        this.drawBtn.classList.remove('active', 'danger');
+                    if (this.lockBtn) { this.lockBtn.textContent = 'UNLOCK'; this.lockBtn.classList.remove('active'); }
+                    if (this.drawBtn) { this.drawBtn.style.display = 'none'; this.drawBtn.classList.remove('active', 'danger'); }
+                    if (this.clearBtn) { this.clearBtn.style.display = 'none'; }
+                } else {
+                    disableMoves();
+                    this.mediaContainer.classList.add('locked-mode');
+                    if (this.lockBtn) { this.lockBtn.textContent = 'LOCKED'; this.lockBtn.classList.add('active'); }
+                    if (this.drawBtn) { 
+                        this.drawBtn.style.display = 'flex'; 
+                        if (this.data.isDrawingActive) {
+                            this.drawBtn.textContent = 'DRAWING';
+                            this.drawBtn.classList.add('active', 'danger');
+                            this.mediaContainer.classList.add('drawing-mode');
+                        } else {
+                            this.drawBtn.textContent = 'DRAW';
+                            this.drawBtn.classList.remove('active', 'danger');
+                        }
                     }
+                    if (this.clearBtn) { this.clearBtn.style.display = 'flex'; }
                 }
             }
+
             save() {
-                if (this.map && this.data.mode) { const center = this.map.getCenter(); this.data.lat = center.lat; this.data.lng = center.lng; this.data.zoom = this.map.getZoom(); }
+                if (this.map && this.data.mode) { 
+                    const center = this.map.getCenter(); 
+                    this.data.lat = center.lat; 
+                    this.data.lng = center.lng; 
+                    this.data.zoom = this.map.getZoom(); 
+                }
                 return this.data;
             }
         }
@@ -1373,18 +1477,6 @@
                     const delBtn = document.createElement('button'); delBtn.className = 'panel-ctrl-btn delete'; delBtn.innerHTML = '✕';
                     upBtn.onclick = () => this.moveBlock(id, -1); downBtn.onclick = () => this.moveBlock(id, 1); delBtn.onclick = () => this.deleteBlock(id);
                     controls.append(upBtn, downBtn, delBtn);
-                    
-                    if (type === 'smartCanvas') {
-                        const lockBtn = document.createElement('button'); lockBtn.className = 'panel-ctrl-btn';
-                        lockBtn.style.color = data.isLocked ? 'var(--text-color)' : 'var(--muted-text)'; lockBtn.innerHTML = data.isLocked ? 'locked' : 'unlocked';
-                        lockBtn.onclick = () => {
-                            instance.data.isLocked = !instance.data.isLocked; instance.updateLock();
-                            lockBtn.innerHTML = instance.data.isLocked ? 'locked' : 'unlocked';
-                            lockBtn.style.color = instance.data.isLocked ? 'var(--text-color)' : 'var(--muted-text)';
-                            scheduleSave();
-                        };
-                        controls.prepend(lockBtn);
-                    }
                 }
                 
                 header.append(titleSpan, controls); panel.append(header, instance.render());
