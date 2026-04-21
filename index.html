@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -14,9 +14,6 @@
 
     <link id="pwa-manifest" rel="manifest" href="">
     <link id="pwa-icon" rel="apple-touch-icon" href="">
-
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
         /* --- CORE THEME & EXPRESSIVE TYPOGRAPHY --- */
@@ -124,11 +121,22 @@
             word-wrap: break-word;
             padding: 4px 0;
             width: 100%;
+            position: relative;
         }
         
         .text-content[data-placeholder]:empty:before {
             content: attr(data-placeholder); color: var(--muted-text);
             font-style: italic; font-weight: 400; opacity: 0.5; pointer-events: none;
+        }
+
+        /* --- AMBIENT GHOST TEXT --- */
+        .text-content[data-ghost]::after {
+            content: attr(data-ghost);
+            color: var(--neon-purple);
+            opacity: 0.6;
+            pointer-events: none;
+            user-select: none;
+            display: inline;
         }
 
         /* Typographic Hierarchy Spaces */
@@ -142,7 +150,7 @@
             width: 3px; background: var(--neon-purple); opacity: 0.5;
         }
 
-        /* --- SLASH COMMAND MENU (Notion Style) --- */
+        /* --- SLASH COMMAND MENU --- */
         #slash-menu {
             position: absolute;
             background: var(--bg-color);
@@ -173,19 +181,9 @@
             justify-content: space-between;
             align-items: center;
         }
-        .slash-item .sub {
-            color: var(--muted-text);
-            font-size: 10px;
-            font-weight: 500;
-        }
-        .slash-item.selected, .slash-item:hover {
-            background: var(--text-color);
-            color: var(--bg-color);
-        }
-        .slash-item.selected .sub, .slash-item:hover .sub {
-            color: var(--bg-color);
-            opacity: 0.7;
-        }
+        .slash-item .sub { color: var(--muted-text); font-size: 10px; font-weight: 500; }
+        .slash-item.selected, .slash-item:hover { background: var(--text-color); color: var(--bg-color); }
+        .slash-item.selected .sub, .slash-item:hover .sub { color: var(--bg-color); opacity: 0.7; }
 
         /* --- BARITONE PANELS --- */
         .baritone-panel {
@@ -220,7 +218,6 @@
         .raw-input { background: transparent; border: none; outline: none; color: var(--text-color); font-family: var(--font-main); font-size: 18px; font-weight: 500; width: 100%; }
         .raw-input::placeholder { color: var(--muted-text); }
 
-        /* UNIVERSAL NEO-BRUTALIST BUTTON */
         .raw-btn {
             background: var(--bg-color); border: 2px solid var(--text-color); color: var(--text-color);
             font-family: var(--font-mono); font-size: 11px; font-weight: 800; text-transform: uppercase; 
@@ -232,17 +229,13 @@
         .raw-btn.danger { color: #ef4444; border-color: #ef4444; }
         .raw-btn.danger.active { background: #ef4444; border-color: #ef4444; color: #fff; }
 
-        /* Tools Details */
         .compute-code { font-family: var(--font-mono); font-size: 16px; font-weight: 500; resize: none; min-height: 22px; line-height: 1.4; border-bottom: 1px dashed var(--muted-text); padding-bottom: 8px; margin-bottom: 8px;}
         .compute-output { font-family: var(--font-mono); font-size: 22px; font-weight: 700; color: var(--neon-purple); word-break: break-word; }
         .compute-error { color: #ef4444; font-size: 14px; }
         
-        .voice-controls { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
         .voice-status-text { font-family: var(--font-mono); font-size: 11px; color: var(--muted-text); }
-        
         .scan-output { font-family: var(--font-mono); font-size: 14px; min-height: 80px; resize: none; line-height: 1.5; color: var(--baritone-text); }
-        
-        .calendar-date-display { font-family: var(--font-mono); font-size: 15px; color: var(--neon-purple); font-weight: 700; display: inline-block; transition: opacity 0.2s; margin-bottom: 4px; }
+        .calendar-date-display { font-family: var(--font-mono); font-size: 15px; color: var(--neon-purple); font-weight: 700; display: inline-block; transition: opacity 0.2s; margin-bottom: 4px; cursor: pointer; }
         .calendar-date-display:hover { opacity: 0.8; }
 
         /* --- SMART CANVAS --- */
@@ -255,18 +248,9 @@
         }
         .smart-canvas-option:hover { border-color: var(--text-color); border-style: solid; background: var(--text-color); color: var(--bg-color); }
         
-        .canvas-controls-row { display: flex; flex-direction: row; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-
         .canvas-relative-frame.full-bleed { 
-            position: relative; 
-            margin-left: -20px;
-            width: calc(100% + 40px);
-            max-width: none;
-            border-radius: 0; 
-            overflow: hidden; 
-            margin-top: 8px; 
-            height: 60vh;
-            min-height: 400px;
+            position: relative; margin-left: -20px; width: calc(100% + 40px); max-width: none;
+            border-radius: 0; overflow: hidden; margin-top: 8px; height: 60vh; min-height: 400px;
         }
 
         .leaflet-container { background: var(--bg-color) !important; width: 100%; height: 100% !important; z-index: 1; position: absolute; top:0; left:0; }
@@ -302,7 +286,6 @@
             margin-top: auto; padding: 20px; width: 100%; background: var(--text-color); color: var(--bg-color);
             font-family: var(--font-mono); font-size: 16px; font-weight: 800; text-transform: uppercase; border: none; cursor: pointer; letter-spacing: 0.1em;
         }
-
     </style>
 </head>
 <body>
@@ -317,9 +300,7 @@
         </div>
         
         <div id="lean-editor">
-            <!-- Dynamic Slash Menu -->
             <div id="slash-menu"></div>
-            <!-- Blocks append here -->
         </div>
     </div>
 
@@ -337,7 +318,7 @@
 
     <script type="module">
         // ============================================================================
-        // ⚙️ SYSTEM CONFIG & UTILS
+        // ⚙️ SYSTEM UTILS & HELPERS
         // ============================================================================
         const CONFIG = {
             PWA_LOGO_URL: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzAwMDAwMCI+PHBhdGggZD0iTTE0IDJINmEyIDIgMCAwIDAtMiAydjE2YTIgMiAwIDAgMCAyIDJoMTJhMiAyIDAgMCAwIDItMlY4bC02LTZ6Ii8+PC9zdmc+",
@@ -345,7 +326,7 @@
         };
 
         const SLASH_COMMANDS = [
-            { id: 'ai_continue', label: 'AI: Think', sub: 'Continue this thought' },
+            { id: 'ai_continue', label: 'AI: Think', sub: 'Continue this thought (Cmd+Enter)' },
             { id: 'profile', label: 'AI Memory', sub: 'View/Edit Profile Facts' },
             { id: 'h1', label: 'Heading 1', sub: 'Big Title' },
             { id: 'h2', label: 'Heading 2', sub: 'Medium Title' },
@@ -357,7 +338,7 @@
             { id: 'calendar', label: 'Event', sub: 'Schedule' }
         ];
 
-        // DOM Builder Utility
+        // Centralized DOM creation
         function el(tag, attributes = {}, ...children) {
             const element = document.createElement(tag);
             for (const [key, value] of Object.entries(attributes || {})) {
@@ -376,45 +357,41 @@
             return element;
         }
 
+        // Centralized Caret Placement Utility (Replaces redundant split/merge logic)
+        function setCaret(el, offset = -1) {
+            el.focus();
+            try {
+                const range = document.createRange();
+                const sel = window.getSelection();
+                if (offset === -1) {
+                    range.selectNodeContents(el);
+                    range.collapse(false); // Move to very end
+                } else {
+                    range.setStart(el, offset);
+                    range.collapse(true); // Move to specific offset
+                }
+                sel.removeAllRanges();
+                sel.addRange(range);
+            } catch(e) {}
+        }
+
         function debounce(func, wait) {
             let timeout;
-            return function executedFunction(...args) {
-                const later = () => { clearTimeout(timeout); func(...args); };
-                clearTimeout(timeout); timeout = setTimeout(later, wait);
-            };
+            return function (...args) { clearTimeout(timeout); timeout = setTimeout(() => func(...args), wait); };
         }
 
         const UI = {
-            button: (text, onClick, className = '') => el('button', { className: `raw-btn ${className}`.trim(), textContent: text, onclick: (e) => { if (onClick) onClick(e); } }),
+            button: (text, onClick, className = '') => el('button', { className: `raw-btn ${className}`.trim(), textContent: text, onclick: onClick }),
             row: (...children) => el('div', { style: { display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' } }, ...children),
             textarea: (props) => el('textarea', { className: 'raw-input', ...props })
         };
 
-        document.getElementById('pwa-icon').href = CONFIG.PWA_LOGO_URL;
-        document.getElementById('pwa-manifest').href = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify({
-            "name": "Infinite Notes V2.2", "short_name": "Notes", "start_url": ".", "display": "standalone",
-            "background_color": window.matchMedia('(prefers-color-scheme: dark)').matches ? "#0a0a0a" : "#ffffff",
-            "theme_color": window.matchMedia('(prefers-color-scheme: dark)').matches ? "#0a0a0a" : "#ffffff",
-            "icons": [{"src": CONFIG.PWA_LOGO_URL, "sizes": "192x192", "type": "image/svg+xml"}]
-        }));
-
         const getLocalYYYYMMDD = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
         const normalizePlainText = (text = '') => String(text).replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim();
-        const clampText = (text = '', maxLength = 1200) => text.length <= maxLength ? text : text.slice(0, maxLength).trimEnd() + '...';
         const escapeHTML = (text = '') => String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         
         let todayStr = getLocalYYYYMMDD(new Date());
         window.currentDateStr = todayStr;
-
-        const NotificationEngine = {
-            timers: new Map(),
-            schedule: function(id, dt, title) {
-                this.cancel(id); if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
-                const delay = new Date(dt).getTime() - Date.now();
-                if (delay > 0) this.timers.set(id, setTimeout(() => { new Notification('Note Reminder', { body: title || 'Event Reached' }); this.timers.delete(id); }, delay));
-            },
-            cancel: function(id) { if (this.timers.has(id)) { clearTimeout(this.timers.get(id)); this.timers.delete(id); } }
-        };
 
         // ============================================================================
         // 🧠 VECTOR EMBEDDING ENGINE (Transformers.js)
@@ -435,7 +412,7 @@
                 return this.promise;
             }
             async embedText(text) {
-                const normalized = clampText(normalizePlainText(text), 1200);
+                const normalized = normalizePlainText(text).slice(0, 1200);
                 if (!normalized) return null;
                 try {
                     const pipe = await this.getEmbedder();
@@ -465,8 +442,6 @@
                         CREATE EXTENSION IF NOT EXISTS vector;
                         CREATE TABLE IF NOT EXISTS daily_notes (date_str TEXT PRIMARY KEY, data JSONB);
                         CREATE TABLE IF NOT EXISTS semantic_index (key TEXT PRIMARY KEY, date_str TEXT, block_id TEXT, block_type TEXT, search_text TEXT, embedding vector(384), timestamp BIGINT);
-                        
-                        -- INTELLIGENT DESIGN: Core User Knowledge Table
                         CREATE TABLE IF NOT EXISTS user_knowledge (id SERIAL PRIMARY KEY, fact TEXT, timestamp BIGINT);
                     `);
                     this.isReady = true;
@@ -477,36 +452,29 @@
                     
                     this.startBackgroundIndexer();
                 } catch (e) {
-                    console.error("PGlite Error, running memory-only", e);
+                    console.error("PGlite Error", e);
                     document.getElementById('db-status').textContent = 'pg_vector.offline';
                     document.getElementById('storage-warning').style.display = 'inline';
                 }
             }
             
-            // --- KNOWLEDGE BASE MANAGEMENT ---
             async getKnowledge() {
                 if (!this.isReady) return [];
                 const res = await this.pg.query(`SELECT id, fact FROM user_knowledge ORDER BY timestamp ASC`);
                 return res.rows;
             }
-            
             async addKnowledge(fact) {
                 if (!this.isReady || !fact) return;
                 await this.pg.query(`INSERT INTO user_knowledge (fact, timestamp) VALUES ($1, $2)`, [fact, Date.now()]);
             }
-            
             async removeKnowledge(id) {
                 if (!this.isReady) return;
                 await this.pg.query(`DELETE FROM user_knowledge WHERE id = $1`, [id]);
             }
-            
             async saveNote(dateStr, data) {
                 this.cache[dateStr] = data;
                 if (!this.isReady) return;
-                await this.pg.query(
-                    `INSERT INTO daily_notes (date_str, data) VALUES ($1, $2) ON CONFLICT (date_str) DO UPDATE SET data = EXCLUDED.data`,
-                    [dateStr, JSON.stringify(data)] 
-                );
+                await this.pg.query(`INSERT INTO daily_notes (date_str, data) VALUES ($1, $2) ON CONFLICT (date_str) DO UPDATE SET data = EXCLUDED.data`, [dateStr, JSON.stringify(data)] );
                 this.pendingDays.add(dateStr);
             }
             
@@ -515,56 +483,36 @@
                     if (this.pendingDays.size === 0 || !this.isReady) return;
                     const dateStr = Array.from(this.pendingDays)[0];
                     this.pendingDays.delete(dateStr);
-                    await this.indexDay(dateStr);
+                    
+                    const dayData = this.cache[dateStr];
+                    if (!dayData || !dayData.blocks) return;
+                    
+                    await this.pg.query(`DELETE FROM semantic_index WHERE date_str = $1`, [dateStr]);
+                    
+                    for (const block of dayData.blocks) {
+                        if (!block.data) continue;
+                        const searchText = ['text','h1','h2','h3'].includes(block.type) ? normalizePlainText(block.data.text) : normalizePlainText(JSON.stringify(block.data));
+                        if (!searchText) continue;
+                        const vectorData = await VectorEmbedder.embedText(searchText);
+                        if (!vectorData) continue;
+                        
+                        try {
+                            await this.pg.query(
+                                `INSERT INTO semantic_index (key, date_str, block_id, block_type, search_text, embedding, timestamp) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                                [`${dateStr}::${block.id}`, dateStr, block.id, block.type, searchText, `[${vectorData.join(',')}]`, block.timestamp || Date.now()]
+                            );
+                        } catch (e) { }
+                    }
                 }, 5000); 
-            }
-            
-            async indexDay(dateStr) {
-                const dayData = this.cache[dateStr];
-                if (!dayData || !dayData.blocks) return;
-                
-                await this.pg.query(`DELETE FROM semantic_index WHERE date_str = $1`, [dateStr]);
-                
-                for (const block of dayData.blocks) {
-                    if (!block.data) continue;
-                    const searchText = ['text','h1','h2','h3'].includes(block.type) ? normalizePlainText(block.data.text) : normalizePlainText(JSON.stringify(block.data));
-                    if (!searchText) continue;
-                    
-                    const vectorData = await VectorEmbedder.embedText(searchText);
-                    if (!vectorData) continue;
-                    
-                    const key = `${dateStr}::${block.id}`;
-                    const embedStr = `[${vectorData.join(',')}]`; 
-                    
-                    try {
-                        await this.pg.query(
-                            `INSERT INTO semantic_index (key, date_str, block_id, block_type, search_text, embedding, timestamp) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-                            [key, dateStr, block.id, block.type, searchText, embedStr, block.timestamp || Date.now()]
-                        );
-                    } catch (e) { console.error("Index insert error", e); }
-                }
             }
 
             async searchSemantic(queryText, excludeDate, limit = 5) {
                 if (!this.isReady) return [];
                 const vectorData = await VectorEmbedder.embedText(queryText);
                 if (!vectorData) return [];
-                
-                const embedStr = `[${vectorData.join(',')}]`;
                 const res = await this.pg.query(
-                    `SELECT date_str as date, block_id as "blockId", block_type as type, search_text as "searchText", timestamp, 1 - (embedding <=> $1) AS score
-                     FROM semantic_index WHERE date_str != $2 ORDER BY embedding <=> $1 ASC LIMIT $3`,
-                    [embedStr, excludeDate || '', limit]
-                );
-                return res.rows;
-            }
-
-            async searchKeyword(queryText, excludeDate) {
-                if (!this.isReady || !queryText) return [];
-                const res = await this.pg.query(
-                    `SELECT date_str as date, block_id as "blockId", block_type as type, search_text as "searchText", timestamp, 1 as score
-                     FROM semantic_index WHERE date_str != $1 AND search_text ILIKE $2 ORDER BY timestamp DESC LIMIT 12`,
-                    [excludeDate || '', `%${queryText}%`]
+                    `SELECT date_str as date, block_id as "blockId", block_type as type, search_text as "searchText", timestamp, 1 - (embedding <=> $1) AS score FROM semantic_index WHERE date_str != $2 ORDER BY embedding <=> $1 ASC LIMIT $3`,
+                    [`[${vectorData.join(',')}]`, excludeDate || '', limit]
                 );
                 return res.rows;
             }
@@ -604,7 +552,7 @@
         const mediaStore = new MediaBlobStore();
 
         // ============================================================================
-        // 🤖 ON-DEVICE AI COLLABORATOR (WebLLM w/ Function Calling)
+        // 🤖 ON-DEVICE AI COLLABORATOR (WebLLM - Stable Pin)
         // ============================================================================
         const AI_MODEL_ID = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC"; 
         let aiEngine = null;
@@ -616,7 +564,7 @@
                 type: "function",
                 function: {
                     name: "learn_about_user",
-                    description: "Saves a permanent fact, trait, or writing preference about the user to your core memory. Do NOT save temporary moods (e.g., 'user is sad').",
+                    description: "Saves a permanent fact, trait, or writing preference about the user to your core memory. Do NOT save temporary moods.",
                     parameters: { type: "object", properties: { fact: { type: "string" } }, required: ["fact"] }
                 }
             },
@@ -643,7 +591,8 @@
             isAILoading = true;
             try {
                 if (!navigator.gpu) throw new Error("WebGPU disabled or unsupported");
-                const { CreateMLCEngine } = await import("https://esm.run/@mlc-ai/web-llm");
+                // OPTIMIZED: Pinned to stable 0.2.82 to prevent silent failures caused by esm.run breaking changes
+                const { CreateMLCEngine } = await import("https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.82/+esm");
                 
                 aiEngine = await CreateMLCEngine(AI_MODEL_ID, {
                     initProgressCallback: (progress) => { aiStatusEl.textContent = `sys.ai.loading [${Math.round(progress.progress * 100)}%]`; }
@@ -690,10 +639,7 @@
                     grid.appendChild(el('div', {
                         className: `cal-day ${isSelected ? 'selected' : ''} ${isMuted ? 'muted' : ''}`,
                         textContent: i,
-                        onclick: () => {
-                            if (isMuted) return;
-                            activeDate = new Date(year, month, i); render(); 
-                        }
+                        onclick: () => { if (!isMuted) { activeDate = new Date(year, month, i); render(); } }
                     }));
                 }
             }
@@ -732,43 +678,23 @@
             save() { return this.data; }
         }
 
-        // INTELLIGENT DESIGN: Profile Tool
         class ProfileTool extends BaseTool {
-            constructor(data, isReadOnly, onChange) { 
-                super({ title: 'AI Core Memory', ...data }, isReadOnly, onChange); 
-                this.mainContainer = el('div');
-            }
+            constructor(data, isReadOnly, onChange) { super({ title: 'AI Core Memory', ...data }, isReadOnly, onChange); this.mainContainer = el('div'); }
             render() {
-                this.mainContainer.innerHTML = ''; 
-                const baseEl = this.renderContainer([]); 
-                this.mainContainer.appendChild(baseEl);
-                
+                this.mainContainer.innerHTML = ''; const baseEl = this.renderContainer([]); this.mainContainer.appendChild(baseEl);
                 const listContainer = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }});
                 baseEl.appendChild(listContainer);
                 
-                // Fetch and render knowledge table asynchronously
                 pgDB.getKnowledge().then(rows => {
-                    if (rows.length === 0) {
-                        listContainer.appendChild(el('div', { style: { fontSize: '13px', color: 'var(--muted-text)' }, textContent: 'I am a blank slate. Write to me, and I will learn your preferences.' }));
+                    if (!rows || rows.length === 0) {
+                        listContainer.appendChild(el('div', { style: { fontSize: '13px', color: 'var(--muted-text)' }, textContent: 'I am a blank slate. I will learn your preferences securely as we work together.' }));
                     } else {
                         rows.forEach(r => {
-                            const delBtn = this.readOnly ? null : el('button', {
-                                textContent: '✕',
-                                style: { background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontFamily: 'var(--font-mono)' },
-                                onclick: async () => { await pgDB.removeKnowledge(r.id); this.render(); }
-                            });
-                            
-                            listContainer.appendChild(
-                                el('div', { style: { display: 'flex', gap: '12px', alignItems: 'flex-start', paddingBottom: '8px', borderBottom: '1px dashed var(--muted-text)' } },
-                                    el('span', { textContent: '•', style: { color: 'var(--neon-purple)', fontWeight: 'bold' }}),
-                                    el('span', { textContent: r.fact, style: { flex: '1', fontSize: '14px', lineHeight: '1.4', fontFamily: 'var(--font-mono)' }}),
-                                    delBtn
-                                )
-                            );
+                            const delBtn = this.readOnly ? null : el('button', { textContent: '✕', style: { background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontFamily: 'var(--font-mono)' }, onclick: async () => { await pgDB.removeKnowledge(r.id); this.render(); } });
+                            listContainer.appendChild(el('div', { style: { display: 'flex', gap: '12px', alignItems: 'flex-start', paddingBottom: '8px', borderBottom: '1px dashed var(--muted-text)' } }, el('span', { textContent: '•', style: { color: 'var(--neon-purple)', fontWeight: 'bold' }}), el('span', { textContent: r.fact, style: { flex: '1', fontSize: '14px', lineHeight: '1.4', fontFamily: 'var(--font-mono)' }}), delBtn));
                         });
                     }
                 });
-                
                 return this.mainContainer;
             }
         }
@@ -839,6 +765,17 @@
 
         class SmartCanvasTool extends BaseTool {
             constructor(data, isReadOnly, onChange) { super({ title: data.title || '', mode: data.mode || null, lat: data.lat || 51.505, lng: data.lng || -0.09, zoom: data.zoom || 13, isLocked: data.isLocked || false, baseImageId: data.baseImageId || null, imgWidth: data.imgWidth || null, imgHeight: data.imgHeight || null, hasInitializedView: data.hasInitializedView || false, lines: data.lines || [], isDrawingActive: data.isDrawingActive || false }, isReadOnly, onChange); this.baseImageUrl = ''; this.currentColor = '#ef4444'; this.lineLayers = []; this.currentPolyline = null; this.currentPoints = []; this.mainContainer = el('div'); }
+            
+            // OPTIMIZED: Lazy load heavy map scripts only if the canvas tool is invoked
+            async ensureLeaflet() {
+                if (typeof L === 'undefined') {
+                    await Promise.all([
+                        new Promise(r => { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; l.onload = r; document.head.appendChild(l); }),
+                        new Promise(r => { const s = document.createElement('script'); s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; s.onload = r; document.head.appendChild(s); })
+                    ]);
+                }
+            }
+
             render() {
                 this.mainContainer.innerHTML = ''; const baseEl = this.renderContainer([]); this.mainContainer.appendChild(baseEl);
                 if (!this.data.mode) { if (this.readOnly) baseEl.appendChild(el('div', { style: { padding: '24px', textAlign: 'center', color: 'var(--muted-text)', fontSize: '14px' }, textContent: 'Blank Canvas' })); else baseEl.appendChild(this.renderSelector()); } 
@@ -873,8 +810,10 @@
                 this.clearBtn = UI.button('CLEAR', () => { this.lineLayers.forEach(layer => { if(this.map) this.map.removeLayer(layer); }); this.lineLayers = []; this.data.lines = []; if(this.onChange) this.onChange(); });
                 return UI.row(this.lockBtn, this.drawBtn, this.clearBtn, this.colorPicker);
             }
-            renderMap() {
+            async renderMap() {
                 this.mediaContainer = el('div', { className: 'leaflet-container' }); this.relativeFrame.appendChild(this.mediaContainer);
+                await this.ensureLeaflet();
+                
                 setTimeout(async () => {
                     if (!this.mediaContainer.isConnected) return;
                     if (this.data.mode === 'map') {
@@ -950,25 +889,24 @@
                 this.container = document.getElementById(containerId);
                 this.blocks = []; this.activeBlockId = null;
 
-                // Slash Menu Setup
                 this.slashMenuEl = document.getElementById('slash-menu');
-                this.slashMenuActive = false;
-                this.slashMenuSelectedIndex = 0;
-                this.slashMenuCurrentFilter = '';
-                this.slashMenuCurrentItems = [];
+                this.slashMenuActive = false; this.slashMenuSelectedIndex = 0;
+                this.slashMenuCurrentFilter = ''; this.slashMenuCurrentItems = [];
                 this.slashContext = null;
 
+                // Ambient AI Setup
+                this.ambientTimer = null;
+                this.isPredicting = false;
+                this.cachedProfile = null;
+
                 document.addEventListener('mousedown', (e) => {
-                    if (this.slashMenuActive && !this.slashMenuEl.contains(e.target)) {
-                        this.closeSlashMenu();
-                    }
+                    if (this.slashMenuActive && !this.slashMenuEl.contains(e.target)) this.closeSlashMenu();
                 });
             }
 
             load(blocksData) {
                 Array.from(this.container.children).forEach(child => { if (child.id !== 'slash-menu') this.container.removeChild(child); });
-                this.blocks = [];
-                this.closeSlashMenu();
+                this.blocks = []; this.closeSlashMenu();
 
                 if (!blocksData || blocksData.length === 0) {
                     this.addBasicBlock('text', '', 'user');
@@ -1006,18 +944,6 @@
                 else { this.container.insertBefore(blockObj.dom, this.blocks[insertIndex].dom); this.blocks.splice(insertIndex, 0, blockObj); }
             }
 
-            focusBlockEnd(block) {
-                if (!block || !block.dom) return;
-                const content = block.dom.querySelector('.text-content');
-                if (!content) { this.activeBlockId = block.id; return; }
-                content.focus();
-                this.activeBlockId = block.id;
-                if (typeof window.getSelection !== "undefined" && typeof document.createRange !== "undefined") {
-                    const range = document.createRange(); range.selectNodeContents(content); range.collapse(false);
-                    const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
-                }
-            }
-
             replaceTextNodeType(block, newType) {
                 const tag = newType === 'h1' ? 'h1' : (newType === 'h2' ? 'h2' : (newType === 'h3' ? 'h3' : 'div'));
                 const oldContent = block.dom.querySelector('.text-content');
@@ -1030,8 +956,8 @@
                     oninput: () => { this.handleTextInput(block, newContent); scheduleSave(); },
                     onkeydown: (e) => this.handleTextKeydown(e, block, newContent)
                 });
-                block.dom.replaceChild(newContent, oldContent); block.type = newType; newContent.focus();
-                const range = document.createRange(); const sel = window.getSelection(); range.selectNodeContents(newContent); range.collapse(false); sel.removeAllRanges(); sel.addRange(range);
+                block.dom.replaceChild(newContent, oldContent); block.type = newType; 
+                setCaret(newContent);
             }
 
             addBasicBlock(type = 'text', html = '', author = 'user', id = crypto.randomUUID(), timestamp = Date.now()) {
@@ -1067,7 +993,7 @@
                     el('div', { className: 'panel-header' }, el('span', { textContent: `[ ${type} ]` }), controls), instance.render()
                 );
                 this.insertBlockIntoDOMArray(block);
-                if (window.currentDateStr === todayStr) { this.activeBlockId = id; const textBlock = this.addBasicBlock('text', '', 'user'); setTimeout(() => textBlock.dom.querySelector('.text-content').focus(), 50); }
+                if (window.currentDateStr === todayStr) { this.activeBlockId = id; const textBlock = this.addBasicBlock('text', '', 'user'); setTimeout(() => setCaret(textBlock.dom.querySelector('.text-content')), 50); }
                 scheduleSave(); return block;
             }
 
@@ -1089,8 +1015,71 @@
                 scheduleSave();
             }
 
+            // --- OPTIMIZED: AMBIENT PREDICTOR LOOP WITH RACE-CONDITION PREVENTION ---
+            async ambientPredict(block, content) {
+                if (!aiEngine || isAILoading || this.isPredicting || !this.activeBlockId || this.slashMenuActive) return;
+                
+                const sel = window.getSelection();
+                if (!sel.rangeCount) return;
+                const currentText = content.textContent.trim();
+                if (currentText.length < 5) return; 
+
+                // Snapshot the text to prevent ghost text popping up if the user modifies the text during generation
+                const ambientContentSnapshot = content.textContent;
+
+                this.isPredicting = true;
+                aiStatusEl.className = 'neon-status ai-status loading'; 
+                aiStatusEl.textContent = 'sys.ai.anticipating';
+
+                try {
+                    if (!this.cachedProfile && pgDB.isReady) {
+                        const knowledgeRows = await pgDB.getKnowledge();
+                        this.cachedProfile = knowledgeRows.map(r => `• ${r.fact}`).join('\n');
+                    }
+
+                    const editorState = this.save();
+                    let todaysContext = editorState.blocks.map(b => b.data?.text ? normalizePlainText(b.data.text) : '').join('\n');
+
+                    const systemPrompt = `You are a silent ghostwriter seamlessly predicting the next words the user is about to type.
+[USER PROFILE]:
+${this.cachedProfile || 'Blank slate.'}
+
+INSTRUCTIONS:
+1. Output ONLY the literal continuation of the user's last sentence. 
+2. NO quotes, NO explanation, NO formatting. Output the raw next 2-8 words.
+3. If it starts a new word, start with a space. If finishing a word, do not use a space.`;
+
+                    const response = await aiEngine.chat.completions.create({ 
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: todaysContext }
+                        ], 
+                        temperature: 0.1, max_tokens: 15
+                    });
+                    
+                    let prediction = response.choices[0].message.content || "";
+                    prediction = prediction.replace(/^["'`\n]+|["'`\n]+$/g, '').trimEnd();
+                    
+                    // OPTIMIZATION: Only apply if user is still focused AND they haven't typed anything new
+                    if (prediction && document.activeElement === content && content.textContent === ambientContentSnapshot) {
+                        if (!prediction.match(/^[.,!?;]/) && !prediction.startsWith(' ') && !currentText.endsWith(' ')) {
+                             prediction = ' ' + prediction;
+                        }
+                        content.setAttribute('data-ghost', prediction);
+                    }
+                } catch(e) {
+                } finally {
+                    this.isPredicting = false;
+                    aiStatusEl.className = 'neon-status ai-status'; aiStatusEl.textContent = 'sys.ai.online';
+                }
+            }
+
             // --- SLASH MENU SYSTEM ---
             handleTextInput(block, content) {
+                if (content.hasAttribute('data-ghost')) content.removeAttribute('data-ghost');
+                clearTimeout(this.ambientTimer);
+                this.ambientTimer = setTimeout(() => this.ambientPredict(block, content), 1500);
+
                 const text = content.textContent;
                 
                 // Markdown Shortcuts
@@ -1163,6 +1152,26 @@
             }
 
             handleTextKeydown(e, block, content) {
+                // ACCEPT GHOST TEXT
+                if (e.key === 'Tab' && content.hasAttribute('data-ghost')) {
+                    e.preventDefault();
+                    const ghostText = content.getAttribute('data-ghost');
+                    content.removeAttribute('data-ghost');
+                    
+                    const sel = window.getSelection();
+                    if (sel.rangeCount > 0) {
+                        const range = sel.getRangeAt(0);
+                        const textNode = document.createTextNode(ghostText);
+                        range.insertNode(textNode);
+                        range.setStartAfter(textNode);
+                        range.collapse(true);
+                        sel.removeAllRanges(); sel.addRange(range);
+                    }
+                    scheduleSave(); return;
+                }
+
+                if (content.hasAttribute('data-ghost')) { content.removeAttribute('data-ghost'); }
+
                 if (this.slashMenuActive) {
                     if (e.key === 'ArrowDown') { e.preventDefault(); this.slashMenuSelectedIndex = (this.slashMenuSelectedIndex + 1) % this.slashMenuCurrentItems.length; this.renderSlashMenu(this.slashMenuCurrentFilter); return; }
                     if (e.key === 'ArrowUp') { e.preventDefault(); this.slashMenuSelectedIndex = (this.slashMenuSelectedIndex - 1 + this.slashMenuCurrentItems.length) % this.slashMenuCurrentItems.length; this.renderSlashMenu(this.slashMenuCurrentFilter); return; }
@@ -1170,31 +1179,32 @@
                     if (e.key === 'Escape') { e.preventDefault(); this.closeSlashMenu(); return; }
                 }
 
+                // EXPLICIT AI TAKEOVER
                 if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                     e.preventDefault();
-                    let textVal = content.innerText;
-                    if (typeof textVal !== 'string') textVal = content.textContent || "";
-                    this.triggerAI(textVal.trim(), block.id);
-                    return;
+                    this.triggerAI(content.textContent.trim(), block.id); return;
                 }
 
-                // Perfect Block Splitting (Enter Key)
+                // OPTIMIZED Block Splitting (Enter Key)
                 if (e.key === 'Enter' && !e.shiftKey && !this.slashMenuActive) {
                     e.preventDefault();
                     const sel = window.getSelection();
                     if (sel.rangeCount > 0) {
                         const range = sel.getRangeAt(0);
                         const postCaretRange = range.cloneRange(); postCaretRange.selectNodeContents(content); postCaretRange.setStart(range.endContainer, range.endOffset);
-                        const fragment = postCaretRange.extractContents(); const tempDiv = document.createElement('div'); tempDiv.appendChild(fragment); let postHtml = tempDiv.innerHTML; if (postHtml === '<br>') postHtml = '';
+                        const tempDiv = document.createElement('div'); tempDiv.appendChild(postCaretRange.extractContents()); 
+                        let postHtml = tempDiv.innerHTML; if (postHtml === '<br>') postHtml = '';
                         if (content.innerHTML.endsWith('<br>')) content.innerHTML = content.innerHTML.slice(0, -4);
-                        this.activeBlockId = block.id; const newBlock = this.addBasicBlock('text', postHtml, 'user');
-                        setTimeout(() => { const newContent = newBlock.dom.querySelector('.text-content'); newContent.focus(); const newSel = window.getSelection(); const newRange = document.createRange(); newRange.selectNodeContents(newContent); newRange.collapse(true); newSel.removeAllRanges(); newSel.addRange(newRange); }, 10);
+                        
+                        this.activeBlockId = block.id; 
+                        const newBlock = this.addBasicBlock('text', postHtml, 'user');
+                        setTimeout(() => setCaret(newBlock.dom.querySelector('.text-content'), 0), 10);
                         scheduleSave();
                     }
                     return;
                 }
 
-                // Perfect Block Merging/Deletion (Backspace Key)
+                // OPTIMIZED Block Merging/Deletion (Backspace Key)
                 if (e.key === 'Backspace' && !this.slashMenuActive) {
                     const sel = window.getSelection();
                     if (sel.rangeCount > 0) {
@@ -1207,9 +1217,10 @@
                                 else {
                                     const prevContentNode = prevBlock.dom.querySelector('.text-content');
                                     if (!isEmpty) {
-                                        const originalChildCount = prevContentNode.childNodes.length; prevContentNode.innerHTML += currentHtml; this.deleteBlock(block.id);
-                                        setTimeout(() => { prevContentNode.focus(); const newSel = window.getSelection(); const newRange = document.createRange(); newRange.setStart(prevContentNode, originalChildCount); newRange.collapse(true); newSel.removeAllRanges(); newSel.addRange(newRange); }, 10);
-                                    } else { this.deleteBlock(block.id); this.focusBlockEnd(prevBlock); }
+                                        const originalChildCount = prevContentNode.childNodes.length; 
+                                        prevContentNode.innerHTML += currentHtml; this.deleteBlock(block.id);
+                                        setTimeout(() => setCaret(prevContentNode, originalChildCount), 10);
+                                    } else { this.deleteBlock(block.id); setCaret(prevContentNode); }
                                 }
                             }
                         }
@@ -1230,13 +1241,11 @@
                 try {
                     aiContentNode.textContent = "reading user profile...";
                     
-                    // 1. Fetch Permanent User Knowledge (The safe baseline)
                     const knowledgeRows = await pgDB.getKnowledge();
                     const profileContext = knowledgeRows.length > 0 
                         ? knowledgeRows.map(r => `• ${r.fact}`).join('\n') 
                         : "(No permanent traits learned yet. You are a blank slate.)";
 
-                    // 2. Fetch Topical Facts via Vector Search
                     let topicalContext = "";
                     if (pgDB.isReady) {
                         const hits = await pgDB.searchSemantic(promptText || "general context", window.currentDateStr, 5);
@@ -1249,7 +1258,6 @@
                         return `[${b.type.toUpperCase()}]`;
                     }).join('\n');
 
-                    // 3. The Grounded System Prompt
                     const systemPrompt = `You are an intelligent, deeply helpful companion seamlessly integrated into the user's personal notebook.
 DO NOT act like a standard chatbot. DO NOT say "How can I help you".
 
@@ -1292,6 +1300,7 @@ CRITICAL INSTRUCTIONS:
                                 
                                 if (toolCall.function.name === 'learn_about_user') {
                                     await pgDB.addKnowledge(args.fact);
+                                    this.cachedProfile = null; // Bust cache
                                     toolResultStr = `Successfully saved fact to core memory: "${args.fact}"`;
                                     
                                 } else if (toolCall.function.name === 'create_compute_block') {
@@ -1319,7 +1328,7 @@ CRITICAL INSTRUCTIONS:
                     
                     aiContentNode.contentEditable = true; 
                     this.activeBlockId = aiBlock.id; const textBlock = this.addBasicBlock('text', '', 'user');
-                    setTimeout(() => textBlock.dom.querySelector('.text-content').focus(), 50); scheduleSave();
+                    setTimeout(() => setCaret(textBlock.dom.querySelector('.text-content')), 50); scheduleSave();
                 } catch (e) { 
                     aiContentNode.textContent = "error. connection lost."; 
                     console.error("AI Generation Error", e);
@@ -1370,3 +1379,6 @@ CRITICAL INSTRUCTIONS:
     </script>
 </body>
 </html>
+
+
+```
