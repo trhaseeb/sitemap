@@ -658,7 +658,7 @@ Never refuse a tool execution if it fits the user's intent. Do not ask for permi
                 }
                 
                 // Using a specific, stable CDN instead of the auto-updating esm.run
-                const { CreateMLCEngine } = await import("https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm/+esm");
+                const { CreateMLCEngine } = await import("https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.82/+esm");
                 
                 aiEngine = await CreateMLCEngine(AI_MODEL_ID, {
                     initProgressCallback: (progress) => { aiStatusEl.textContent = `sys.ai.loading [${Math.round(progress.progress * 100)}%]`; }
@@ -1643,7 +1643,7 @@ Never refuse a tool execution if it fits the user's intent. Do not ask for permi
                             } catch(err) {
                                 toolResultStr = `Tool execution failed: ${err.message}`;
                             }
-                            messages.push({ role: "tool", tool_call_id: toolCall.id, content: toolResultStr });
+                            messages.push({ role: "tool", tool_call_id: toolCall.id, content: toolResultStr, name: toolCall.function.name });
                         }
 
                         aiContentNode.textContent = "synthesizing final response...";
