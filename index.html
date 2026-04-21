@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,9 +10,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Notes">
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#121212">
-    
-    <!-- Dynamic Manifest Injection -->
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a">
+
+    <!-- Dynamic Manifest Injection for PWA -->
     <link id="pwa-manifest" rel="manifest" href="">
     <link id="pwa-icon" rel="apple-touch-icon" href="">
 
@@ -20,1310 +21,1548 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
-        /* --- Strict Pure Flat & Brutalist Theme --- */
+        /* --- CORE THEME & EXPRESSIVE TYPOGRAPHY --- */
         :root {
-            --bg-color: #ffffff; --text-color: #000000; --border-color: #d0d0d0;
-            --muted-bg: #f9f9f9; --muted-text: #666666;
-            --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            --safe-area-top: env(safe-area-inset-top, 0px);
+            --bg-color: #ffffff; 
+            --text-color: #000000; 
+            --muted-text: #888888;
+            --neon-purple: #a855f7;
+            --neon-green: #10b981;
+            --baritone-bg: #f2f2f2; 
+            --baritone-text: #333333;
+            --font-main: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Inter", sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
         }
 
         @media (prefers-color-scheme: dark) {
             :root {
-                --bg-color: #121212; --text-color: #ffffff; --border-color: #333333;
-                --muted-bg: #1a1a1a; --muted-text: #aaaaaa;
+                --bg-color: #0a0a0a; 
+                --text-color: #f0f0f0; 
+                --muted-text: #666666;
+                --baritone-bg: #151515; 
+                --baritone-text: #cccccc;
             }
         }
 
-        * { box-sizing: border-box; }
-        body { background-color: var(--bg-color); color: var(--text-color); font-family: var(--font-main); margin: 0; padding: 0; line-height: 1.6; overflow-x: hidden; }
-        
-        /* Edge-to-edge layout with minimal safe padding */
-        .app-container { max-width: 800px; width: 100%; margin: 0 auto; padding: calc(8vh + var(--safe-area-top)) 16px 50vh 16px; }
-        
-        ::-webkit-scrollbar { display: none; }
-        ::selection { background: var(--text-color) !important; color: var(--bg-color); }
-        svg { flex-shrink: 0; width: 18px; height: 18px; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-        /* --- STYLISH BRUTALIST HEADER --- */
-        #date-header { 
-            text-align: left; font-size: clamp(48px, 16vw, 150px); font-weight: 900; 
-            font-style: italic; text-transform: uppercase; letter-spacing: -0.06em; 
-            line-height: 0.8; margin: 0 0 10px 0; cursor: pointer; user-select: none; 
-            word-wrap: break-word; hyphens: auto;
+        body { 
+            background-color: var(--bg-color); 
+            color: var(--text-color); 
+            font-family: var(--font-main); 
+            margin: 0; padding: 0; 
+            width: 100vw;
+            overflow-x: hidden; 
+            overscroll-behavior-y: none;
         }
-        #date-header:hover { color: var(--muted-text); }
-        
-        .header-status-row { display: flex; align-items: center; margin: 0 0 30px 0; user-select: none; font-size: 12px; font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase; }
-        .ai-inline-status { color: #a855f7; margin-right: 12px; }
-        #vector-status { color: #3b82f6; margin-right: 12px; }
-        .ai-inline-status.loading { animation: pulse 2s infinite; }
-        .ai-inline-status.error { color: #ef4444; }
-        .save-indicator { color: var(--muted-text); opacity: 0; transition: opacity 0.3s; }
-        .save-indicator.visible { opacity: 1; }
-        .storage-warning { color: #ef4444; margin-left: 12px; display: none; }
-        @keyframes pulse { 0%, 100% { opacity: 0.8; } 50% { opacity: 0.3; } }
 
-        /* --- GLOBAL FLAT UTILITIES --- */
-        .flat-input { border: none; background: transparent; color: var(--text-color); font-family: inherit; font-size: 16px; width: 100%; outline: none; padding: 4px 0; }
-        .flat-input::placeholder { color: var(--muted-text); opacity: 0.5; }
-        .flat-btn { background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 12px; font-weight: bold; font-family: inherit; font-size: 13px; text-transform: uppercase; transition: all 0.1s; }
-        .flat-btn:hover { background: var(--text-color); color: var(--bg-color); border-color: var(--text-color); }
-        .flat-row { display: flex; align-items: center; gap: 12px; width: 100%; }
-        
-        /* --- PROTRUDING BLOCK FOOTER ARCHITECTURE --- */
-        #editor-container { position: relative; width: 100%; min-height: 50vh; outline: none; display: flex; flex-direction: column; gap: 12px; }
-        
-        .block-wrapper { position: relative; padding: 0 0 16px 0; border-bottom: 1px solid transparent; transition: border-color 0.2s; group: block; }
-        .block-wrapper:hover, .block-wrapper:focus-within { border-bottom-color: var(--border-color); }
-        
-        .block-actions { position: absolute; bottom: -16px; right: 0; display: flex; background: var(--bg-color); border: 1px solid var(--text-color); z-index: 10; opacity: 0; transition: opacity 0.2s; box-shadow: 2px 2px 0 var(--text-color); }
-        .block-wrapper:hover .block-actions, .block-wrapper:focus-within .block-actions { opacity: 1; }
-        
-        .action-btn { width: 30px; height: 30px; border: none; background: transparent; color: var(--text-color); cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .action-btn:hover { background: var(--text-color); color: var(--bg-color); }
-        .action-btn:not(:first-child) { border-left: 1px solid var(--text-color); }
-        
-        .block-content { flex-grow: 1; min-width: 0; outline: none; }
-        .block-time { font-size: 10px; font-weight: bold; font-family: monospace; color: var(--muted-text); position: absolute; right: 0; top: 0; user-select: none; opacity: 0.5; }
+        .app-container { 
+            max-width: 680px; 
+            width: 100%;
+            margin: 0 auto; 
+            padding: 8vh 24px 60vh 24px; 
+        }
 
-        /* --- NATIVE TEXT STYLES --- */
-        .native-text-block { outline: none; line-height: 1.6; font-size: 16px; min-height: 24px; word-break: break-word; }
-        .native-text-block[data-placeholder]:empty::before { content: attr(data-placeholder); color: var(--muted-text); pointer-events: none; }
-        .native-header-1 { font-size: 2.2em; font-weight: 900; margin-top: 0.8em; text-transform: uppercase; letter-spacing: -1px; line-height: 1.1; }
-        .native-header-2 { font-size: 1.5em; font-weight: bold; margin-top: 0.8em; border-bottom: 2px solid var(--text-color); padding-bottom: 4px; display: inline-block; line-height: 1.2; }
-        
-        .checklist-item, .list-item-row { display: flex; align-items: flex-start; gap: 12px; margin: 8px 0; }
-        .checklist-checkbox { appearance: none; -webkit-appearance: none; width: 18px; height: 18px; border: 2px solid var(--text-color); background: transparent; cursor: pointer; margin-top: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .checklist-checkbox:checked::after { content: ''; width: 10px; height: 10px; background: var(--text-color); }
-        .checklist-text.checked { text-decoration: line-through; opacity: 0.4; }
-        .list-bullet { margin-top: 2px; font-weight: bold; font-size: 1.2em; line-height: 1; flex-shrink: 0; }
+        /* --- BRUTALIST HEADER --- */
+        #date-header { 
+            text-align: left; 
+            font-size: clamp(40px, 14vw, 110px); 
+            font-weight: 900; 
+            font-style: italic; 
+            text-transform: uppercase; 
+            letter-spacing: -0.05em; 
+            line-height: 0.9; 
+            color: var(--text-color); 
+            margin: 0 0 10px -2px; 
+            cursor: pointer; 
+            transition: opacity 0.2s; 
+            user-select: none; 
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        #date-header:active { opacity: 0.5; }
 
-        /* Block Type Menu Popover */
-        .block-menu-popover { position: absolute; z-index: 10000; background: var(--bg-color); border: 1px solid var(--text-color); box-shadow: 4px 4px 0 var(--text-color); padding: 0; display: none; grid-template-columns: 1fr 1fr; width: 280px; max-width: calc(100vw - 32px); }
-        .block-menu-popover.active { display: grid; }
-        .menu-item { display: flex; align-items: center; gap: 12px; padding: 12px; cursor: pointer; border: 1px solid transparent; border-bottom: 1px solid var(--border-color); font-size: 12px; font-weight: bold; text-transform: uppercase; color: var(--text-color); }
-        .menu-item:nth-child(odd) { border-right: 1px solid var(--border-color); }
-        .menu-item:hover { background: var(--text-color); color: var(--bg-color); }
+        /* --- NEON STATUS UPDATES --- */
+        .status-row { display: flex; align-items: center; gap: 16px; margin-bottom: 50px; user-select: none; flex-wrap: wrap; }
         
-        /* --- STANDARDIZED NON-TEXT TOOL STYLES --- */
-        .tool-box { border: 1px solid var(--border-color); background: var(--bg-color); margin: 8px 0; display: flex; flex-direction: column; overflow: hidden; }
-        .tool-header { display: flex; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--border-color); background: var(--muted-bg); gap: 12px; }
-        .tool-title-input { flex: 1; font-weight: bold; letter-spacing: 1px; padding: 4px; border: none; background: transparent; color: var(--text-color); font-family: inherit; font-size: 14px; outline: none; text-transform: uppercase; }
-        .tool-title-input::placeholder { color: var(--muted-text); opacity: 0.5; }
-        .tool-controls { display: flex; align-items: center; gap: 4px; }
-        .tool-icon-btn { width: 30px; height: 30px; border: none; background: transparent; color: var(--text-color); cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 0; transition: background 0.1s; }
-        .tool-icon-btn:hover { background: var(--border-color); }
-        .tool-icon-btn.active { background: var(--text-color) !important; color: var(--bg-color) !important; }
-
-        .ai-stream-wrapper { margin: 8px 0; padding-left: 12px; border-left: 4px solid #a855f7; }
-        .ai-cursor { display: inline-block; width: 10px; height: 1em; background: #a855f7; animation: blink 1s step-end infinite; vertical-align: text-bottom; margin-left: 4px; }
-
-        .compute-code { font-family: monospace; font-weight: bold; border: none; }
-        .compute-output { font-family: monospace; padding: 12px; background: var(--muted-bg); min-height: 30px; border-top: 1px dashed var(--border-color); }
+        .neon-status { 
+            font-family: var(--font-mono); 
+            font-size: 12px; 
+            font-weight: 700; 
+            letter-spacing: 0.05em; 
+            text-transform: lowercase; 
+        }
+        .ai-status { color: var(--neon-purple); opacity: 0.8; transition: opacity 0.3s ease; }
+        .ai-status.loading { animation: neon-pulse 1.5s infinite ease-in-out; }
+        .ai-status.error { color: #ef4444; opacity: 1; }
         
-        .recall-dropdown { display: none; border-top: 1px solid var(--text-color); max-height: 250px; overflow-y: auto; }
+        .save-status { color: var(--muted-text); opacity: 0; transition: opacity 0.4s ease; }
+        .save-status.visible { opacity: 1; color: var(--neon-green); }
+
+        .storage-warning { color: #ef4444; display: none; }
+
+        @keyframes neon-pulse { 0%, 100% { opacity: 0.8; text-shadow: 0 0 8px rgba(168, 85, 247, 0.4); } 50% { opacity: 0.3; text-shadow: none; } }
+
+        /* --- EXPRESSIVE TEXT BLOCKS --- */
+        #lean-editor { position: relative; display: flex; flex-direction: column; gap: 16px; width: 100%; }
+
+        .stream-block { position: relative; width: 100%; transition: opacity 0.2s; }
+        
+        .text-content { 
+            font-size: clamp(20px, 5vw, 26px); 
+            font-weight: 500; 
+            letter-spacing: -0.03em; 
+            line-height: 1.35; 
+            color: var(--text-color);
+            outline: none; 
+            min-height: 1.35em;
+            word-wrap: break-word;
+            padding: 4px 0;
+            width: 100%;
+        }
+        
+        .text-content[data-placeholder]:empty:before {
+            content: attr(data-placeholder); color: var(--muted-text);
+            font-style: italic; font-weight: 400; opacity: 0.5; pointer-events: none;
+        }
+
+        .stream-block.author-ai .text-content { font-weight: 400; color: var(--neon-purple); }
+        .stream-block.author-ai::before {
+            content: ''; position: absolute; left: -16px; top: 10px; bottom: 10px;
+            width: 3px; background: var(--neon-purple); opacity: 0.5;
+        }
+
+        /* --- INLINE CONTEXTUAL MENU --- */
+        #inline-menu {
+            position: absolute; right: 0;
+            display: flex; flex-direction: row-reverse; align-items: flex-start;
+            opacity: 0; pointer-events: none;
+            transition: top 0.1s ease-out, opacity 0.15s; z-index: 100;
+        }
+        #inline-menu.visible { opacity: 1; pointer-events: auto; }
+        
+        .inline-plus {
+            width: 40px; height: 40px; background: transparent; border: none;
+            color: var(--muted-text); font-size: 38px; font-weight: 300; line-height: 1;
+            cursor: pointer; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s;
+            display: flex; align-items: center; justify-content: center; padding-bottom: 6px;
+        }
+        .inline-plus:hover { color: var(--text-color); }
+        #inline-menu.expanded .inline-plus { transform: rotate(45deg); color: var(--neon-purple); }
+
+        .inline-tools {
+            display: flex; gap: 8px; margin-right: 8px;
+            opacity: 0; pointer-events: none; transform: translateX(10px);
+            transition: opacity 0.2s, transform 0.2s;
+            flex-wrap: wrap; justify-content: flex-end; width: 280px;
+        }
+        #inline-menu.expanded .inline-tools { opacity: 1; pointer-events: auto; transform: translateX(0); }
+        
+        .inline-tool-btn {
+            background: var(--text-color); color: var(--bg-color); border: none; border-radius: 4px;
+            font-family: var(--font-mono); font-size: 13px; font-weight: 800; 
+            text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; 
+            transition: transform 0.1s, opacity 0.2s; padding: 10px 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .inline-tool-btn:active { transform: scale(0.95); opacity: 0.8; }
+
+        /* --- BARITONE PANELS --- */
+        .baritone-panel {
+            background: var(--baritone-bg); border-radius: 2px;
+            padding: 16px 20px; margin: 4px 0;
+            display: flex; flex-direction: column; gap: 12px; width: 100%;
+        }
+
+        .panel-header {
+            font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted-text);
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 4px; user-select: none;
+        }
+
+        .panel-controls { display: flex; gap: 12px; align-items: center; }
+        .panel-ctrl-btn {
+            background: none; border: none; padding: 0; color: var(--muted-text); font-size: 14px; 
+            cursor: pointer; transition: color 0.2s; display: flex; align-items: center; justify-content: center;
+        }
+        .panel-ctrl-btn:hover { color: var(--text-color); }
+        .panel-ctrl-btn.delete:hover { color: #ef4444; }
+
+        .panel-title-input {
+            background: transparent; border: none; outline: none; color: var(--text-color); 
+            font-family: var(--font-main); font-size: 24px; font-weight: 800; letter-spacing: -0.02em; 
+            width: 100%; margin-bottom: 8px; border-bottom: 2px solid transparent; transition: border-color 0.2s;
+        }
+        .panel-title-input::placeholder { color: var(--muted-text); font-weight: 600; opacity: 0.4; }
+        .panel-title-input:focus { border-bottom-color: var(--text-color); }
+
+        .raw-input { background: transparent; border: none; outline: none; color: var(--text-color); font-family: var(--font-main); font-size: 18px; font-weight: 500; width: 100%; }
+        .raw-input::placeholder { color: var(--muted-text); }
+
+        .raw-btn {
+            background: transparent; border: 1px solid var(--muted-text); color: var(--text-color);
+            font-family: var(--font-mono); font-size: 11px; font-weight: 700; text-transform: uppercase; 
+            padding: 8px 16px; cursor: pointer; transition: all 0.2s; border-radius: 2px; 
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .raw-btn:active, .raw-btn.active { background: var(--text-color); color: var(--bg-color); border-color: var(--text-color); }
+        .raw-btn.danger { color: #ef4444; border-color: #ef4444; }
+        .raw-btn.danger.active { background: #ef4444; color: #fff; border-color: #ef4444; }
+
+        /* Tools Details */
+        .compute-code { font-family: var(--font-mono); font-size: 16px; font-weight: 500; resize: none; min-height: 22px; line-height: 1.4; border-bottom: 1px dashed var(--muted-text); padding-bottom: 8px; margin-bottom: 8px;}
+        .compute-output { font-family: var(--font-mono); font-size: 22px; font-weight: 700; color: var(--neon-purple); word-break: break-word; }
+        .compute-error { color: #ef4444; font-size: 14px; }
+        
+        .voice-controls { display: flex; align-items: center; gap: 16px; }
+        .voice-status-text { font-family: var(--font-mono); font-size: 11px; color: var(--muted-text); }
+        
+        .scan-output { font-family: var(--font-mono); font-size: 14px; min-height: 80px; resize: none; line-height: 1.5; color: var(--baritone-text); }
+
+        /* Recall Tool Specific */
+        .recall-search-wrapper { position: relative; width: 100%; }
+        .recall-search-input { width: 100%; padding: 12px 0; border: none; border-bottom: 2px solid var(--muted-text); background: transparent; color: var(--text-color); font-family: var(--font-main); font-size: 18px; outline: none; transition: border-color 0.2s; }
+        .recall-search-input:focus { border-color: var(--neon-purple); }
+        .recall-dropdown { position: absolute; top: 100%; left: 0; width: 100%; background: var(--bg-color); border: 2px solid var(--text-color); margin-top: 4px; box-shadow: 4px 4px 0 rgba(0,0,0,0.1); z-index: 1000; max-height: 250px; overflow-y: auto; display: none; }
         .recall-dropdown.active { display: block; }
-        .recall-item { padding: 12px; border-bottom: 1px solid var(--border-color); cursor: pointer; }
-        .recall-item:hover { background: var(--text-color); color: var(--bg-color); }
+        .recall-result-item { padding: 12px 14px; cursor: pointer; border-bottom: 1px dashed var(--muted-text); display: flex; flex-direction: column; gap: 4px; }
+        .recall-result-item:last-child { border-bottom: none; }
+        .recall-result-item:hover { background: var(--baritone-bg); }
+        .recall-result-meta { font-family: var(--font-mono); font-size: 10px; color: var(--neon-purple); font-weight: 700; text-transform: uppercase; }
+        .recall-result-snippet { font-size: 14px; color: var(--text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+        .recalled-block { padding: 12px 16px; background: var(--bg-color); border-left: 4px solid var(--neon-purple); margin-top: 12px;}
+        .recalled-orig-meta { font-family: var(--font-mono); font-size: 10px; color: var(--muted-text); font-weight: bold; text-transform: uppercase; margin-bottom: 12px; }
 
-        .leaflet-container { z-index: 1 !important; width: 100%; height: 400px; background: var(--bg-color) !important; }
-        .drawing-mode, .drawing-mode * { cursor: crosshair !important; touch-action: none !important; }
+        /* Canvas Tool Specific */
+        .leaflet-container { background: var(--baritone-bg) !important; width: 100%; height: 350px; z-index: 1; border-radius: 2px; position: relative; }
+        .leaflet-container.drawing-mode, .leaflet-container.drawing-mode .leaflet-interactive { 
+            cursor: crosshair !important; 
+            touch-action: none !important; 
+        }
+        .leaflet-container.locked-mode { 
+            cursor: default !important; 
+        }
+        
+        .canvas-controls-row {
+            display: flex; gap: 12px; margin-bottom: 12px; align-items: center;
+        }
 
-        .global-calendar-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100000; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s ease; padding: 16px; }
-        .global-calendar-modal.show { display: flex; opacity: 1; }
-        .cp-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 11px; font-weight: bold; margin-bottom: 8px; text-transform: uppercase; }
-        .cp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--border-color); border: 1px solid var(--border-color); }
-        .cp-day { background: var(--bg-color); padding: 12px 0; text-align: center; font-size: 14px; cursor: pointer; }
-        .cp-day:hover:not(.muted) { background: var(--text-color); color: var(--bg-color); }
-        .cp-day.active { background: var(--text-color); color: var(--bg-color); font-weight: bold; }
-        .cp-day.muted { opacity: 0.3; pointer-events: none; }
+        /* --- EDITORIAL CALENDAR OVERLAY --- */
+        .editorial-cal-modal {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: var(--bg-color); z-index: 10000; display: none; flex-direction: column; 
+            padding: 10vh 32px 32px 32px; overflow-y: auto;
+        }
+        .editorial-cal-modal.active { display: flex; }
+        
+        .cal-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
+        .cal-nav-btn { background: none; border: none; font-size: 40px; font-weight: 300; color: var(--text-color); cursor: pointer; }
+        .cal-month-title { font-size: clamp(30px, 8vw, 60px); font-weight: 900; font-style: italic; letter-spacing: -0.04em; text-transform: uppercase; }
+        
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .cal-day {
+            aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+            font-size: 20px; font-weight: 600; cursor: pointer; background: var(--baritone-bg); transition: background 0.2s, color 0.2s;
+        }
+        .cal-day:active, .cal-day.selected { background: var(--text-color); color: var(--bg-color); }
+        .cal-day.muted { opacity: 0.15; pointer-events: none; }
+        
+        .cal-time-input {
+            margin-top: 40px; width: 100%; padding: 20px; background: transparent; border: 2px solid var(--baritone-bg);
+            color: var(--text-color); font-family: var(--font-mono); font-size: 24px; text-align: center; border-radius: 4px; outline: none;
+        }
+        
+        .cal-close-btn {
+            margin-top: auto; padding: 20px; width: 100%; background: var(--text-color); color: var(--bg-color);
+            font-family: var(--font-mono); font-size: 16px; font-weight: 800; text-transform: uppercase; border: none; cursor: pointer; letter-spacing: 0.1em;
+        }
+
     </style>
 </head>
 <body>
 
     <div class="app-container">
-        <div id="date-header"></div>
-        <div class="header-status-row">
-            <div id="ai-inline-status" class="ai-inline-status loading">Starting AI...</div>
-            <div id="vector-status" class="ai-inline-status loading">VectorDB: Init</div>
-            <span id="save-indicator" class="save-indicator">SYNCED</span>
-            <span id="storage-warning" class="storage-warning">LOCAL ONLY</span>
+        <div id="date-header">today</div>
+        <div class="status-row">
+            <span id="ai-inline-status" class="neon-status ai-status loading">sys.ai.booting</span>
+            <span id="save-indicator" class="neon-status save-status">saved</span>
+            <span id="storage-warning" class="neon-status storage-warning">private.mode [no save]</span>
         </div>
         
-        <div id="editor-container"></div>
-        <div id="block-menu" class="block-menu-popover"></div>
+        <!-- Custom Lean Editor with contextual right-aligned inline menu -->
+        <div id="lean-editor">
+            <!-- Inline Action Menu dynamically positions itself here -->
+            <div id="inline-menu">
+                <button id="inline-plus" class="inline-plus">+</button>
+                <div class="inline-tools">
+                    <button class="inline-tool-btn" data-insert="compute">compute</button>
+                    <button class="inline-tool-btn" data-insert="smartCanvas">canvas</button>
+                    <button class="inline-tool-btn" data-insert="voice">voice</button>
+                    <button class="inline-tool-btn" data-insert="scan">scan</button>
+                    <button class="inline-tool-btn" data-insert="calendar">event</button>
+                    <button class="inline-tool-btn" data-insert="recall">recall</button>
+                </div>
+            </div>
+            <!-- Blocks append here -->
+        </div>
     </div>
 
-    <!-- Modals -->
-    <div id="global-calendar-modal" class="global-calendar-modal">
-        <div class="tool-box" style="width: 100%; max-width: 360px; box-shadow: 8px 8px 0 var(--text-color); border-color: var(--text-color); padding: 16px;" onclick="event.stopPropagation()">
-            <div class="flat-row" style="justify-content: space-between; margin-bottom: 16px;">
-                <button id="dp-prev" class="flat-btn" style="padding: 4px 12px;"><</button>
-                <span id="dp-month-label" style="font-weight: bold; text-transform: uppercase;"></span>
-                <button id="dp-next" class="flat-btn" style="padding: 4px 12px;">></button>
-            </div>
-            <div class="cp-weekdays"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div>
-            <div id="dp-grid" class="cp-grid"></div>
-            <div id="dp-time-section" style="margin-top: 16px; display: none;">
-                <input type="time" id="dp-time-input" class="flat-input tool-box" style="padding: 8px;" required>
-            </div>
-            <div class="flat-row" style="margin-top: 16px;">
-                <button id="dp-today-btn" class="flat-btn" style="flex: 1;">TODAY</button>
-                <button id="dp-confirm-btn" class="flat-btn" style="flex: 1; background: var(--text-color); color: var(--bg-color);">CONFIRM</button>
-            </div>
+    <!-- Editorial Calendar Overlay -->
+    <div id="editorial-cal" class="editorial-cal-modal">
+        <div class="cal-header-row">
+            <button id="ecal-prev" class="cal-nav-btn">←</button>
+            <div id="ecal-title" class="cal-month-title">month</div>
+            <button id="ecal-next" class="cal-nav-btn">→</button>
         </div>
+        <div id="ecal-grid" class="cal-grid"></div>
+        <input type="time" id="ecal-time" class="cal-time-input" style="display: none;">
+        <button id="ecal-close" class="cal-close-btn">CONFIRM</button>
     </div>
 
     <script type="module">
         // ============================================================================
-        // ⚙️ AI & APP CONFIGURATION
+        // ⚙️ SYSTEM CONFIG & UTILS
         // ============================================================================
         const CONFIG = {
             AI_NAME: "bro", 
-            AI_PERSONALITY: "You are intelligent, chill, fast learning and have flawless memory.",
-            PWA_LOGO_URL: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzAwMDAwMCI+PHBhdGggZD0iTTE0IDJINmEyIDIgMCAwIDAtMiAydjE2YTIgMiAwIDAgMCAyIDJoMTJhMiAyIDAgMCAwIDItMlY4bC02LTZ6Ii8+PC9zdmc+"
+            AI_PERSONALITY: "You are intelligent, brief, and have a flawless memory. Output brutalist markdown.",
+            PWA_LOGO_URL: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzAwMDAwMCI+PHBhdGggZD0iTTE0IDJINmEyIDIgMCAwIDAtMiAydjE2YTIgMiAwIDAgMCAyIDJoMTJhMiAyIDAgMCAwIDItMlY4bC02LTZ6Ii8+PC9zdmc+",
+            EMBEDDING_MODEL_ID: "Xenova/all-MiniLM-L6-v2",
+            SEMANTIC_SEARCH_LIMIT: 8,
+            AI_MEMORY_LIMIT: 6,
+            SEMANTIC_MIN_SCORE: 0.22
         };
 
-        const ICONS = {
-            plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>',
-            trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14H5V6m3 0V4h8v2"></path></svg>',
-            text: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h16v3M9 20h6M12 4v16"></path></svg>',
-            header: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16M4 18V6M20 18V6"></path></svg>',
-            list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>',
-            check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>',
-            mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>',
-            stop: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12"></rect></svg>',
-            play: '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>',
-            pause: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>',
-            image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>',
-            download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>',
-            lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>',
-            unlock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>',
-            calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>',
-            bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>',
-            canvas: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path></svg>',
-            map: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>',
-            pen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>',
-            search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>',
-            recall: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline><polyline points="12 7 12 12 15 15"></polyline></svg>',
-            scan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h3"></path><path d="M20 7V4h-3"></path><path d="M4 17v3h3"></path><path d="M20 17v3h-3"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>',
-            compute: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 10 14 13 8 18 8"></polyline><circle cx="20" cy="8" r="2"></circle><circle cx="2" cy="14" r="2"></circle></svg>'
-        };
+        document.getElementById('pwa-icon').href = CONFIG.PWA_LOGO_URL;
+        document.getElementById('pwa-manifest').href = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify({
+            "name": "Infinite Notes", "short_name": "Notes", "start_url": ".", "display": "standalone",
+            "background_color": window.matchMedia('(prefers-color-scheme: dark)').matches ? "#0a0a0a" : "#ffffff",
+            "theme_color": window.matchMedia('(prefers-color-scheme: dark)').matches ? "#0a0a0a" : "#ffffff",
+            "icons": [{"src": CONFIG.PWA_LOGO_URL, "sizes": "192x192", "type": "image/svg+xml"}]
+        }));
 
-        function createEl(tag, classNames = '', attributes = {}, children = []) {
-            const el = document.createElement(tag); if (classNames) el.className = classNames;
-            for (const [k, v] of Object.entries(attributes)) { 
-                if (k === 'innerHTML') el.innerHTML = v; 
-                else if (k === 'textContent') el.textContent = v; 
-                else if (k === 'style') el.style.cssText = v; 
-                else el.setAttribute(k, v); 
-            }
-            children.forEach(c => c && el.append(c)); return el;
-        }
+        function getLocalYYYYMMDD(date) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; }
+        function normalizePlainText(text = '') { return String(text).replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim(); }
+        function clampText(text = '', maxLength = 1200) { return text.length <= maxLength ? text : text.slice(0, maxLength).trimEnd() + '...'; }
+        function escapeHTML(text = '') { return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+        
+        let todayStr = getLocalYYYYMMDD(new Date());
+        window.currentDateStr = todayStr;
 
+        // Notification Engine
         const NotificationEngine = {
             timers: new Map(),
             schedule: function(id, dt, title) {
                 this.cancel(id); if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
                 const delay = new Date(dt).getTime() - Date.now();
-                if (delay > 0) this.timers.set(id, setTimeout(() => { new Notification('Note Reminder', { body: title || 'Scheduled Event' }); this.timers.delete(id); }, delay));
+                if (delay > 0) this.timers.set(id, setTimeout(() => { new Notification('Note Reminder', { body: title || 'Event Reached' }); this.timers.delete(id); }, delay));
             },
             cancel: function(id) { if (this.timers.has(id)) { clearTimeout(this.timers.get(id)); this.timers.delete(id); } }
         };
 
-        function getLocalYYYYMMDD(date) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; }
+        // ============================================================================
+        // 💾 ROBUST STORAGE ARCHITECTURE (IndexedDB + Media + Vectors)
+        // ============================================================================
+        const DB_VERSION = 3;
 
-        // ============================================================================
-        // 💾 ASYNCHRONOUS STORAGE ADAPTER
-        // ============================================================================
-        class IndexedDBAdapter {
-            constructor() { 
-                this.dbName = 'InfiniteNotesDB'; this.storeName = 'daily_notes'; 
-                this.cache = {}; this.isMemoryOnly = false; this.saveQueue = Promise.resolve(); 
+        function ensureDatabaseStores(db) {
+            if (!db.objectStoreNames.contains('daily_notes')) db.createObjectStore('daily_notes');
+            if (!db.objectStoreNames.contains('semantic_index')) {
+                const semanticStore = db.createObjectStore('semantic_index', { keyPath: 'key' });
+                semanticStore.createIndex('by_date', 'date', { unique: false });
             }
+            if (!db.objectStoreNames.contains('media_blobs')) {
+                const mediaBlobs = db.createObjectStore('media_blobs', { keyPath: 'id' });
+                mediaBlobs.createIndex('by_kind', 'kind', { unique: false });
+            }
+        }
+
+        class IndexedDBAdapter {
+            constructor() { this.cache = {}; this.isMemoryOnly = false; this.saveQueue = Promise.resolve(); }
             init() {
-                return new Promise((resolve) => {
+                return new Promise(resolve => {
                     try {
-                        const req = indexedDB.open(this.dbName, 1);
-                        req.onupgradeneeded = (e) => { if (!e.target.result.objectStoreNames.contains(this.storeName)) e.target.result.createObjectStore(this.storeName); };
-                        req.onsuccess = (e) => { this.db = e.target.result; this.loadAll().then(data => { this.cache = data; resolve(); }); };
-                        req.onerror = () => { this.enableFallback(resolve); };
+                        const req = indexedDB.open('InfiniteNotesDB', DB_VERSION);
+                        req.onupgradeneeded = e => ensureDatabaseStores(e.target.result);
+                        req.onsuccess = e => { this.db = e.target.result; this.loadAll().then(d => { this.cache = d; resolve(); }); };
+                        req.onerror = () => this.enableFallback(resolve);
                     } catch(e) { this.enableFallback(resolve); }
                 });
             }
-            enableFallback(resolve) { this.isMemoryOnly = true; document.getElementById('storage-warning').style.display = 'inline-block'; resolve(); }
+            enableFallback(resolve) {
+                this.isMemoryOnly = true; document.getElementById('storage-warning').style.display = 'inline'; resolve();
+            }
             save(dateStr, data) {
                 this.cache[dateStr] = data;
                 if (this.isMemoryOnly || !this.db) return Promise.resolve();
-                this.saveQueue = this.saveQueue.then(() => new Promise((res, rej) => {
-                    const req = this.db.transaction(this.storeName, 'readwrite').objectStore(this.storeName).put(data, dateStr);
-                    req.onsuccess = res; req.onerror = () => rej(req.error);
-                })).catch(err => console.error("IDB Save Error:", err));
+                this.saveQueue = this.saveQueue.then(() => new Promise((resolve) => {
+                    const tx = this.db.transaction('daily_notes', 'readwrite');
+                    tx.objectStore('daily_notes').put(data, dateStr);
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => resolve();
+                }));
                 return this.saveQueue;
             }
             loadAll() {
                 return new Promise(resolve => {
                     if (this.isMemoryOnly || !this.db) return resolve({});
+                    const tx = this.db.transaction('daily_notes', 'readonly');
+                    const store = tx.objectStore('daily_notes');
+                    const vReq = store.getAll(); const kReq = store.getAllKeys();
+                    tx.oncomplete = () => {
+                        const res = {};
+                        if (kReq.result && vReq.result) kReq.result.forEach((k, i) => res[k] = vReq.result[i]);
+                        resolve(res);
+                    };
+                });
+            }
+        }
+        
+        class MediaBlobStore {
+            constructor() { this.db = null; this.isAvailable = true; }
+            init() {
+                return new Promise(resolve => {
                     try {
-                        const tx = this.db.transaction(this.storeName, 'readonly'); const store = tx.objectStore(this.storeName);
-                        const valReq = store.getAll(); const keyReq = store.getAllKeys();
-                        tx.oncomplete = () => { const result = {}; if (keyReq.result && valReq.result) keyReq.result.forEach((k, i) => result[k] = valReq.result[i]); resolve(result); };
-                        tx.onerror = () => resolve({});
-                    } catch(e) { resolve({}); }
+                        const req = indexedDB.open('InfiniteNotesDB', DB_VERSION);
+                        req.onupgradeneeded = e => ensureDatabaseStores(e.target.result);
+                        req.onsuccess = e => { this.db = e.target.result; resolve(); };
+                        req.onerror = () => { this.isAvailable = false; resolve(); };
+                    } catch(e) { this.isAvailable = false; resolve(); }
+                });
+            }
+            saveBlob(id, blob, kind) {
+                return new Promise(resolve => {
+                    if (!this.db || !this.isAvailable) return resolve();
+                    const tx = this.db.transaction('media_blobs', 'readwrite');
+                    tx.objectStore('media_blobs').put({ id, blob, kind, updatedAt: Date.now() });
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => resolve();
+                });
+            }
+            getBlob(id) {
+                return new Promise(resolve => {
+                    if (!this.db || !this.isAvailable) return resolve(null);
+                    const tx = this.db.transaction('media_blobs', 'readonly');
+                    const req = tx.objectStore('media_blobs').get(id);
+                    req.onsuccess = () => resolve(req.result?.blob || null);
+                    req.onerror = () => resolve(null);
                 });
             }
         }
-        let appDB = new IndexedDBAdapter();
 
-        // ============================================================================
-        // 🧠 LOCAL VECTOR DATABASE (Embeddings & Semantic Search)
-        // ============================================================================
-        let embedPipeline = null;
-        let isEmbeddingLoading = false;
-        const vectorStatusEl = document.getElementById('vector-status');
-
-        async function initVectorDB() {
-            if (embedPipeline || isEmbeddingLoading) return;
-            isEmbeddingLoading = true;
-            try {
-                // Dynamically import the lightweight Transformers.js library
-                const { pipeline, env } = await import("https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1");
-                env.allowLocalModels = false; 
-                env.useBrowserCache = true; // Automatically caches the 20MB model in browser IDB
-                
-                vectorStatusEl.textContent = 'VectorDB: Loading Model...';
-                embedPipeline = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
-                    progress_callback: (x) => {
-                        if(x.status === 'downloading') vectorStatusEl.textContent = `VectorDB: DL ${Math.round(x.progress||0)}%`;
-                    }
+        class VectorDBAdapter {
+            constructor() {
+                this.cache = new Map(); this.pendingDays = new Map(); this.db = null;
+                this.embedder = null; this.embedderPromise = null; this.isProcessing = false; this.isAvailable = true;
+            }
+            init() {
+                return new Promise((resolve) => {
+                    try {
+                        const req = indexedDB.open('InfiniteNotesDB', DB_VERSION);
+                        req.onupgradeneeded = e => ensureDatabaseStores(e.target.result);
+                        req.onsuccess = e => {
+                            this.db = e.target.result;
+                            this.loadAll().then(entries => { entries.forEach(entry => this.cache.set(entry.key, entry)); resolve(); });
+                        };
+                        req.onerror = () => { this.isAvailable = false; resolve(); };
+                    } catch (e) { this.isAvailable = false; resolve(); }
                 });
-                vectorStatusEl.textContent = 'VectorDB: Active';
-                vectorStatusEl.className = 'ai-inline-status';
-            } catch (err) {
-                vectorStatusEl.textContent = 'VectorDB: Offline';
-                vectorStatusEl.className = 'ai-inline-status error';
-                embedPipeline = null;
-            } finally {
-                isEmbeddingLoading = false;
             }
-        }
-        setTimeout(initVectorDB, 3000); // Stagger load so it doesn't interrupt UI or AI init
-
-        async function generateEmbedding(text) {
-            if (!embedPipeline || !text) return null;
-            try {
-                const output = await embedPipeline(text, { pooling: 'mean', normalize: true });
-                return Array.from(output.data);
-            } catch (e) { return null; }
-        }
-
-        function cosineSimilarity(vecA, vecB) {
-            let dotProduct = 0, normA = 0, normB = 0;
-            for (let i = 0; i < vecA.length; i++) {
-                dotProduct += vecA[i] * vecB[i];
-                normA += vecA[i] * vecA[i];
-                normB += vecB[i] * vecB[i];
+            loadAll() {
+                return new Promise(resolve => {
+                    if (!this.isAvailable || !this.db) return resolve([]);
+                    const tx = this.db.transaction('semantic_index', 'readonly');
+                    const req = tx.objectStore('semantic_index').getAll();
+                    req.onsuccess = () => resolve(req.result || []);
+                    req.onerror = () => resolve([]);
+                });
             }
-            if (normA === 0 || normB === 0) return 0;
-            return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
-        }
-
-        function getBlockText(block) {
-            let text = block.type.toLowerCase() + " ";
-            if (block.data.text) text += block.data.text + " ";
-            if (block.data.title) text += block.data.title + " ";
-            if (block.data.items) text += block.data.items.map(i => i.content || i.text).join(' ') + " ";
-            return text.replace(/<[^>]*>?/gm, '').trim();
-        }
-
-        // BACKGROUND VECTOR SWEEPER: Secretly embeds new notes every 5s using the async queue
-        setInterval(async () => {
-            if (!embedPipeline || isSaving) return;
-            let dbUpdated = false;
-            for (const [dateStr, dayData] of Object.entries(appDB.cache)) {
-                if (!dayData.blocks) continue;
-                for (let block of dayData.blocks) {
-                    let text = getBlockText(block);
-                    // If text exists and hasn't been embedded yet (or was changed)
-                    if (text && block.data._lastEmbeddedText !== text) {
-                        const vec = await generateEmbedding(text);
-                        if (vec) {
-                            block.data._embedding = vec;
-                            block.data._lastEmbeddedText = text;
-                            dbUpdated = true;
+            async ensureEmbedder() {
+                if (this.embedder) return this.embedder;
+                if (!this.embedderPromise) {
+                    this.embedderPromise = (async () => {
+                        const { pipeline, env } = await import('https://esm.run/@huggingface/transformers');
+                        env.allowRemoteModels = true; env.useBrowserCache = true;
+                        if (navigator.gpu) {
+                            try { return await pipeline('feature-extraction', CONFIG.EMBEDDING_MODEL_ID, { device: 'webgpu' }); } 
+                            catch (e) { console.warn('WebGPU embeddings unavailable, falling back.'); }
                         }
-                    }
+                        return pipeline('feature-extraction', CONFIG.EMBEDDING_MODEL_ID, { dtype: 'q8' });
+                    })().then(embedder => { this.embedder = embedder; return embedder; });
                 }
-                if (dbUpdated) { appDB.save(dateStr, dayData); dbUpdated = false; }
+                return this.embedderPromise;
             }
-        }, 5000); 
+            async embedText(text) {
+                const normalized = clampText(normalizePlainText(text), 1200);
+                if (!normalized) return null;
+                try {
+                    const embedder = await this.ensureEmbedder();
+                    const output = await embedder(normalized, { pooling: 'mean', normalize: true });
+                    const list = typeof output.tolist === 'function' ? output.tolist() : Array.from(output.data);
+                    return Array.isArray(list[0]) ? list[0] : list;
+                } catch (e) { return null; }
+            }
+            extractEntries(dateStr, dayData) {
+                if (!dayData || !dayData.blocks) return [];
+                return dayData.blocks.map(block => {
+                    if (block.type === 'recall' || !block.data) return null;
+                    let searchText = '';
+                    if (block.type === 'text') searchText = normalizePlainText(block.data.text);
+                    else searchText = normalizePlainText(JSON.stringify(block.data));
+                    
+                    if (!searchText) return null;
+                    return { key: `${dateStr}::${block.id}`, date: dateStr, blockId: block.id, type: block.type, searchText, timestamp: block.timestamp || 0 };
+                }).filter(Boolean);
+            }
+            ensureBackfill(noteCache) {
+                if (!this.isAvailable || this.cache.size > 0 || !noteCache) return;
+                Object.entries(noteCache).forEach(([dateStr, dayData]) => this.scheduleIndexDay(dateStr, dayData));
+            }
+            scheduleIndexDay(dateStr, dayData) {
+                if (!this.isAvailable || !dateStr || !dayData || !dayData.blocks) return;
+                this.pendingDays.set(dateStr, JSON.parse(JSON.stringify(dayData)));
+                void this.processQueue();
+            }
+            async processQueue() {
+                if (this.isProcessing) return; this.isProcessing = true;
+                while (this.pendingDays.size > 0) {
+                    const [dateStr, dayData] = this.pendingDays.entries().next().value;
+                    this.pendingDays.delete(dateStr);
+                    await this.indexDay(dateStr, dayData);
+                }
+                this.isProcessing = false;
+            }
+            async indexDay(dateStr, dayData) {
+                if (!this.db) return;
+                const entries = this.extractEntries(dateStr, dayData);
+                const indexedEntries = [];
+                for (const entry of entries) {
+                    const vector = await this.embedText(entry.searchText);
+                    if (vector) indexedEntries.push({ ...entry, vector });
+                }
+                await this.replaceDayEntries(dateStr, indexedEntries);
+            }
+            replaceDayEntries(dateStr, entries) {
+                return new Promise((resolve) => {
+                    if (!this.db) return resolve();
+                    const tx = this.db.transaction('semantic_index', 'readwrite');
+                    const store = tx.objectStore('semantic_index');
+                    const dateIndex = store.index('by_date');
+                    const removeReq = dateIndex.openCursor(IDBKeyRange.only(dateStr));
+                    
+                    removeReq.onsuccess = (e) => {
+                        const cursor = e.target.result;
+                        if (cursor) { store.delete(cursor.primaryKey); cursor.continue(); return; }
+                        entries.forEach(entry => store.put(entry));
+                    };
+                    tx.oncomplete = () => {
+                        Array.from(this.cache.keys()).forEach(key => { if (key.startsWith(`${dateStr}::`)) this.cache.delete(key); });
+                        entries.forEach(entry => this.cache.set(entry.key, entry)); resolve();
+                    };
+                });
+            }
+            async search(query, options = {}) {
+                const normalized = normalizePlainText(query);
+                if (!normalized || !this.cache.size) return [];
+                const queryVector = await this.embedText(normalized);
+                if (!queryVector) return [];
+                const results = [];
+                
+                const dotProduct = (a, b) => { let sum = 0; for(let i=0; i<Math.min(a.length, b.length); i++) sum += a[i]*b[i]; return sum; };
+
+                for (const entry of this.cache.values()) {
+                    if (options.excludeDate && entry.date === options.excludeDate) continue;
+                    const score = dotProduct(queryVector, entry.vector || []);
+                    if (score >= CONFIG.SEMANTIC_MIN_SCORE) results.push({ ...entry, score, source: 'semantic' });
+                }
+                return results.sort((a, b) => b.score - a.score).slice(0, CONFIG.SEMANTIC_SEARCH_LIMIT);
+            }
+        }
+
+        const appDB = new IndexedDBAdapter();
+        const mediaStore = new MediaBlobStore();
+        const vectorDB = new VectorDBAdapter();
+
+        // Recall Helpers
+        function getBlockSearchText(block) {
+            if (!block || !block.data || block.type === 'recall') return '';
+            if (block.type === 'text') return normalizePlainText(block.data.text);
+            if (block.type === 'compute') return `${block.data.code} = ${block.data.output}`;
+            return normalizePlainText(JSON.stringify(block.data));
+        }
+        function buildRecallSnippet(block) {
+            if (!block || !block.data) return 'Empty';
+            if (block.type === 'text') return normalizePlainText(block.data.text) || 'Empty text';
+            if (block.type === 'calendar') return `Event: ${block.data.title}`;
+            if (block.type === 'voice') return `Voice: ${block.data.title}`;
+            if (block.type === 'smartCanvas') return `Canvas: ${block.data.title || block.data.mode}`;
+            if (block.type === 'compute') return `Compute: ${block.data.code}`;
+            return `[${block.type}] block`;
+        }
+        function collectKeywordRecallResults(query, excludeDate) {
+            const norm = normalizePlainText(query).toLowerCase();
+            if (!norm) return [];
+            const results = [];
+            Object.entries(appDB.cache).forEach(([dateStr, dayData]) => {
+                if (excludeDate && dateStr === excludeDate) return;
+                if (!dayData || !dayData.blocks) return;
+                dayData.blocks.forEach(block => {
+                    if (block.type === 'recall') return;
+                    if (`${block.type} ${getBlockSearchText(block)}`.toLowerCase().includes(norm)) {
+                        results.push({ date: dateStr, block, timestamp: block.timestamp || 0, source: 'keyword', score: 1 });
+                    }
+                });
+            });
+            return results.sort((a, b) => b.timestamp - a.timestamp);
+        }
 
         // ============================================================================
-        // GLOBAL UI: DATE PICKER MODAL
+        // 🤖 ON-DEVICE AI COLLABORATOR (WebLLM)
         // ============================================================================
-        const DatePicker = (function() {
-            let activeDate, viewDate, onConfirm, config;
-            const modal = document.getElementById('global-calendar-modal');
-            const elements = { grid: document.getElementById('dp-grid'), label: document.getElementById('dp-month-label'), timeSec: document.getElementById('dp-time-section'), timeInput: document.getElementById('dp-time-input') };
+        const AI_MODEL_ID = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC"; 
+        let aiEngine = null;
+        let isAILoading = false;
+        const aiStatusEl = document.getElementById('ai-inline-status');
+
+        async function initializeAI() {
+            if (aiEngine || isAILoading) return;
+            isAILoading = true;
+            try {
+                const { CreateMLCEngine } = await import("https://esm.run/@mlc-ai/web-llm");
+                aiEngine = await CreateMLCEngine(AI_MODEL_ID, {
+                    initProgressCallback: (progress) => {
+                        aiStatusEl.textContent = `sys.ai.loading [${Math.round(progress.progress * 100)}%]`;
+                    }
+                });
+                aiStatusEl.className = 'neon-status ai-status';
+                aiStatusEl.textContent = `sys.ai.online`;
+            } catch (err) {
+                aiStatusEl.className = 'neon-status ai-status error';
+                aiStatusEl.textContent = 'sys.ai.offline';
+                aiEngine = null;
+            } finally {
+                isAILoading = false;
+            }
+        }
+        setTimeout(() => initializeAI(), 1500);
+
+        // ============================================================================
+        // 📅 EDITORIAL CALENDAR UI
+        // ============================================================================
+        const EditorialCalendar = (() => {
+            const modal = document.getElementById('editorial-cal');
+            const title = document.getElementById('ecal-title');
+            const grid = document.getElementById('ecal-grid');
+            const timeInput = document.getElementById('ecal-time');
+            let viewDate, activeDate, requireTime, onConfirm;
 
             function render() {
                 const year = viewDate.getFullYear(), month = viewDate.getMonth();
-                elements.label.textContent = viewDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-                elements.grid.innerHTML = '';
-                elements.timeSec.style.display = config.showTime ? 'block' : 'none';
-                if (config.showTime) elements.timeInput.value = `${String(activeDate.getHours()).padStart(2, '0')}:${String(activeDate.getMinutes()).padStart(2, '0')}`;
+                title.textContent = viewDate.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+                grid.innerHTML = '';
                 
-                for (let i = 0; i < new Date(year, month, 1).getDay(); i++) elements.grid.appendChild(createEl('div', 'cp-day muted', {style: "background: transparent"}));
+                const firstDay = new Date(year, month, 1).getDay();
+                for(let i=0; i<firstDay; i++) {
+                    const d = document.createElement('div'); d.className = 'cal-day muted'; grid.appendChild(d);
+                }
+
                 const daysInMonth = new Date(year, month + 1, 0).getDate();
-                const todayStr = getLocalYYYYMMDD(new Date());
-
-                for (let i = 1; i <= daysInMonth; i++) {
-                    const dayEl = createEl('div', 'cp-day', { textContent: i });
-                    const cellStr = getLocalYYYYMMDD(new Date(year, month, i));
-
-                    if (year === activeDate.getFullYear() && month === activeDate.getMonth() && i === activeDate.getDate()) dayEl.classList.add('active');
-                    if (cellStr === todayStr) { dayEl.style.borderBottom = "4px solid var(--text-color)"; }
-
-                    let isMuted = (config.disableFuture && cellStr > todayStr) || (config.disablePast && cellStr < todayStr) || (config.onlyNotes && cellStr !== todayStr && (!appDB.cache[cellStr] || !appDB.cache[cellStr].blocks?.length));
+                for(let i=1; i<=daysInMonth; i++) {
+                    const d = document.createElement('div'); d.className = 'cal-day'; d.textContent = i;
+                    const cellDateStr = getLocalYYYYMMDD(new Date(year, month, i));
                     
-                    if (isMuted) dayEl.classList.add('muted'); 
-                    else {
-                        dayEl.onclick = () => { activeDate.setFullYear(year, month, i); render(); };
-                        if (!config.showTime && appDB.cache[cellStr]?.blocks?.length > 0 && cellStr !== todayStr) { dayEl.style.textDecoration = "underline"; dayEl.style.fontWeight = "bold"; }
+                    if (year === activeDate.getFullYear() && month === activeDate.getMonth() && i === activeDate.getDate()) {
+                        d.classList.add('selected');
                     }
-                    elements.grid.appendChild(dayEl);
+                    if (!requireTime && cellDateStr > todayStr) d.classList.add('muted'); 
+
+                    d.onclick = () => {
+                        if (!requireTime && cellDateStr > todayStr) return;
+                        activeDate = new Date(year, month, i);
+                        render(); 
+                    };
+                    grid.appendChild(d);
                 }
             }
 
-            document.getElementById('dp-prev').onclick = () => { viewDate.setMonth(viewDate.getMonth() - 1); render(); };
-            document.getElementById('dp-next').onclick = () => { viewDate.setMonth(viewDate.getMonth() + 1); render(); };
-            document.getElementById('dp-today-btn').onclick = () => { activeDate = new Date(); viewDate = new Date(activeDate); render(); };
-            document.getElementById('dp-confirm-btn').onclick = () => {
-                if (config.showTime && elements.timeInput.value) { const [h, m] = elements.timeInput.value.split(':'); activeDate.setHours(h, m, 0, 0); }
-                if (config.disablePast && activeDate < new Date()) activeDate = new Date(); 
-                modal.classList.remove('show'); setTimeout(() => modal.style.display = 'none', 200);
-                if (onConfirm) onConfirm(new Date(activeDate));
+            document.getElementById('ecal-prev').onclick = () => { viewDate.setMonth(viewDate.getMonth()-1); render(); };
+            document.getElementById('ecal-next').onclick = () => { viewDate.setMonth(viewDate.getMonth()+1); render(); };
+            document.getElementById('ecal-close').onclick = () => {
+                modal.classList.remove('active');
+                if (requireTime) {
+                    const [h, m] = timeInput.value.split(':');
+                    if (h && m) activeDate.setHours(parseInt(h), parseInt(m), 0);
+                }
+                if (onConfirm) onConfirm(activeDate);
             };
-            modal.addEventListener('click', (e) => { if (e.target.id === 'global-calendar-modal') { modal.classList.remove('show'); setTimeout(() => modal.style.display = 'none', 200); } });
 
             return {
-                open: function(initialDateObj, callback, options = {}) {
-                    activeDate = new Date(initialDateObj); viewDate = new Date(activeDate); onConfirm = callback;
-                    config = options; render(); modal.style.display = 'flex'; void modal.offsetWidth; modal.classList.add('show');
+                open: (initialDate, needsTime, callback) => {
+                    activeDate = initialDate || new Date(); viewDate = new Date(activeDate); 
+                    requireTime = needsTime; onConfirm = callback;
+                    
+                    timeInput.style.display = needsTime ? 'block' : 'none';
+                    if (needsTime) timeInput.value = `${String(activeDate.getHours()).padStart(2, '0')}:${String(activeDate.getMinutes()).padStart(2, '0')}`;
+                    
+                    render(); modal.classList.add('active');
                 }
             };
         })();
 
         // ============================================================================
-        // ON-DEVICE AI COLLABORATOR SYSTEM
+        // ⬛ BARITONE TOOL COMPONENTS
         // ============================================================================
-        const AI_MODEL_ID = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC"; 
-        let aiEngine = null; let isAILoading = false; const aiStatusEl = document.getElementById('ai-inline-status');
-
-        async function initializeAI() {
-            if (aiEngine || isAILoading) return;
-            isAILoading = true; aiStatusEl.className = 'ai-inline-status loading';
-            try {
-                const { CreateMLCEngine } = await import("https://esm.run/@mlc-ai/web-llm");
-                aiEngine = await CreateMLCEngine(AI_MODEL_ID, { initProgressCallback: (progress) => { aiStatusEl.textContent = `INIT AI... ${Math.round(progress.progress * 100)}%`; } });
-                aiStatusEl.className = 'ai-inline-status'; aiStatusEl.textContent = 'ONLINE';
-            } catch (err) {
-                aiStatusEl.className = 'ai-inline-status error'; aiStatusEl.textContent = 'OFFLINE (WEBGPU REQ)'; aiEngine = null;
-            } finally { isAILoading = false; }
-        }
-        setTimeout(initializeAI, 1500);
-
-        async function getDocumentContext(queryPrompt = null) {
-            let context = "";
-            
-            // Vector RAG (Retrieval-Augmented Generation) 
-            // If semantic search is loaded and a prompt was provided, grab the 15 most mathematically relevant past blocks
-            if (embedPipeline && queryPrompt) {
-                const queryVec = await generateEmbedding(queryPrompt);
-                let allBlocks = [];
-                Object.entries(appDB.cache).forEach(([dateStr, dayData]) => {
-                    if (!dayData.blocks) return;
-                    dayData.blocks.forEach(block => {
-                        if (block.data._embedding) {
-                            allBlocks.push({
-                                date: dateStr,
-                                type: block.type,
-                                text: getBlockText(block),
-                                score: cosineSimilarity(queryVec, block.data._embedding)
-                            });
-                        }
-                    });
-                });
-                
-                allBlocks.sort((a,b) => b.score - a.score);
-                const topBlocks = allBlocks.slice(0, 15);
-                
-                context += "--- SEMANTIC RECALL (Relevant Past Notes) ---\n";
-                topBlocks.forEach(b => {
-                    if(b.score > 0.25) context += `[Date: ${b.date}] ${b.text}\n`;
-                });
-                context += "-------------------------------------------\n\n";
-            }
-
-            // Always append the CURRENT day's entire context
-            if (window.editor) {
-                context += "--- CURRENT DAY'S NOTES ---\n";
-                const data = await window.editor.save();
-                data.blocks.forEach(b => {
-                    if (['paragraph', 'header', 'scan'].includes(b.type)) context += (b.data.text||'').replace(/<[^>]*>?/gm, '') + "\n";
-                    if (['list', 'checklist'].includes(b.type)) context += (b.data.items||[]).map(i => "- " + (i.content||i.text||'').replace(/<[^>]*>?/gm, '')).join("\n") + "\n";
-                    if (b.type === 'compute') context += `[Calculation: ${b.data.code} = ${b.data.output}]\n`;
-                });
-            }
-            return context.trim();
-        }
-
-        // ============================================================================
-        // NATIVE TEXT BLOCKS
-        // ============================================================================
-
-        class ParagraphBlock {
-            constructor({ data, api, readOnly }) { this.data = data; this.api = api; this.readOnly = readOnly; }
-            render() {
-                this.el = createEl('div', 'native-text-block', { contentEditable: !this.readOnly, innerHTML: this.data.text || '', 'data-placeholder': 'Type or ask @bro...' });
-                this.el.addEventListener('keydown', this.handleKeydown.bind(this));
-                this.el.addEventListener('input', () => this.api.onChange());
-                return this.el;
-            }
-            handleKeydown(e) {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    const text = this.el.innerText.trim(); const trigger = `@${CONFIG.AI_NAME.toLowerCase()} `;
-                    if (text.toLowerCase().startsWith(trigger)) {
-                        const prompt = text.substring(trigger.length).trim();
-                        if (!prompt || !aiEngine) return;
-                        const idx = this.api.getIndex(this);
-                        this.api.insertBlock('aiStream', { prompt: prompt }, idx + 1, true);
-                        this.api.deleteBlock(idx);
-                    } else { this.api.insertBlock('paragraph', {}, this.api.getIndex(this) + 1, true); }
-                }
-                if (e.key === 'Backspace' && this.el.innerText === '') {
-                    e.preventDefault(); const idx = this.api.getIndex(this);
-                    if (idx > 0) { this.api.deleteBlock(idx); this.api.focus(idx - 1); }
-                }
-            }
-            focus() { this.el.focus(); }
-            save() { return { text: this.el.innerHTML }; }
-        }
-
-        class HeaderBlock {
-            constructor({ data, api, readOnly }) { this.data = data; this.api = api; this.readOnly = readOnly; this.level = data.level || 2; }
-            render() {
-                this.el = createEl('div', `native-text-block native-header-${this.level}`, { contentEditable: !this.readOnly, innerHTML: this.data.text || '', 'data-placeholder': 'HEADING...' });
-                this.el.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.api.insertBlock('paragraph', {}, this.api.getIndex(this) + 1, true); }
-                    if (e.key === 'Backspace' && this.el.innerText === '') { e.preventDefault(); const idx = this.api.getIndex(this); if (idx > 0) { this.api.deleteBlock(idx); this.api.focus(idx - 1); } }
-                });
-                this.el.addEventListener('input', () => this.api.onChange());
-                return this.el;
-            }
-            focus() { this.el.focus(); }
-            save() { return { text: this.el.innerHTML, level: this.level }; }
-        }
-
-        class ChecklistBlock {
-            constructor({ data, api, readOnly }) { this.data = data; this.api = api; this.readOnly = readOnly; this.items = data.items || [{ text: '', checked: false }]; }
-            render() {
-                this.wrapper = createEl('div', 'native-checklist');
-                this.items.forEach((item, index) => this.wrapper.appendChild(this.createItemNode(item, index))); return this.wrapper;
-            }
-            createItemNode(item, index) {
-                const row = createEl('div', 'checklist-item');
-                const checkbox = createEl('input', 'checklist-checkbox', { type: 'checkbox', checked: item.checked });
-                if (this.readOnly) checkbox.disabled = true;
-                const text = createEl('div', `native-text-block checklist-text ${item.checked ? 'checked' : ''}`, { contentEditable: !this.readOnly, innerHTML: item.text });
-                
-                checkbox.addEventListener('change', () => { item.checked = checkbox.checked; text.classList.toggle('checked', item.checked); this.api.onChange(); });
-                text.addEventListener('input', () => { item.text = text.innerHTML; this.api.onChange(); });
-                text.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        if (text.innerText === '') { this.items.splice(index, 1); this.api.insertBlock('paragraph', {}, this.api.getIndex(this) + 1, true); this.rebuild(); } 
-                        else { this.items.splice(index + 1, 0, { text: '', checked: false }); this.rebuild(index + 1); }
-                    }
-                    if (e.key === 'Backspace' && text.innerText === '') {
-                        e.preventDefault();
-                        if (this.items.length === 1) { const idx = this.api.getIndex(this); this.api.deleteBlock(idx); this.api.focus(idx - 1); } 
-                        else { this.items.splice(index, 1); this.rebuild(Math.max(0, index - 1)); }
-                    }
-                });
-                row.append(checkbox, text); return row;
-            }
-            rebuild(focusIndex = -1) {
-                this.wrapper.innerHTML = ''; this.items.forEach((item, idx) => this.wrapper.appendChild(this.createItemNode(item, idx))); this.api.onChange();
-                if (focusIndex >= 0 && this.wrapper.children[focusIndex]) this.wrapper.children[focusIndex].querySelector('.checklist-text').focus();
-            }
-            focus() { const texts = this.wrapper.querySelectorAll('.checklist-text'); if(texts.length) texts[texts.length-1].focus(); }
-            save() { return { items: this.items }; }
-        }
-
-        class ListBlock {
-            constructor({ data, api, readOnly }) { this.data = data; this.api = api; this.readOnly = readOnly; this.items = data.items || [{ content: '' }]; this.style = data.style || 'unordered'; }
-            render() {
-                this.wrapper = createEl('div', 'native-list');
-                this.items.forEach((item, index) => this.wrapper.appendChild(this.createItemNode(item, index))); return this.wrapper;
-            }
-            createItemNode(item, index) {
-                const row = createEl('div', 'list-item-row');
-                const bullet = createEl('div', 'list-bullet', { innerHTML: this.style === 'ordered' ? `${index + 1}.` : '-' });
-                const text = createEl('div', 'native-text-block list-text', { contentEditable: !this.readOnly, innerHTML: item.content || item.text || '' });
-                
-                text.addEventListener('input', () => { item.content = text.innerHTML; this.api.onChange(); });
-                text.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        if (text.innerText === '') { this.items.splice(index, 1); this.api.insertBlock('paragraph', {}, this.api.getIndex(this) + 1, true); this.rebuild(); } 
-                        else { this.items.splice(index + 1, 0, { content: '' }); this.rebuild(index + 1); }
-                    }
-                    if (e.key === 'Backspace' && text.innerText === '') {
-                        e.preventDefault();
-                        if (this.items.length === 1) { const idx = this.api.getIndex(this); this.api.deleteBlock(idx); this.api.focus(idx - 1); } 
-                        else { this.items.splice(index, 1); this.rebuild(Math.max(0, index - 1)); }
-                    }
-                });
-                row.append(bullet, text); return row;
-            }
-            rebuild(focusIndex = -1) {
-                this.wrapper.innerHTML = ''; this.items.forEach((item, idx) => this.wrapper.appendChild(this.createItemNode(item, idx))); this.api.onChange();
-                if (focusIndex >= 0 && this.wrapper.children[focusIndex]) this.wrapper.children[focusIndex].querySelector('.list-text').focus();
-            }
-            focus() { const texts = this.wrapper.querySelectorAll('.list-text'); if(texts.length) texts[texts.length-1].focus(); }
-            save() { return { style: this.style, items: this.items }; }
-        }
-
-        class AIStreamBlock {
-            constructor({data, api}) { this.api = api; this.prompt = data.prompt || ""; this.fullMarkdown = ""; this.wrapper = createEl('div', 'ai-stream-wrapper'); }
-            render() {
-                this.contentEl = createEl('div', 'native-text-block'); this.cursor = createEl('span', 'ai-cursor');
-                this.contentEl.appendChild(this.cursor); this.wrapper.appendChild(this.contentEl);
-                setTimeout(() => this.generateResponse(), 50); return this.wrapper;
-            }
-            focus() {}
-            async generateResponse() {
-                if (!aiEngine) { this.contentEl.textContent = "AI Engine offline."; return; }
-                const sys = `You are ${CONFIG.AI_NAME}. ${CONFIG.AI_PERSONALITY}\nContext:\n${await getDocumentContext(this.prompt)}\nRules: Output markdown. Use '- [ ] task', '- task', or wrap math: [COMPUTE] 10*4 [/COMPUTE].`;
-                try {
-                    const chunks = await aiEngine.chat.completions.create({ messages: [{ role: "system", content: sys }, { role: "user", content: this.prompt }], stream: true });
-                    this.contentEl.innerHTML = ''; 
-                    for await (const chunk of chunks) { this.fullMarkdown += chunk.choices[0]?.delta?.content || ""; this.contentEl.textContent = this.fullMarkdown; this.contentEl.appendChild(this.cursor); }
-                    this.cursor.remove(); this.replaceWithParsedBlocks();
-                } catch (e) { this.contentEl.textContent = "Error: " + e.message; this.cursor.remove(); }
-            }
-            replaceWithParsedBlocks() {
-                const blocksToInsert = [];
-                this.fullMarkdown.split(/(?=\[COMPUTE\])|(?<=\[\/COMPUTE\])|\n\n/).forEach(section => {
-                    const trimmed = section.trim(); if (!trimmed) return;
-                    if (trimmed.startsWith('[COMPUTE]') && trimmed.endsWith('[/COMPUTE]')) { blocksToInsert.push({ type: 'compute', data: { code: trimmed.replace('[COMPUTE]', '').replace('[/COMPUTE]', '').trim() } }); return; }
-                    const headerMatch = trimmed.match(/^(#{1,6})\s+(.*)/);
-                    if (headerMatch) { blocksToInsert.push({ type: 'header', data: { text: headerMatch[2], level: Math.min(headerMatch[1].length, 3) } }); return; }
-                    if (trimmed.match(/^-\s*\[[ xX]\]/)) { blocksToInsert.push({ type: 'checklist', data: { items: trimmed.split('\n').filter(l => l.trim()).map(line => ({ text: line.replace(/^-\s*\[[ xX]\]\s*/, '').trim(), checked: line.includes('[x]') || line.includes('[X]') })) } }); return; }
-                    if (trimmed.startsWith('- ') || trimmed.startsWith('* ') || /^\d+\.\s/.test(trimmed)) { blocksToInsert.push({ type: 'list', data: { style: /^\d+\.\s/.test(trimmed) ? 'ordered' : 'unordered', items: trimmed.split('\n').filter(l => l.trim()).map(line => ({ content: line.replace(/^[-*]\s|^\d+\.\s/, '').trim() })) } }); return; }
-                    blocksToInsert.push({ type: 'paragraph', data: { text: trimmed.replace(/\n/g, '<br>') } });
-                });
-                const currentIndex = this.api.getIndex(this); this.api.deleteBlock(currentIndex);
-                blocksToInsert.forEach((block, idx) => { this.api.insertBlock(block.type, block.data, currentIndex + idx, false); });
-                this.api.onChange();
-            }
-            save() { return { prompt: this.prompt, markdown: this.fullMarkdown }; }
-        }
-
-        // ============================================================================
-        // STANDARDIZED NON-TEXT TOOLS 
-        // ============================================================================
-
-        class ScanTool {
-            constructor({data, api, readOnly}) { 
-                this.api = api; this.readOnly = readOnly; 
-                this.data = { title: data.title || '', text: data.text || '' }; 
-                this.isScanning = false; this.scanProgress = '';
-                this.wrapper = createEl('div', 'tool-box');
-            }
-            render() { this.buildUI(); return this.wrapper; }
-            buildUI() {
-                this.wrapper.innerHTML = '';
-                const header = createEl('div', 'tool-header');
-                this.titleInput = createEl('input', 'tool-title-input', { value: this.data.title, placeholder: 'DOCUMENT TITLE...' });
-                if (this.readOnly) this.titleInput.readOnly = true;
-                this.titleInput.addEventListener('input', e => { this.data.title = e.target.value; this.api.onChange(); });
-                
-                const controls = createEl('div', 'tool-controls');
-                if (!this.readOnly) {
-                    const rescanBtn = createEl('button', 'tool-icon-btn', { innerHTML: ICONS.scan });
-                    const fileInput = createEl('input', '', { type: 'file', accept: 'image/*', capture: 'environment', style: 'display: none;' });
-                    rescanBtn.onclick = () => fileInput.click();
-                    fileInput.onchange = (e) => this.handleScan(e.target.files[0]);
-                    controls.append(rescanBtn, fileInput);
-                }
-                header.append(this.titleInput, controls);
-                this.wrapper.appendChild(header);
-
-                const body = createEl('div', '', { style: 'display: flex; flex-direction: column; flex: 1;' });
-                if (this.data.text) {
-                    this.input = createEl('textarea', 'flat-input', { value: this.data.text, style: 'padding: 12px; resize: vertical; min-height: 100px;' });
-                    if (this.readOnly) this.input.readOnly = true; 
-                    else this.input.addEventListener('input', (e) => { this.data.text = e.target.value; this.adjustHeight(); this.api.onChange(); });
-                    body.appendChild(this.input); setTimeout(() => this.adjustHeight(), 0);
-                } else if (this.isScanning) {
-                    body.style.padding = '24px'; body.style.textAlign = 'center';
-                    body.appendChild(createEl('div', '', { textContent: 'SCANNING DOCUMENT...', style: 'font-weight: bold;' }));
-                    this.statusEl = createEl('div', '', { textContent: this.scanProgress, style: 'font-size: 11px; margin-top: 8px; color: var(--muted-text);' });
-                    body.appendChild(this.statusEl);
-                } else if (!this.readOnly) {
-                    body.style.padding = '24px'; body.style.cursor = 'pointer'; body.style.textAlign = 'center';
-                    body.onclick = () => this.wrapper.querySelector('input[type="file"]').click();
-                    body.append(createEl('div', '', {innerHTML: ICONS.scan, style: 'margin: 0 auto; width: 32px; height: 32px;'}), createEl('div', '', {textContent: 'TAP TO SCAN', style: 'font-weight: bold; margin-top: 8px; letter-spacing: 1px;'}));
-                }
-                this.wrapper.appendChild(body);
-            }
-            focus() { if(this.titleInput) this.titleInput.focus(); }
-            adjustHeight() { if (this.input) { this.input.style.height = 'auto'; this.input.style.height = (this.input.scrollHeight) + 'px'; } }
-            async handleScan(file) {
-                if (!file) return;
-                this.isScanning = true; this.scanProgress = 'INIT OCR...'; this.buildUI();
-                try {
-                    if (typeof Tesseract === 'undefined') {
-                        this.scanProgress = 'LOADING ENGINE...'; if (this.statusEl) this.statusEl.textContent = this.scanProgress;
-                        await new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
-                    }
-                    const { data: { text } } = await Tesseract.recognize(file, 'eng', { 
-                        logger: m => { 
-                            if(m.status === 'recognizing text') { 
-                                this.scanProgress = `ANALYZING: ${Math.round(m.progress * 100)}%`; 
-                                if (this.statusEl) this.statusEl.textContent = this.scanProgress; 
-                            } 
-                        } 
-                    });
-                    this.data.text = text.trim(); 
-                } catch(e) { alert('Scan failed: ' + e.message); } 
-                finally { this.isScanning = false; this.buildUI(); this.api.onChange(); }
-            }
-            save() { return this.data; }
+        
+        function appendTitleInput(data, readOnly, container, onChange) {
+            const titleInput = document.createElement('input');
+            titleInput.type = 'text'; titleInput.className = 'panel-title-input';
+            titleInput.placeholder = 'block title...'; titleInput.value = data.title || '';
+            if (readOnly) titleInput.readOnly = true;
+            titleInput.addEventListener('input', (e) => { data.title = e.target.value; if (onChange) onChange(); });
+            container.appendChild(titleInput);
         }
 
         class ComputeTool {
-            constructor({data, api, readOnly}) { this.api = api; this.readOnly = readOnly; this.data = { title: data.title || '', code: data.code || '', output: data.output || '' }; this.wrapper = createEl('div', 'tool-box'); }
+            constructor(data, isReadOnly, onChange) {
+                this.data = { title: data.title || '', code: data.code || '', output: data.output || '' };
+                this.readOnly = isReadOnly; this.onChange = onChange;
+            }
             render() {
-                this.wrapper.innerHTML = '';
-                const header = createEl('div', 'tool-header');
-                this.titleInput = createEl('input', 'tool-title-input', { value: this.data.title, placeholder: 'LOGIC TITLE...' });
-                if (this.readOnly) this.titleInput.readOnly = true;
-                this.titleInput.addEventListener('input', e => { this.data.title = e.target.value; this.api.onChange(); });
-                header.append(this.titleInput, createEl('div', 'tool-controls', { innerHTML: `<div style="padding: 4px; color: var(--muted-text);">${ICONS.compute}</div>` }));
-                
-                this.input = createEl('textarea', 'flat-input compute-code', { placeholder: 'Type logic: 10 * 4...', value: this.data.code, style: 'padding: 12px; resize: vertical;' });
+                const container = document.createElement('div');
+                appendTitleInput(this.data, this.readOnly, container, this.onChange);
+
+                this.input = document.createElement('textarea');
+                this.input.className = 'raw-input compute-code';
+                this.input.placeholder = 'type logic or math (e.g. 10 * 4)...';
+                this.input.value = this.data.code;
                 if (this.readOnly) this.input.readOnly = true;
-                this.output = createEl('div', 'compute-output', { innerHTML: this.data.output });
                 
-                const adjustHeight = () => { this.input.style.height = 'auto'; this.input.style.height = (this.input.scrollHeight) + 'px'; };
+                this.output = document.createElement('div');
+                this.output.className = 'compute-output';
+                this.output.innerHTML = this.data.output;
+
+                const adjustHeight = () => { this.input.style.height = 'auto'; this.input.style.height = this.input.scrollHeight + 'px'; };
                 setTimeout(adjustHeight, 0);
 
                 let evalTimeout;
-                this.input.addEventListener('input', (e) => { adjustHeight(); this.data.code = e.target.value; clearTimeout(evalTimeout); evalTimeout = setTimeout(() => this.evaluateLogic(), 400); });
-                
-                this.wrapper.append(header, this.input, this.output); return this.wrapper;
+                this.input.addEventListener('input', () => {
+                    adjustHeight(); this.data.code = this.input.value; 
+                    clearTimeout(evalTimeout); evalTimeout = setTimeout(() => this.evaluateLogic(), 400);
+                });
+
+                container.append(this.input, this.output); return container;
             }
-            focus() { if(this.titleInput) this.titleInput.focus(); }
-            async evaluateLogic() {
-                if (!this.data.code.trim()) { this.output.innerHTML = ''; this.data.output = ''; this.api.onChange(); return; }
+            evaluateLogic() {
+                if (!this.data.code.trim()) { this.output.innerHTML = ''; this.data.output = ''; if(this.onChange) this.onChange(); return; }
+                
                 const find = (query) => {
                     let results = []; const q = query.toLowerCase();
                     Object.values(appDB.cache).forEach(day => {
                         if (!day.blocks) return;
                         day.blocks.forEach(b => {
-                            if (b.type === 'compute' || b.type === 'recall') return; 
+                            if (b.type === 'compute' || b.type === 'recall') return;
                             let text = JSON.stringify(b.data).toLowerCase();
-                            if (text.includes(q)) {
-                                if (b.data.text) results.push(b.data.text.replace(/<[^>]*>?/gm, ''));
-                                else if (b.data.items) results.push(...b.data.items.map(i=>i.content||i.text).join(' '));
-                                else if (b.data.title) results.push(b.data.title);
-                            }
+                            if (text.includes(q) && b.data.text) results.push(normalizePlainText(b.data.text));
                         });
-                    }); return results;
+                    });
+                    return results;
                 };
-                const nums = (query) => { let texts = find(query); let numbers = []; texts.forEach(t => { let matches = t.match(/-?\d+(\.\d+)?/g); if (matches) numbers.push(...matches.map(Number)); }); return numbers; };
-                const sum = (query) => nums(query).reduce((a,b)=>a+b, 0); const avg = (query) => { let n = nums(query); return n.length ? sum(query)/n.length : 0; };
-                const allowed = { Math, Date, Number, String, Array, sum, avg, nums, find };
-                const ctx = new Proxy({}, { has: () => true, get: (target, prop) => { if (prop === Symbol.unscopables) return undefined; if (prop in allowed) return allowed[prop]; if (typeof prop === 'string') return sum(prop.toLowerCase()); return undefined; } });
-
+                const nums = (query) => { let texts = find(query); let n = []; texts.forEach(t => { let m = t.match(/-?\d+(\.\d+)?/g); if(m) n.push(...m.map(Number)); }); return n; };
+                const sum = (query) => nums(query).reduce((a,b)=>a+b, 0);
+                const avg = (query) => { let n = nums(query); return n.length ? sum(query)/n.length : 0; };
+                
                 try {
-                    const fn = new (Object.getPrototypeOf(async function(){}).constructor)('ctx', `with (ctx) { return eval(${JSON.stringify(this.data.code)}); }`);
-                    const result = await fn(ctx);
-                    if (result === undefined || result === null || Number.isNaN(result)) { this.output.innerHTML = ''; this.data.output = ''; } 
-                    else if (Array.isArray(result) && result.length >= 2 && result.every(n => typeof n === 'number')) {
+                    const code = this.data.code.replace(/sum\(['"](.*?)['"]\)/g, (_, q) => sum(q))
+                                               .replace(/avg\(['"](.*?)['"]\)/g, (_, q) => avg(q));
+                    
+                    const result = new Function(`return (${code})`)();
+                    
+                    if (Array.isArray(result) && result.length >= 2 && result.every(n => typeof n === 'number')) {
                         const min = Math.min(...result); const max = Math.max(...result); const range = (max - min) || 1;
                         const points = result.map((val, i) => `${(i / (result.length - 1)) * 100},${40 - ((val - min) / range) * 40}`).join(' ');
-                        this.data.output = `<div style="font-size: 11px; margin-bottom: 8px;">ARRAY: [${result.join(', ')}]</div><svg viewBox="0 -5 100 50" style="width: 100%; height: 60px; overflow: visible;" preserveAspectRatio="none"><polyline fill="none" stroke="var(--text-color)" stroke-width="2" points="${points}"></polyline></svg>`;
-                        this.output.innerHTML = this.data.output; 
-                    } else { this.data.output = typeof result === 'object' ? JSON.stringify(result) : String(result); this.output.innerHTML = this.data.output; }
-                } catch(e) { this.data.output = `<span style="color: #ef4444">${e.message}</span>`; this.output.innerHTML = this.data.output; }
-                this.api.onChange();
+                        this.data.output = `<div style="font-size: 11px; color: var(--muted-text); margin-bottom: 4px;">[${result.join(', ')}]</div><svg viewBox="0 -5 100 50" style="width: 100%; height: 60px; overflow: visible;" preserveAspectRatio="none"><polyline fill="none" stroke="var(--neon-purple)" stroke-width="2" points="${points}"></polyline></svg>`;
+                    } else {
+                        this.data.output = typeof result === 'object' ? escapeHTML(JSON.stringify(result)) : escapeHTML(String(result));
+                    }
+                    this.output.innerHTML = this.data.output; this.output.classList.remove('compute-error');
+                } catch(e) { this.data.output = `<span class="compute-error">${escapeHTML(e.message)}</span>`; this.output.innerHTML = this.data.output; }
+                if(this.onChange) this.onChange();
             }
             save() { return this.data; }
         }
 
-        class CalendarTool {
-            constructor({data, api, readOnly}) {
-                this.id = crypto.randomUUID(); this.api = api; this.readOnly = readOnly;
-                this.data = { title: data.title || '', datetime: data.datetime || new Date().toISOString(), notified: data.notified || false };
-                if (!this.data.notified && !this.readOnly && new Date(this.data.datetime) > new Date()) NotificationEngine.schedule(this.id, this.data.datetime, this.data.title);
-                this.wrapper = createEl('div', 'tool-box');
+        class VoiceTool {
+            constructor(data, isReadOnly, onChange) {
+                this.data = { title: data.title || '', mediaId: data.mediaId || null };
+                this.readOnly = isReadOnly; this.onChange = onChange;
+                this.recorder = null; this.chunks = []; this.isPlaying = false; this.isRecording = false; this.objectUrl = '';
             }
-            formatDisplayDate() { const d = new Date(this.data.datetime); return `${d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} @ ${d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`; }
-            render() {
-                this.wrapper.innerHTML = '';
-                const header = createEl('div', 'tool-header');
-                this.titleInput = createEl('input', 'tool-title-input', { value: this.data.title, placeholder: 'EVENT TITLE...' });
-                if (this.readOnly) this.titleInput.readOnly = true;
-                this.titleInput.addEventListener('input', e => { this.data.title = e.target.value; NotificationEngine.schedule(this.id, this.data.datetime, this.data.title); this.api.onChange(); });
-                
-                const controls = createEl('div', 'tool-controls');
-                if (!this.readOnly) {
-                    const exportBtn = createEl('button', 'tool-icon-btn', { innerHTML: ICONS.download, title: 'Export ICS' });
-                    exportBtn.onclick = () => {
-                        const start = new Date(this.data.datetime); const formatICS = (date) => date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-                        const icsContent = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'BEGIN:VEVENT', `DTSTART:${formatICS(start)}`, `DTEND:${formatICS(new Date(start.getTime() + 3600000))}`, `SUMMARY:${this.data.title || 'Note Event'}`, 'END:VEVENT', 'END:VCALENDAR'].join('\n');
-                        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([icsContent], { type: 'text/calendar;charset=utf-8' })); a.download = `${this.data.title ? this.data.title.replace(/\s+/g, '_') : 'event'}.ics`; a.click();
-                    };
-                    
-                    const isGranted = typeof Notification !== 'undefined' && Notification.permission === 'granted';
-                    this.notifyBtn = createEl('button', 'tool-icon-btn', { innerHTML: ICONS.bell, title: 'Notify' });
-                    if (isGranted) this.notifyBtn.classList.add('active');
-                    this.notifyBtn.onclick = async () => { if (!('Notification' in window)) return alert('Notifications not supported.'); if (await Notification.requestPermission() === 'granted') { this.notifyBtn.classList.add('active'); NotificationEngine.schedule(this.id, this.data.datetime, this.data.title); } };
-                    
-                    controls.append(this.notifyBtn, exportBtn);
-                }
-                header.append(this.titleInput, controls);
-
-                const body = createEl('div', '', { style: 'padding: 12px; display: flex; flex-direction: column;' });
-                this.displayTxt = createEl('span', '', { textContent: this.formatDisplayDate() });
-                const displayBtn = createEl('button', 'flat-btn', {style: 'width: 100%; justify-content: flex-start; background: var(--muted-bg); border: none;'}, [this.displayTxt]);
-                if (!this.readOnly) {
-                    displayBtn.onclick = () => { DatePicker.open(new Date(this.data.datetime), (newDate) => { this.data.datetime = newDate.toISOString(); this.data.notified = false; this.displayTxt.textContent = this.formatDisplayDate(); NotificationEngine.schedule(this.id, this.data.datetime, this.data.title); this.api.onChange(); }, { showTime: true, disablePast: true }); };
-                } else { displayBtn.style.pointerEvents = 'none'; }
-                body.appendChild(displayBtn);
-
-                this.wrapper.append(header, body); return this.wrapper;
-            }
-            focus() { if(this.titleInput) this.titleInput.focus(); }
-            destroy() { NotificationEngine.cancel(this.id); }
-            save() { return this.data; }
-        }
-
-        class VoiceMemo {
-            constructor({data, api, readOnly}) {
-                this.api = api; this.readOnly = readOnly; 
-                this.data = { url: data.url || null, title: data.title || '' };
-                this.recorder = null; this.chunks = []; this.isPlaying = false; this.isRecording = false;
-                this.wrapper = createEl('div', 'tool-box');
+            async hydrate() {
+                if (this.objectUrl || !this.data.mediaId) return;
+                const blob = await mediaStore.getBlob(this.data.mediaId);
+                if (blob) { this.objectUrl = URL.createObjectURL(blob); this.audio.src = this.objectUrl; this.updateUI(); }
             }
             render() {
-                this.wrapper.innerHTML = '';
-                const header = createEl('div', 'tool-header');
-                this.titleInput = createEl('input', 'tool-title-input', { value: this.data.title, placeholder: 'MEMO TITLE...' });
-                if (this.readOnly) this.titleInput.readOnly = true;
-                this.titleInput.addEventListener('input', e => { this.data.title = e.target.value; this.api.onChange(); });
+                const container = document.createElement('div');
+                appendTitleInput(this.data, this.readOnly, container, this.onChange);
 
-                const controls = createEl('div', 'tool-controls');
-                this.statusText = createEl('div', '', { style: 'font-size: 11px; font-weight: bold; color: var(--muted-text); margin-right: 8px; text-transform: uppercase;' });
-                this.btn = createEl('button', 'tool-icon-btn');
-                this.audio = createEl('audio', '', { style: 'display: none;', src: this.data.url || '' });
-                
-                this.audio.onplay = () => { this.isPlaying = true; this.updateUI(); }; 
-                this.audio.onpause = () => { this.isPlaying = false; this.updateUI(); }; 
+                const controls = document.createElement('div'); controls.className = 'voice-controls';
+                this.btn = document.createElement('button'); this.btn.className = 'raw-btn';
+                this.statusTxt = document.createElement('span'); this.statusTxt.className = 'voice-status-text';
+                this.audio = document.createElement('audio');
+
+                this.audio.onplay = () => { this.isPlaying = true; this.updateUI(); };
+                this.audio.onpause = () => { this.isPlaying = false; this.updateUI(); };
                 this.audio.onended = () => { this.isPlaying = false; this.updateUI(); };
                 this.btn.onclick = () => this.handleAction();
-                
-                controls.append(this.statusText, this.btn, this.audio);
-                header.append(this.titleInput, controls);
-                this.wrapper.appendChild(header);
-                
-                this.updateUI(); return this.wrapper;
+
+                this.updateUI(); void this.hydrate();
+                controls.append(this.btn, this.statusTxt, this.audio);
+                container.appendChild(controls);
+                return container;
             }
-            focus() { if (this.titleInput) this.titleInput.focus(); }
             updateUI() {
-                this.btn.style.background = 'transparent'; this.btn.style.color = 'var(--text-color)';
-                if (this.isPlaying) { this.btn.innerHTML = ICONS.pause; this.statusText.innerText = 'PLAYING'; this.btn.classList.add('active'); } 
-                else if (this.data.url) { this.btn.innerHTML = ICONS.play; this.statusText.innerText = 'READY'; this.btn.classList.remove('active'); } 
-                else if (this.isRecording) { this.btn.innerHTML = ICONS.stop; this.statusText.innerText = 'REC...'; this.btn.style.background = '#ef4444'; this.btn.style.color = '#ffffff'; } 
-                else if (this.readOnly) { this.btn.style.display = 'none'; this.statusText.innerText = 'NO AUDIO'; }
-                else { this.btn.innerHTML = ICONS.mic; this.statusText.innerText = 'RECORD'; this.btn.classList.remove('active'); }
+                if (this.isPlaying) { this.btn.textContent = 'pause'; this.btn.className = 'raw-btn active'; this.statusTxt.textContent = 'playing...'; }
+                else if (this.data.mediaId || this.audio.src) { this.btn.textContent = 'play'; this.btn.className = 'raw-btn'; this.statusTxt.textContent = 'ready.'; }
+                else if (this.isRecording) { this.btn.textContent = 'stop'; this.btn.className = 'raw-btn danger active'; this.statusTxt.textContent = 'recording...'; }
+                else if (this.readOnly) { this.btn.style.display = 'none'; this.statusTxt.textContent = 'no audio'; }
+                else { this.btn.textContent = 'record'; this.btn.className = 'raw-btn danger'; this.statusTxt.textContent = 'idle.'; }
             }
             async handleAction() {
-                if (this.readOnly && !this.data.url) return;
-                if (this.data.url) { this.isPlaying ? this.audio.pause() : this.audio.play(); } 
+                if (this.readOnly && !this.audio.src) return;
+                if (this.audio.src) { this.isPlaying ? this.audio.pause() : this.audio.play(); }
                 else {
-                    if (this.isRecording) { this.recorder.stop(); this.isRecording = false; this.statusText.innerText = 'PROC...'; } 
+                    if (this.isRecording) { this.recorder.stop(); this.isRecording = false; }
                     else {
                         try {
                             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                            this.recorder = new MediaRecorder(stream); this.chunks = []; this.recorder.ondataavailable = (e) => this.chunks.push(e.data);
-                            this.recorder.onstop = () => { const reader = new FileReader(); reader.onloadend = () => { this.data.url = reader.result; this.audio.src = this.data.url; this.updateUI(); this.api.onChange(); }; reader.readAsDataURL(new Blob(this.chunks, { type: 'audio/webm' })); stream.getTracks().forEach(track => track.stop()); };
+                            this.recorder = new MediaRecorder(stream); this.chunks = [];
+                            this.recorder.ondataavailable = e => this.chunks.push(e.data);
+                            this.recorder.onstop = async () => {
+                                const blob = new Blob(this.chunks, { type: 'audio/webm' });
+                                const mediaId = this.data.mediaId || crypto.randomUUID();
+                                await mediaStore.saveBlob(mediaId, blob, 'audio');
+                                this.data.mediaId = mediaId; this.objectUrl = URL.createObjectURL(blob);
+                                this.audio.src = this.objectUrl; this.updateUI();
+                                if(this.onChange) this.onChange(); stream.getTracks().forEach(t => t.stop());
+                            };
                             this.recorder.start(); this.isRecording = true; this.updateUI();
-                        } catch (err) { this.statusText.innerText = 'DENIED'; }
+                        } catch(e) { alert("Mic access denied"); }
                     }
                 }
             }
-            destroy() { if (this.recorder && this.recorder.state !== 'inactive') this.recorder.stop(); if (this.recorder && this.recorder.stream) this.recorder.stream.getTracks().forEach(track => track.stop()); this.audio.pause(); }
+            save() { return this.data; }
+        }
+
+        class SmartCanvasTool {
+            constructor(data, isReadOnly, onChange) {
+                this.data = { title: data.title || '', mode: data.mode || null, lat: data.lat || 51.505, lng: data.lng || -0.09, zoom: data.zoom || 13, isLocked: data.isLocked || false, baseImageId: data.baseImageId || null, imgWidth: data.imgWidth || null, imgHeight: data.imgHeight || null, lines: data.lines || [], isDrawingActive: false };
+                this.readOnly = isReadOnly; this.onChange = onChange;
+                this.container = document.createElement('div'); this.baseImageUrl = '';
+                this.currentColor = '#ef4444'; this.lineLayers = []; this.currentPolyline = null; this.currentPoints = [];
+            }
+            render() {
+                this.container.innerHTML = '';
+                appendTitleInput(this.data, this.readOnly, this.container, this.onChange);
+
+                if (!this.data.mode) {
+                    if (this.readOnly) return this.container;
+                    const actionRow = document.createElement('div');
+                    actionRow.style.display = 'flex'; actionRow.style.gap = '8px'; actionRow.style.marginTop = '8px';
+                    
+                    const mapBtn = document.createElement('button'); mapBtn.className = 'raw-btn'; mapBtn.textContent = 'load map';
+                    mapBtn.onclick = () => { this.data.mode = 'map'; this.renderMap(); if(this.onChange) this.onChange(); };
+                    
+                    const photoBtn = document.createElement('button'); photoBtn.className = 'raw-btn'; photoBtn.textContent = 'photo overlay';
+                    const fileInput = document.createElement('input'); fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.style.display = 'none';
+                    photoBtn.onclick = () => fileInput.click();
+                    fileInput.onchange = async (e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                            const tempUrl = URL.createObjectURL(file);
+                            const img = new Image();
+                            img.onload = async () => {
+                                this.data.imgWidth = img.width; this.data.imgHeight = img.height; this.data.mode = 'image';
+                                const mediaId = this.data.baseImageId || crypto.randomUUID();
+                                await mediaStore.saveBlob(mediaId, file, 'image');
+                                this.data.baseImageId = mediaId; this.baseImageUrl = tempUrl;
+                                this.renderMap(); if(this.onChange) this.onChange();
+                            };
+                            img.src = tempUrl;
+                        }
+                    };
+
+                    const blankBtn = document.createElement('button'); blankBtn.className = 'raw-btn'; blankBtn.textContent = 'blank canvas';
+                    blankBtn.onclick = () => { this.data.mode = 'blank'; this.renderMap(); if(this.onChange) this.onChange(); };
+                    
+                    actionRow.append(mapBtn, photoBtn, fileInput, blankBtn);
+                    this.container.appendChild(actionRow);
+                } else { 
+                    this.buildControls(); 
+                    this.renderMap(); 
+                }
+                return this.container;
+            }
+            buildControls() {
+                if (this.readOnly) return;
+                this.controlsRow = document.createElement('div');
+                this.controlsRow.className = 'canvas-controls-row';
+                
+                this.drawBtn = document.createElement('button');
+                this.drawBtn.className = 'raw-btn';
+                this.drawBtn.textContent = 'draw';
+                this.drawBtn.onclick = () => {
+                    this.data.isDrawingActive = !this.data.isDrawingActive;
+                    this.updateInteractions();
+                    if(this.onChange) this.onChange();
+                };
+
+                this.colorPicker = document.createElement('input');
+                this.colorPicker.type = 'color';
+                this.colorPicker.value = this.currentColor;
+                this.colorPicker.style.border = 'none';
+                this.colorPicker.style.background = 'none';
+                this.colorPicker.style.cursor = 'pointer';
+                this.colorPicker.addEventListener('input', (e) => this.currentColor = e.target.value);
+
+                this.clearBtn = document.createElement('button');
+                this.clearBtn.className = 'raw-btn';
+                this.clearBtn.textContent = 'clear lines';
+                this.clearBtn.onclick = () => {
+                    this.lineLayers.forEach(layer => { if(this.map) this.map.removeLayer(layer); });
+                    this.lineLayers = []; this.data.lines = [];
+                    if(this.onChange) this.onChange();
+                };
+
+                this.controlsRow.append(this.drawBtn, this.colorPicker, this.clearBtn);
+                this.container.appendChild(this.controlsRow);
+            }
+            async hydrateBaseImage() {
+                if (this.baseImageUrl) return this.baseImageUrl;
+                if (!this.data.baseImageId) return '';
+                const blob = await mediaStore.getBlob(this.data.baseImageId);
+                if (blob) this.baseImageUrl = URL.createObjectURL(blob);
+                return this.baseImageUrl;
+            }
+            renderMap() {
+                const existingMap = this.container.querySelector('.leaflet-container');
+                if (existingMap) existingMap.remove();
+                
+                this.mediaContainer = document.createElement('div'); 
+                this.mediaContainer.className = 'leaflet-container';
+                this.container.appendChild(this.mediaContainer);
+                
+                setTimeout(async () => {
+                    if (this.data.mode === 'map') {
+                        this.map = L.map(this.mediaContainer, { zoomControl: false }).setView([this.data.lat, this.data.lng], this.data.zoom);
+                        const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                        const tileUrl = isDark ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+                        L.tileLayer(tileUrl).addTo(this.map);
+                    } else {
+                        this.map = L.map(this.mediaContainer, { crs: L.CRS.Simple, zoomControl: false, minZoom: -4 });
+                        const imageUrl = this.data.mode === 'image' ? await this.hydrateBaseImage() : '';
+                        if (imageUrl) {
+                            const bounds = [[0, 0], [this.data.imgHeight || 600, this.data.imgWidth || 800]];
+                            L.imageOverlay(imageUrl, bounds).addTo(this.map);
+                            this.map.setView([this.data.lat || (bounds[1][0]/2), this.data.lng || (bounds[1][1]/2)], this.data.zoom || 0);
+                        } else {
+                            this.map.setView([this.data.lat, this.data.lng], this.data.zoom);
+                        }
+                    }
+                    
+                    this.renderExistingLines();
+                    this.initDrawingTracker();
+                    this.updateInteractions();
+                    this.map.invalidateSize();
+                    
+                    this.map.on('moveend', () => { if(this.onChange) this.onChange(); });
+                }, 100);
+            }
+            renderExistingLines() {
+                if(!this.map) return;
+                this.lineLayers.forEach(layer => this.map.removeLayer(layer)); 
+                this.lineLayers = [];
+                this.data.lines.forEach(line => { 
+                    this.lineLayers.push(L.polyline(line.points, { color: line.color, weight: line.weight, lineCap: 'round', lineJoin: 'round', smoothFactor: 1.5 }).addTo(this.map)); 
+                });
+            }
+            initDrawingTracker() {
+                if (this.readOnly) return; 
+                let isPointerDown = false;
+                
+                this.mediaContainer.addEventListener('pointerdown', (e) => {
+                    if (!this.data.isDrawingActive || !this.map) return; 
+                    isPointerDown = true; 
+                    this.mediaContainer.setPointerCapture(e.pointerId);
+                    const latlng = this.map.mouseEventToLatLng(e);
+                    this.currentPoints = [latlng];
+                    this.currentPolyline = L.polyline(this.currentPoints, { color: this.currentColor, weight: 4, lineCap: 'round', lineJoin: 'round', smoothFactor: 1.5 }).addTo(this.map);
+                });
+                
+                this.mediaContainer.addEventListener('pointermove', (e) => {
+                    if (!this.data.isDrawingActive || !isPointerDown || !this.currentPolyline || !this.map) return;
+                    this.currentPoints.push(this.map.mouseEventToLatLng(e)); 
+                    this.currentPolyline.setLatLngs(this.currentPoints);
+                });
+                
+                const endDraw = () => {
+                    if (!isPointerDown) return; 
+                    isPointerDown = false; 
+                    if (!this.currentPolyline || !this.data.isDrawingActive) return;
+                    this.data.lines.push({ color: this.currentColor, weight: 4, points: this.currentPoints.map(p => [p.lat, p.lng]) });
+                    this.lineLayers.push(this.currentPolyline); 
+                    this.currentPolyline = null; this.currentPoints = []; 
+                    if(this.onChange) this.onChange();
+                };
+                
+                this.mediaContainer.addEventListener('pointerup', endDraw); 
+                this.mediaContainer.addEventListener('pointercancel', endDraw);
+            }
+            updateLock() {
+                this.updateInteractions();
+            }
+            updateInteractions() {
+                if(!this.map || !this.mediaContainer) return;
+                this.mediaContainer.classList.remove('drawing-mode', 'locked-mode');
+                
+                const disableMoves = () => { this.map.dragging.disable(); this.map.touchZoom.disable(); this.map.doubleClickZoom.disable(); this.map.scrollWheelZoom.disable(); this.map.boxZoom.disable(); this.map.keyboard.disable(); if(this.map.tap) this.map.tap.disable(); };
+                const enableMoves = () => { this.map.dragging.enable(); this.map.touchZoom.enable(); this.map.doubleClickZoom.enable(); this.map.scrollWheelZoom.enable(); this.map.boxZoom.enable(); this.map.keyboard.enable(); if(this.map.tap) this.map.tap.enable(); };
+
+                // ReadOnly or Globally Locked via header lock button (if LeanStreamEditor provides it)
+                if(this.readOnly || this.data.isLocked) {
+                    disableMoves();
+                    this.mediaContainer.classList.add('locked-mode');
+                    if (this.controlsRow) this.controlsRow.style.display = 'none';
+                    return;
+                }
+
+                if (this.controlsRow) this.controlsRow.style.display = 'flex';
+
+                if (this.data.isDrawingActive) {
+                    disableMoves();
+                    this.mediaContainer.classList.add('drawing-mode');
+                    if (this.drawBtn) {
+                        this.drawBtn.textContent = 'stop drawing';
+                        this.drawBtn.classList.add('active', 'danger');
+                    }
+                } else {
+                    enableMoves();
+                    if (this.drawBtn) {
+                        this.drawBtn.textContent = 'draw';
+                        this.drawBtn.classList.remove('active', 'danger');
+                    }
+                }
+            }
+            save() {
+                if (this.map && this.data.mode) { const center = this.map.getCenter(); this.data.lat = center.lat; this.data.lng = center.lng; this.data.zoom = this.map.getZoom(); }
+                return this.data;
+            }
+        }
+
+        class CalendarTool {
+            constructor(data, isReadOnly, onChange) {
+                this.id = data.id || crypto.randomUUID();
+                this.data = { title: data.title || '', datetime: data.datetime || new Date().toISOString(), notified: data.notified || false };
+                this.readOnly = isReadOnly; this.onChange = onChange;
+                if (!this.data.notified && !this.readOnly && new Date(this.data.datetime) > new Date()) NotificationEngine.schedule(this.id, this.data.datetime, this.data.title);
+            }
+            render() {
+                const container = document.createElement('div');
+                appendTitleInput(this.data, this.readOnly, container, () => {
+                    NotificationEngine.schedule(this.id, this.data.datetime, this.data.title);
+                    if(this.onChange) this.onChange();
+                });
+
+                this.dateDisp = document.createElement('div'); 
+                this.dateDisp.style.fontFamily = 'var(--font-mono)'; this.dateDisp.style.fontSize = '14px';
+                this.dateDisp.style.color = 'var(--neon-purple)'; this.dateDisp.style.fontWeight = '700'; this.dateDisp.style.marginBottom = '12px';
+                this.updateDateDisplay();
+                
+                if(!this.readOnly) {
+                    this.dateDisp.style.cursor = 'pointer';
+                    this.dateDisp.onclick = () => {
+                        EditorialCalendar.open(new Date(this.data.datetime), true, (nd) => {
+                            this.data.datetime = nd.toISOString(); this.data.notified = false;
+                            this.updateDateDisplay(); 
+                            NotificationEngine.schedule(this.id, this.data.datetime, this.data.title);
+                            if(this.onChange) this.onChange();
+                        });
+                    };
+                }
+                container.appendChild(this.dateDisp);
+
+                const actions = document.createElement('div'); actions.style.display = 'flex'; actions.style.gap = '8px';
+                const exportBtn = document.createElement('button'); exportBtn.className = 'raw-btn'; exportBtn.textContent = 'export ics';
+                exportBtn.onclick = () => {
+                    const start = new Date(this.data.datetime); const formatICS = (date) => date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+                    const icsContent = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'BEGIN:VEVENT', `DTSTART:${formatICS(start)}`, `DTEND:${formatICS(new Date(start.getTime() + 3600000))}`, `SUMMARY:${this.data.title || 'Event'}`, 'END:VEVENT', 'END:VCALENDAR'].join('\n');
+                    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([icsContent], { type: 'text/calendar;charset=utf-8' })); a.download = `${this.data.title ? this.data.title.replace(/\s+/g, '_') : 'event'}.ics`; a.click();
+                };
+                actions.appendChild(exportBtn);
+
+                if (!this.readOnly) {
+                    const notifyBtn = document.createElement('button'); notifyBtn.className = 'raw-btn'; 
+                    notifyBtn.textContent = (typeof Notification !== 'undefined' && Notification.permission === 'granted') ? 'notifications on' : 'notify me';
+                    notifyBtn.onclick = async () => { 
+                        if (!('Notification' in window)) return alert('Not supported'); 
+                        if (await Notification.requestPermission() === 'granted') { notifyBtn.textContent = 'notifications on'; NotificationEngine.schedule(this.id, this.data.datetime, this.data.title); } 
+                    };
+                    actions.appendChild(notifyBtn);
+                }
+
+                container.appendChild(actions);
+                return container;
+            }
+            updateDateDisplay() {
+                const d = new Date(this.data.datetime);
+                this.dateDisp.textContent = `${d.toLocaleDateString(undefined, {weekday: 'short', month:'short', day:'numeric'})} @ ${d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'})}`;
+            }
+            save() { this.data.id = this.id; return this.data; }
+        }
+
+        class ScanTool {
+            constructor(data, isReadOnly, onChange) {
+                this.data = { title: data.title || '', text: data.text || '' };
+                this.readOnly = isReadOnly; this.onChange = onChange;
+                this.container = document.createElement('div');
+            }
+            render() {
+                this.container.innerHTML = '';
+                appendTitleInput(this.data, this.readOnly, this.container, this.onChange);
+
+                if (this.data.text || this.readOnly) {
+                    this.output = document.createElement('textarea'); this.output.className = 'raw-input scan-output';
+                    this.output.value = this.data.text;
+                    if(this.readOnly) { this.output.readOnly = true; }
+                    else { this.output.addEventListener('input', e => { this.data.text = e.target.value; this.output.style.height = this.output.scrollHeight + 'px'; if(this.onChange) this.onChange(); }); }
+                    this.container.appendChild(this.output);
+                    setTimeout(() => { if(this.output) this.output.style.height = this.output.scrollHeight + 'px'; }, 0);
+                } else {
+                    this.btn = document.createElement('button'); this.btn.className = 'raw-btn'; this.btn.textContent = 'select image';
+                    this.fileInput = document.createElement('input'); this.fileInput.type = 'file'; this.fileInput.accept = 'image/*'; this.fileInput.style.display = 'none';
+                    this.btn.onclick = () => this.fileInput.click();
+                    this.fileInput.onchange = e => this.handleScan(e.target.files[0]);
+                    this.container.append(document.createElement('br'), this.btn, this.fileInput);
+                }
+                return this.container;
+            }
+            async handleScan(file) {
+                if(!file) return;
+                this.btn.textContent = 'analyzing...'; this.btn.classList.add('active');
+                try {
+                    if (typeof Tesseract === 'undefined') {
+                        await new Promise(r => { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'; s.onload = r; document.head.appendChild(s); });
+                    }
+                    const worker = await Tesseract.createWorker('eng', 1);
+                    const { data: { text } } = await worker.recognize(file);
+                    await worker.terminate();
+                    this.data.text = text.trim();
+                    this.render(); 
+                    if(this.onChange) this.onChange();
+                } catch(e) { this.btn.textContent = 'failed. retry'; this.btn.classList.remove('active'); }
+            }
             save() { return this.data; }
         }
 
         class RecallTool {
-            constructor({data, api, readOnly}) { 
-                this.api = api; this.readOnly = readOnly; 
-                this.data = data && data.recalled ? data : { recalled: false, sourceDate: null, sourceTime: null, sourceBlock: null, title: data?.title || '' }; 
-                this.wrapper = createEl('div', 'tool-box'); 
+            constructor(data, isReadOnly, onChange) {
+                this.data = data && data.recalled ? data : { title: data?.title || '', recalled: false, sourceDate: null, sourceBlock: null };
+                this.readOnly = isReadOnly; this.onChange = onChange;
+                this.container = document.createElement('div');
             }
             render() {
-                this.wrapper.innerHTML = '';
-                const header = createEl('div', 'tool-header');
-                this.titleInput = createEl('input', 'tool-title-input', { value: this.data.title || '', placeholder: 'RECALL TITLE...' });
-                if (this.readOnly) this.titleInput.readOnly = true;
-                this.titleInput.addEventListener('input', e => { this.data.title = e.target.value; this.api.onChange(); });
-                header.append(this.titleInput, createEl('div', 'tool-controls', { innerHTML: `<div style="padding: 4px; color: var(--muted-text);">${ICONS.recall}</div>` }));
-                this.wrapper.appendChild(header);
-
-                const body = createEl('div', '', { style: 'display: flex; flex-direction: column;' });
-                if (this.data.recalled) { body.appendChild(this.renderRecalledState()); } 
-                else if (!this.readOnly) { body.appendChild(this.renderSearchState()); } 
-                else { body.innerHTML = '<div style="padding: 12px; color: var(--muted-text);">Empty Recall</div>'; }
-                this.wrapper.appendChild(body);
-                return this.wrapper;
-            }
-            focus() { if(this.titleInput) this.titleInput.focus(); }
-            renderSearchState() {
-                const searchWrapper = createEl('div');
-                const row = createEl('div', 'flat-row', {style: 'padding: 12px; gap: 8px;'});
-                const input = createEl('input', 'flat-input', { type: 'text', placeholder: 'Semantic Search your past notes...' });
-                const dropdown = createEl('div', 'recall-dropdown');
-
-                input.addEventListener('focus', async () => { if (window.editor) { appDB.cache[window.currentDateStr] = await window.editor.save(); } });
+                this.container.innerHTML = '';
                 
-                let searchTimeout;
-                input.addEventListener('input', (e) => {
-                    clearTimeout(searchTimeout);
-                    const query = e.target.value.toLowerCase().trim(); 
-                    if (!query) { dropdown.innerHTML = ''; dropdown.classList.remove('active'); return; }
+                // Unified Baritone Title added here
+                appendTitleInput(this.data, this.readOnly, this.container, this.onChange);
+                
+                if (this.data.recalled) { this.container.appendChild(this.renderRecalledState()); }
+                else if (!this.readOnly) { this.container.appendChild(this.renderSearchState()); }
+                else { this.container.innerHTML = '<div style="color: var(--muted-text); font-size: 13px;">Empty Recall Block</div>'; }
+                return this.container;
+            }
+            renderSearchState() {
+                const wrapper = document.createElement('div'); wrapper.className = 'recall-search-wrapper';
+                const input = document.createElement('input'); input.className = 'recall-search-input';
+                input.type = 'text'; input.placeholder = 'Search past memory...';
+                const dropdown = document.createElement('div'); dropdown.className = 'recall-dropdown';
+                let queryVersion = 0;
+
+                input.addEventListener('focus', () => { scheduleSave(true); });
+                input.addEventListener('input', async (e) => {
+                    const query = e.target.value.trim(); const currentQuery = ++queryVersion;
+                    dropdown.innerHTML = '';
+                    if (!query) { dropdown.classList.remove('active'); return; }
+
+                    dropdown.appendChild(Object.assign(document.createElement('div'), { className: 'recall-result-item', textContent: 'Searching...' }));
+                    dropdown.classList.add('active');
+
+                    const keywordResults = collectKeywordRecallResults(query, window.currentDateStr);
+                    let semanticResults = [];
+                    try {
+                        const semanticHits = await vectorDB.search(query, { excludeDate: window.currentDateStr });
+                        semanticResults = semanticHits.map(r => {
+                            const block = appDB.cache[r.date]?.blocks?.find(b => b.id === r.blockId);
+                            return block && block.type !== 'recall' ? { date: r.date, block, timestamp: r.timestamp || 0, source: 'semantic', score: r.score } : null;
+                        }).filter(Boolean);
+                    } catch (e) { console.warn('Semantic recall err', e); }
+
+                    if (currentQuery !== queryVersion) return;
+                    dropdown.innerHTML = '';
                     
-                    searchTimeout = setTimeout(async () => {
-                        dropdown.innerHTML = '';
-                        dropdown.appendChild(createEl('div', 'recall-item', {textContent: 'Searching...', style: 'color: var(--muted-text); cursor: default;'}));
+                    const merged = new Map();
+                    const upsert = (res) => {
+                        const key = `${res.date}::${res.block.id}`;
+                        if (merged.has(key)) merged.get(key).source = 'hybrid'; else merged.set(key, {...res});
+                    };
+                    keywordResults.slice(0, 12).forEach(r => upsert({...r, score: 1.1}));
+                    semanticResults.slice(0, 12).forEach(upsert);
+                    
+                    const results = Array.from(merged.values()).sort((a,b) => (b.score||0) - (a.score||0)).slice(0, 12);
+
+                    if (results.length > 0) {
+                        results.forEach(res => {
+                            const item = document.createElement('div'); item.className = 'recall-result-item';
+                            const displayDate = new Date(res.date + 'T00:00:00').toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'});
+                            item.appendChild(Object.assign(document.createElement('div'), { className: 'recall-result-meta', textContent: `${displayDate} • ${res.source}` }));
+                            item.appendChild(Object.assign(document.createElement('div'), { className: 'recall-result-snippet', textContent: buildRecallSnippet(res.block) }));
+                            item.onclick = () => { this.data.recalled = true; this.data.sourceDate = res.date; this.data.sourceBlock = res.block; this.render(); if(this.onChange) this.onChange(); };
+                            dropdown.appendChild(item);
+                        });
                         dropdown.classList.add('active');
-
-                        let results = [];
-                        const isSemantic = !!embedPipeline;
-                        let queryVec = null;
-                        
-                        if (isSemantic) {
-                            dropdown.firstChild.textContent = 'Semantic Search...';
-                            queryVec = await generateEmbedding(query);
-                        }
-
-                        Object.entries(appDB.cache).forEach(([dateStr, dayData]) => {
-                            if (!dayData.blocks) return;
-                            dayData.blocks.forEach(block => {
-                                if (block.type === 'recall') return; 
-                                
-                                if (isSemantic && queryVec && block.data._embedding) {
-                                    const score = cosineSimilarity(queryVec, block.data._embedding);
-                                    if (score > 0.25) { // Vector similarity threshold
-                                        results.push({ date: dateStr, block: block, timestamp: dayData.timestamps?.[block.id], score: score });
-                                    }
-                                } else {
-                                    // Fallback to text matching
-                                    let searchableText = getBlockText(block).toLowerCase();
-                                    if (searchableText.includes(query)) { 
-                                        results.push({ date: dateStr, block: block, timestamp: dayData.timestamps?.[block.id], score: 1.0 }); 
-                                    }
-                                }
-                            });
-                        });
-                        
-                        // Sort by Semantic Score, then by Recency
-                        results.sort((a, b) => { 
-                            if (Math.abs(b.score - a.score) > 0.05) return b.score - a.score;
-                            const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime(); 
-                            if (dateDiff !== 0) return dateDiff; 
-                            return (b.timestamp || 0) - (a.timestamp || 0); 
-                        });
-
-                        dropdown.innerHTML = '';
-                        if (results.length > 0) {
-                            results.slice(0, 10).forEach(res => {
-                                const item = createEl('div', 'recall-item');
-                                const displayDate = new Date(res.date + 'T00:00:00').toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'});
-                                let snippet = "📄 " + res.block.type.toUpperCase();
-                                if (res.block.data.text) snippet = res.block.data.text.replace(/<[^>]*>?/gm, '');
-                                else if (res.block.data.title) snippet = res.block.data.title;
-                                else if (res.block.data.items) snippet = res.block.data.items.map(i=>i.content || i.text || '').join(', ').replace(/<[^>]*>?/gm, '');
-                                
-                                const matchType = res.score !== 1.0 ? `✨ ${Math.round(res.score * 100)}% Match` : 'Exact Match';
-
-                                item.appendChild(createEl('div', 'flat-row', {style: 'justify-content: space-between;'}, [
-                                    createEl('div', '', {textContent: `${displayDate}`, style: 'font-size: 10px; font-weight: bold;'}),
-                                    createEl('div', '', {textContent: matchType, style: 'font-size: 10px; color: var(--muted-text);'})
-                                ]));
-                                item.appendChild(createEl('div', '', {textContent: snippet.substring(0, 50) + '...', style: 'font-size: 14px;'}));
-                                item.onclick = () => { this.data = { recalled: true, sourceDate: res.date, sourceTime: res.timestamp, sourceBlock: res.block, title: this.data.title }; this.render(); this.api.onChange(); };
-                                dropdown.appendChild(item);
-                            });
-                        } else { dropdown.appendChild(createEl('div', 'recall-item', {textContent: 'No matches found'})); }
-                    }, 400); // Debounce to prevent lag while typing
+                    } else {
+                        dropdown.appendChild(Object.assign(document.createElement('div'), { className: 'recall-result-item', textContent: 'No matches found.' }));
+                    }
                 });
-
-                row.append(createEl('div', '', {innerHTML: ICONS.search}), input); searchWrapper.append(row, dropdown); setTimeout(() => input.focus(), 50); return searchWrapper;
+                wrapper.addEventListener('focusout', () => { setTimeout(() => { if (!wrapper.contains(document.activeElement)) dropdown.classList.remove('active'); }, 100); });
+                wrapper.append(input, dropdown); setTimeout(() => input.focus(), 50); return wrapper;
             }
             renderRecalledState() {
-                const container = createEl('div');
+                const container = document.createElement('div'); container.className = 'recalled-block';
                 const displayDate = new Date(this.data.sourceDate + 'T00:00:00').toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'});
-                const meta = createEl('div', 'flat-row', {style: 'padding: 8px 12px; background: var(--text-color); color: var(--bg-color); font-size: 10px; font-weight: bold;'});
-                meta.appendChild(createEl('div', '', {innerHTML: ICONS.recall, style: 'color: var(--bg-color);'})); meta.appendChild(createEl('span', '', {textContent: `RECALLED FROM ${displayDate}`})); container.appendChild(meta);
-
-                const TargetClass = window.EDITOR_TOOLS[this.data.sourceBlock.type];
-                if (TargetClass) {
+                container.appendChild(Object.assign(document.createElement('div'), { className: 'recalled-orig-meta', textContent: `Recalled from ${displayDate}` }));
+                
+                const ToolClass = TOOLS_MAP[this.data.sourceBlock.type];
+                if (ToolClass) {
                     try {
-                        const instance = new TargetClass({ data: this.data.sourceBlock.data, readOnly: true, api: this.api });
-                        const renderedNode = instance.render();
-                        renderedNode.style.pointerEvents = this.data.sourceBlock.type === 'voice' ? 'auto' : 'none'; 
-                        renderedNode.style.margin = '0'; renderedNode.style.border = 'none';
-                        container.appendChild(renderedNode);
-                    } catch (e) { container.appendChild(createEl('div', '', {textContent: 'Error rendering block.'})); }
+                        const instance = new ToolClass(this.data.sourceBlock.data, true, () => {});
+                        const rendered = instance.render();
+                        rendered.style.pointerEvents = this.data.sourceBlock.type === 'voice' ? 'auto' : 'none';
+                        container.appendChild(rendered);
+                    } catch(e) { container.appendChild(document.createTextNode('Render error.')); }
+                } else if (this.data.sourceBlock.type === 'text') {
+                    const p = document.createElement('div'); p.className = 'text-content'; p.innerHTML = this.data.sourceBlock.data.text; p.style.fontSize = '18px'; container.appendChild(p);
                 }
                 return container;
             }
             save() { return this.data; }
         }
 
-        class SmartCanvasTool {
-            constructor({data, api, readOnly}) {
-                this.api = api; this.readOnly = readOnly;
-                this.data = { mode: data.mode || null, title: data.title || '', lat: data.lat || 51.505, lng: data.lng || -0.09, zoom: data.zoom || 13, isLocked: data.isLocked || false, baseImage: data.baseImage || null, imgWidth: data.imgWidth || null, imgHeight: data.imgHeight || null, hasInitializedView: data.hasInitializedView || false, lines: data.lines || [], isDrawingActive: data.isDrawingActive || false };
-                this.wrapper = createEl('div', 'tool-box');
-                this.currentColor = '#EF4444'; this.lineLayers = []; this.currentPolyline = null; this.currentPoints = [];
-                this.resizeObserver = null;
-            }
-            render() {
-                this.wrapper.innerHTML = ''; 
-                
-                if (!this.data.mode) {
-                    if (this.readOnly) {
-                        this.wrapper.innerHTML = '<div style="padding: 24px; text-align: center;">Empty Canvas</div>';
-                    } else this.renderSelector();
-                } else {
-                    const header = createEl('div', 'tool-header');
-                    this.titleInput = createEl('input', 'tool-title-input', { value: this.data.title, placeholder: 'CANVAS TITLE...' });
-                    if (this.readOnly) this.titleInput.readOnly = true;
-                    this.titleInput.addEventListener('input', (e) => { this.data.title = e.target.value; this.api.onChange(); });
-                    
-                    const controls = createEl('div', 'tool-controls');
-                    if (!this.readOnly) {
-                        this.colorPicker = createEl('input', '', { type: 'color', value: this.currentColor, style: 'width: 28px; height: 28px; border: none; padding: 0; background: transparent; cursor: pointer; display: none;' });
-                        this.colorPicker.addEventListener('input', (e) => { this.currentColor = e.target.value; });
-                        
-                        this.drawBtn = createEl('button', 'tool-icon-btn', { innerHTML: ICONS.pen, style: 'display: none;' });
-                        this.drawBtn.onclick = () => { 
-                            this.data.isDrawingActive = !this.data.isDrawingActive; 
-                            if (this.data.isDrawingActive) this.drawBtn.classList.add('active'); else this.drawBtn.classList.remove('active');
-                            this.updateInteractions(); this.api.onChange(); 
-                        };
-                        
-                        this.lockBtn = createEl('button', 'tool-icon-btn', { innerHTML: this.data.isLocked ? ICONS.lock : ICONS.unlock });
-                        this.lockBtn.onclick = () => { this.data.isLocked = !this.data.isLocked; this.updateInteractions(); this.api.onChange(); };
-                        
-                        controls.append(this.colorPicker, this.drawBtn, this.lockBtn);
-                    }
-                    header.append(this.titleInput, controls);
-                    this.wrapper.appendChild(header); 
-                    this.renderUniversalCanvas();
-                }
-                return this.wrapper;
-            }
-            focus() { if(this.titleInput) this.titleInput.focus(); }
-            renderSelector() {
-                const header = createEl('div', 'tool-header');
-                header.append(createEl('input', 'tool-title-input', { placeholder: 'SELECT CANVAS TYPE...', readOnly: true }));
-                this.wrapper.appendChild(header);
-
-                const body = createEl('div', 'flat-row', {style: 'padding: 12px; gap: 8px;'});
-                const mapBtn = createEl('button', 'flat-btn', {style: 'flex: 1; height: 60px;'}, [createEl('div', '', {innerHTML: ICONS.map}), createEl('span', '', {textContent: 'MAP'})]);
-                const photoBtn = createEl('button', 'flat-btn', {style: 'flex: 1; height: 60px;'}, [createEl('div', '', {innerHTML: ICONS.image}), createEl('span', '', {textContent: 'PHOTO'})]);
-                const blankBtn = createEl('button', 'flat-btn', {style: 'flex: 1; height: 60px;'}, [createEl('div', '', {innerHTML: ICONS.canvas}), createEl('span', '', {textContent: 'BLANK'})]);
-                const fileInput = createEl('input', '', { type: 'file', accept: 'image/*', style: 'display: none;' });
-                
-                mapBtn.onclick = () => { this.data.mode = 'map'; this.render(); this.api.onChange(); };
-                blankBtn.onclick = () => { this.data.mode = 'blank'; this.render(); this.api.onChange(); };
-                photoBtn.onclick = () => fileInput.click();
-                fileInput.onchange = (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (re) => { 
-                            const img = new Image();
-                            img.onload = () => { this.data.baseImage = re.target.result; this.data.imgWidth = img.width; this.data.imgHeight = img.height; this.data.mode = 'image'; this.render(); this.api.onChange(); };
-                            img.src = re.target.result;
-                        }; reader.readAsDataURL(file);
-                    }
-                };
-                body.append(mapBtn, photoBtn, blankBtn, fileInput);
-                this.wrapper.appendChild(body);
-            }
-            renderUniversalCanvas() {
-                if (this.map) { this.map.remove(); this.map = null; }
-                this.mediaContainer = createEl('div', 'leaflet-container', {style: 'width: 100%; min-height: 400px; display: block; z-index: 1; border: none; touch-action: none;'}); 
-                this.wrapper.appendChild(this.mediaContainer);
-                
-                requestAnimationFrame(() => {
-                    if (!this.mediaContainer.isConnected) return;
-                    if (this.data.mode === 'map') {
-                        this.map = L.map(this.mediaContainer, { zoomControl: false, attributionControl: false }).setView([this.data.lat, this.data.lng], this.data.zoom);
-                        const tileUrl = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-                        L.tileLayer(tileUrl, { maxZoom: 20 }).addTo(this.map);
-                    } else {
-                        this.map = L.map(this.mediaContainer, { crs: L.CRS.Simple, zoomControl: false, attributionControl: false, minZoom: -4 });
-                        if (this.data.mode === 'image' && this.data.baseImage) {
-                            const bounds = [[0, 0], [this.data.imgHeight || 600, this.data.imgWidth || 800]];
-                            L.imageOverlay(this.data.baseImage, bounds).addTo(this.map);
-                            if (!this.data.hasInitializedView && !this.readOnly) { this.map.fitBounds(bounds); this.data.hasInitializedView = true; this.api.onChange(); } 
-                            else { this.map.setView([this.data.lat, this.data.lng], this.data.zoom); }
-                        } else { this.map.setView([this.data.lat || 0, this.data.lng || 0], this.data.zoom || 0); }
-                    }
-                    this.renderExistingLines(); this.initDrawingTracker(); this.updateInteractions();
-                    this.map.on('moveend', () => this.api.onChange());
-                    
-                    const ro = new ResizeObserver(() => { if (this.map) this.map.invalidateSize(); });
-                    ro.observe(this.mediaContainer); this.resizeObserver = ro;
-                });
-            }
-            renderExistingLines() {
-                this.lineLayers.forEach(layer => this.map.removeLayer(layer)); this.lineLayers = [];
-                this.data.lines.forEach(line => { this.lineLayers.push(L.polyline(line.points, { color: line.color, weight: line.weight, lineCap: 'round', lineJoin: 'round', smoothFactor: 1.5 }).addTo(this.map)); });
-            }
-            initDrawingTracker() {
-                if (this.readOnly) return; let isPointerDown = false;
-                
-                this.mediaContainer.addEventListener('pointerdown', (e) => {
-                    if (!this.data.isDrawingActive) return; 
-                    isPointerDown = true; 
-                    this.mediaContainer.setPointerCapture(e.pointerId);
-                    this.currentPoints = [this.map.mouseEventToLatLng(e)];
-                    this.currentPolyline = L.polyline(this.currentPoints, { color: this.currentColor, weight: 4, lineCap: 'round', lineJoin: 'round', smoothFactor: 1.5 }).addTo(this.map);
-                });
-
-                this.mediaContainer.addEventListener('pointermove', (e) => {
-                    if (!this.data.isDrawingActive || !isPointerDown || !this.currentPolyline) return;
-                    this.currentPoints.push(this.map.mouseEventToLatLng(e));
-                    this.currentPolyline.setLatLngs(this.currentPoints);
-                });
-
-                const endDraw = () => {
-                    if (!isPointerDown) return; 
-                    isPointerDown = false; 
-                    if (!this.currentPolyline || !this.data.isDrawingActive) return;
-                    this.data.lines.push({ color: this.currentColor, weight: 4, points: this.currentPoints.map(p => [p.lat, p.lng]) });
-                    this.lineLayers.push(this.currentPolyline); this.currentPolyline = null; this.currentPoints = []; this.api.onChange();
-                };
-
-                this.mediaContainer.addEventListener('pointerup', endDraw);
-                this.mediaContainer.addEventListener('pointercancel', endDraw);
-            }
-            updateInteractions() {
-                if (!this.map) return; this.mediaContainer.classList.remove('drawing-mode');
-                const disableAll = () => { this.map.dragging.disable(); this.map.touchZoom.disable(); this.map.doubleClickZoom.disable(); this.map.scrollWheelZoom.disable(); this.map.boxZoom.disable(); this.map.keyboard.disable(); if (this.map.tap) this.map.tap.disable(); };
-                const enableAll = () => { this.map.dragging.enable(); this.map.touchZoom.enable(); this.map.doubleClickZoom.enable(); this.map.scrollWheelZoom.enable(); this.map.boxZoom.enable(); this.map.keyboard.enable(); if (this.map.tap) this.map.tap.enable(); };
-
-                if (this.readOnly) { disableAll(); return; }
-                if (!this.data.isLocked) {
-                    this.data.isDrawingActive = false; enableAll();
-                    if (this.lockBtn) this.lockBtn.innerHTML = ICONS.unlock;
-                    if (this.drawBtn) { this.drawBtn.style.display = 'none'; this.colorPicker.style.display = 'none'; this.drawBtn.classList.remove('active'); }
-                } else {
-                    disableAll();
-                    if (this.lockBtn) this.lockBtn.innerHTML = ICONS.lock;
-                    if (this.drawBtn) { 
-                        this.drawBtn.style.display = 'flex'; 
-                        this.colorPicker.style.display = this.data.isDrawingActive ? 'block' : 'none'; 
-                        if (this.data.isDrawingActive) this.mediaContainer.classList.add('drawing-mode');
-                    }
-                }
-            }
-            save() { if (this.map && this.data.mode) { const center = this.map.getCenter(); this.data.lat = center.lat; this.data.lng = center.lng; this.data.zoom = this.map.getZoom(); } return this.data; }
-            destroy() { if (this.resizeObserver) this.resizeObserver.disconnect(); if (this.map) { this.map.remove(); this.map = null; } }
-        }
-
-        window.EDITOR_TOOLS = {
-            paragraph: ParagraphBlock, header: HeaderBlock, checklist: ChecklistBlock, list: ListBlock,
-            scan: ScanTool, compute: ComputeTool, smartCanvas: SmartCanvasTool, calendar: CalendarTool,
-            voice: VoiceMemo, recall: RecallTool, aiStream: AIStreamBlock
-        };
+        const TOOLS_MAP = { compute: ComputeTool, voice: VoiceTool, smartCanvas: SmartCanvasTool, calendar: CalendarTool, scan: ScanTool, recall: RecallTool };
 
         // ============================================================================
-        // CORE BLOCK MANAGER
+        // 🖋 THE LEAN STREAM EDITOR 
         // ============================================================================
-        class BlockManager {
-            constructor(containerId, options) {
+        class LeanStreamEditor {
+            constructor(containerId) {
                 this.container = document.getElementById(containerId);
-                this.readOnly = options.readOnly || false;
-                this.onChange = options.onChange || function(){};
-                this.blocks = []; this.menu = document.getElementById('block-menu'); this.menuTargetIndex = -1;
+                this.inlineMenu = document.getElementById('inline-menu');
+                this.inlinePlus = document.getElementById('inline-plus');
                 
-                this.initMenu(); this.container.innerHTML = '';
-                const dataBlocks = options.data?.blocks || [];
-                if (dataBlocks.length === 0 && !this.readOnly) { this.insertBlock('paragraph', {}, 0, false); } 
-                else { dataBlocks.forEach((b, i) => this.insertBlock(b.type, b.data, i, false)); }
+                this.blocks = []; this.activeBlockId = null;
 
-                document.addEventListener('click', (e) => { if (!this.menu.contains(e.target) && !e.target.closest('.add-btn')) this.closeMenu(); });
-            }
-
-            initMenu() {
-                const types = [
-                    {id: 'paragraph', icon: ICONS.text, name: 'Text'}, {id: 'header', icon: ICONS.header, name: 'Header'},
-                    {id: 'list', icon: ICONS.list, name: 'List'}, {id: 'checklist', icon: ICONS.check, name: 'Checklist'},
-                    {id: 'smartCanvas', icon: ICONS.pen, name: 'Canvas'}, {id: 'scan', icon: ICONS.scan, name: 'Scan'},
-                    {id: 'compute', icon: ICONS.compute, name: 'Compute'}, {id: 'calendar', icon: ICONS.calendar, name: 'Calendar'},
-                    {id: 'voice', icon: ICONS.mic, name: 'Voice'}, {id: 'recall', icon: ICONS.recall, name: 'Recall'}
-                ];
-                types.forEach(t => {
-                    const item = createEl('div', 'menu-item', {}, [ createEl('div', '', {innerHTML: t.icon}), createEl('span', '', {textContent: t.name}) ]);
-                    item.onclick = () => { this.insertBlock(t.id, {}, this.menuTargetIndex, true); this.closeMenu(); }; this.menu.appendChild(item);
+                this.inlinePlus.onmousedown = (e) => { e.preventDefault(); this.inlineMenu.classList.toggle('expanded'); };
+                document.querySelectorAll('.inline-tool-btn').forEach(btn => {
+                    btn.onmousedown = (e) => {
+                        e.preventDefault(); if (window.currentDateStr !== todayStr) return;
+                        const toolType = btn.getAttribute('data-insert');
+                        this.addToolBlock(toolType, {});
+                        this.inlineMenu.classList.remove('expanded', 'visible');
+                    };
                 });
             }
 
-            openMenu(index, buttonEl) {
-                this.menuTargetIndex = index; const rect = buttonEl.getBoundingClientRect();
-                this.menu.style.top = `${rect.bottom + window.scrollY + 5}px`;
-                
-                let leftPos = rect.right - 280; 
-                if (leftPos < 16) leftPos = 16;
-                this.menu.style.left = `${leftPos}px`;
-                
-                this.menu.classList.add('active');
-            }
-            closeMenu() { this.menu.classList.remove('active'); }
+            load(blocksData) {
+                Array.from(this.container.children).forEach(child => { if (child.id !== 'inline-menu') this.container.removeChild(child); });
+                this.blocks = []; this.inlineMenu.classList.remove('visible', 'expanded');
 
-            createBlockAPI(instanceId) {
-                return {
-                    onChange: () => this.onChange(),
-                    getIndex: (instance) => { for(let i=0; i<this.blocks.length; i++) { if (this.blocks[i].instance === instance) return i; } return -1; },
-                    insertBlock: (type, data, index, focus) => {
-                        const block = this.insertBlock(type, data, index, focus);
-                        if (!['paragraph', 'header', 'list', 'checklist'].includes(type) && !this.readOnly) {
-                            this.insertBlock('paragraph', {}, index + 1, false);
+                if (!blocksData || blocksData.length === 0) {
+                    this.addTextBlock('', 'user');
+                } else {
+                    blocksData.forEach(b => {
+                        if (['paragraph', 'text', 'header', 'list', 'checklist'].includes(b.type)) {
+                            let textContent = b.data.text || '';
+                            if (b.type === 'header') textContent = `<b>${textContent}</b>`;
+                            if (b.type === 'list') textContent = (b.data.items||[]).map(i => `• ${i.content||i.text}`).join('<br>');
+                            if (b.type === 'checklist') textContent = (b.data.items||[]).map(i => `${i.checked ? '[x]' : '[ ]'} ${i.text}`).join('<br>');
+                            this.addTextBlock(textContent, b.author || 'user', b.id, b.timestamp);
+                        } else {
+                            this.addToolBlock(b.type, b.data, b.author || 'user', b.id, b.timestamp);
                         }
-                        return block;
-                    },
-                    deleteBlock: (index) => this.deleteBlock(index),
-                    focus: (index) => this.focus(index)
+                    });
+                }
+                if (this.blocks.length === 0 || this.blocks[this.blocks.length - 1].type !== 'text') this.addTextBlock('', 'user');
+            }
+
+            save() {
+                return {
+                    blocks: this.blocks.map(b => {
+                        let data = b.data;
+                        if (b.type === 'text') data = { text: b.dom.querySelector('.text-content').innerHTML };
+                        else if (b.instance && b.instance.save) data = b.instance.save();
+                        return { id: b.id, type: b.type, data, author: b.author, timestamp: b.timestamp };
+                    })
                 };
             }
 
-            insertBlock(type, data, index = this.blocks.length, focus = true) {
-                const BlockClass = window.EDITOR_TOOLS[type]; if (!BlockClass) return;
-
-                const blockId = crypto.randomUUID(); const api = this.createBlockAPI(blockId);
-                const instance = new BlockClass({ data, api, readOnly: this.readOnly });
-                const wrapper = createEl('div', 'block-wrapper'); wrapper.dataset.id = blockId;
-                
-                if (!this.readOnly) {
-                    const actions = createEl('div', 'block-actions');
-                    const addBtn = createEl('button', 'action-btn add-btn', {innerHTML: ICONS.plus, title: 'ADD BLOCK'});
-                    const delBtn = createEl('button', 'action-btn del-btn', {innerHTML: ICONS.trash, title: 'DELETE BLOCK'});
-                    addBtn.onclick = (e) => { e.stopPropagation(); this.openMenu(this.blocks.findIndex(b => b.id === blockId) + 1, addBtn); };
-                    delBtn.onclick = (e) => { e.stopPropagation(); this.deleteBlock(this.blocks.findIndex(b => b.id === blockId)); };
-                    actions.append(addBtn, delBtn); wrapper.appendChild(actions);
+            insertBlockIntoDOMArray(blockObj) {
+                let insertIndex = this.blocks.length;
+                if (this.activeBlockId) {
+                    const activeIndex = this.blocks.findIndex(b => b.id === this.activeBlockId);
+                    if (activeIndex !== -1) insertIndex = activeIndex + 1; 
                 }
-
-                wrapper.append(createEl('div', 'block-content', {}, [instance.render()]), createEl('div', 'block-time'));
-                const blockDef = { id: blockId, type, instance, wrapper };
                 
-                if (index >= this.blocks.length) { this.blocks.push(blockDef); this.container.appendChild(wrapper); } 
-                else { this.blocks.splice(index, 0, blockDef); this.container.insertBefore(wrapper, this.container.children[index]); }
-
-                if (focus && typeof instance.focus === 'function') setTimeout(() => instance.focus(), 0);
-                this.onChange(); return blockDef;
+                if (insertIndex >= this.blocks.length) {
+                    this.container.appendChild(blockObj.dom); this.blocks.push(blockObj);
+                } else {
+                    this.container.insertBefore(blockObj.dom, this.blocks[insertIndex].dom); this.blocks.splice(insertIndex, 0, blockObj);
+                }
+                blockObj.dom.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
 
-            deleteBlock(index) {
-                if (index < 0 || index >= this.blocks.length) return; const block = this.blocks[index];
-                if (typeof block.instance.destroy === 'function') block.instance.destroy();
-                block.wrapper.remove(); this.blocks.splice(index, 1);
-                if (this.blocks.length === 0 && !this.readOnly) this.insertBlock('paragraph', {}, 0, true);
-                this.onChange();
+            addTextBlock(html, author = 'user', id = crypto.randomUUID(), timestamp = Date.now()) {
+                const block = { id, type: 'text', data: {text: html}, author, timestamp, dom: null };
+                const div = document.createElement('div'); div.className = `stream-block author-${author}`; div.dataset.id = id;
+
+                const content = document.createElement('div'); content.className = 'text-content';
+                content.contentEditable = window.currentDateStr === todayStr; 
+                content.dataset.placeholder = author === 'user' ? "start writing..." : "";
+                content.innerHTML = html;
+                
+                content.addEventListener('focus', () => { this.activeBlockId = id; this.updateInlineMenuPosition(div, content); });
+                content.addEventListener('input', () => { this.updateInlineMenuPosition(div, content); scheduleSave(); });
+                content.addEventListener('blur', () => {
+                    setTimeout(() => {
+                        if (!this.container.contains(document.activeElement) && !this.inlineMenu.contains(document.activeElement)) {
+                            this.inlineMenu.classList.remove('visible', 'expanded');
+                        }
+                    }, 100);
+                });
+
+                content.addEventListener('keydown', (e) => this.handleTextKeydown(e, block, content));
+                div.appendChild(content); block.dom = div; this.insertBlockIntoDOMArray(block); return block;
             }
 
-            focus(index) { if (index >= 0 && index < this.blocks.length && typeof this.blocks[index].instance.focus === 'function') { this.blocks[index].instance.focus(); } }
-            async save() {
-                const output = [];
-                for (let block of this.blocks) { if (typeof block.instance.save === 'function') { output.push({ id: block.id, type: block.type, data: await block.instance.save() }); } }
-                return { blocks: output };
+            addToolBlock(type, data, author = 'user', id = crypto.randomUUID(), timestamp = Date.now()) {
+                const ToolClass = TOOLS_MAP[type];
+                if (!ToolClass) return null;
+
+                const block = { id, type, data, author, timestamp, dom: null, instance: null };
+                const instance = new ToolClass(data, window.currentDateStr !== todayStr, () => scheduleSave());
+                block.instance = instance;
+                
+                const panel = document.createElement('div'); panel.className = 'baritone-panel stream-block'; panel.dataset.id = id;
+                const header = document.createElement('div'); header.className = 'panel-header';
+                
+                const titleSpan = document.createElement('span'); titleSpan.textContent = `[ ${type} ]`;
+                const controls = document.createElement('div'); controls.className = 'panel-controls';
+                
+                if (window.currentDateStr === todayStr) {
+                    const upBtn = document.createElement('button'); upBtn.className = 'panel-ctrl-btn'; upBtn.innerHTML = '↑';
+                    const downBtn = document.createElement('button'); downBtn.className = 'panel-ctrl-btn'; downBtn.innerHTML = '↓';
+                    const delBtn = document.createElement('button'); delBtn.className = 'panel-ctrl-btn delete'; delBtn.innerHTML = '✕';
+                    upBtn.onclick = () => this.moveBlock(id, -1); downBtn.onclick = () => this.moveBlock(id, 1); delBtn.onclick = () => this.deleteBlock(id);
+                    controls.append(upBtn, downBtn, delBtn);
+                    
+                    if (type === 'smartCanvas') {
+                        const lockBtn = document.createElement('button'); lockBtn.className = 'panel-ctrl-btn';
+                        lockBtn.style.color = data.isLocked ? 'var(--text-color)' : 'var(--muted-text)'; lockBtn.innerHTML = data.isLocked ? 'locked' : 'unlocked';
+                        lockBtn.onclick = () => {
+                            instance.data.isLocked = !instance.data.isLocked; instance.updateLock();
+                            lockBtn.innerHTML = instance.data.isLocked ? 'locked' : 'unlocked';
+                            lockBtn.style.color = instance.data.isLocked ? 'var(--text-color)' : 'var(--muted-text)';
+                            scheduleSave();
+                        };
+                        controls.prepend(lockBtn);
+                    }
+                }
+                
+                header.append(titleSpan, controls); panel.append(header, instance.render());
+                block.dom = panel; this.insertBlockIntoDOMArray(block);
+                
+                if (window.currentDateStr === todayStr) {
+                    this.activeBlockId = id; const textBlock = this.addTextBlock('', 'user');
+                    setTimeout(() => textBlock.dom.querySelector('.text-content').focus(), 50);
+                }
+                scheduleSave(); return block;
             }
-            destroy() { this.blocks.forEach(b => { if (typeof b.instance.destroy === 'function') b.instance.destroy(); }); this.container.innerHTML = ''; this.blocks = []; }
+
+            moveBlock(id, direction) {
+                const idx = this.blocks.findIndex(b => b.id === id); if (idx === -1) return;
+                if (direction === -1 && idx > 0) {
+                    const prev = this.blocks[idx - 1]; this.container.insertBefore(this.blocks[idx].dom, prev.dom);
+                    [this.blocks[idx - 1], this.blocks[idx]] = [this.blocks[idx], this.blocks[idx - 1]]; scheduleSave();
+                } else if (direction === 1 && idx < this.blocks.length - 1) {
+                    const next = this.blocks[idx + 1]; this.container.insertBefore(next.dom, this.blocks[idx].dom); 
+                    [this.blocks[idx + 1], this.blocks[idx]] = [this.blocks[idx], this.blocks[idx + 1]]; scheduleSave();
+                }
+            }
+
+            deleteBlock(id) {
+                const idx = this.blocks.findIndex(b => b.id === id); if (idx === -1) return;
+                this.container.removeChild(this.blocks[idx].dom); this.blocks.splice(idx, 1);
+                if (this.blocks.length === 0) this.addTextBlock('', 'user'); scheduleSave();
+            }
+
+            updateInlineMenuPosition(blockDiv, contentNode) {
+                if (window.currentDateStr !== todayStr) return;
+                const isEmpty = contentNode.innerText.trim() === '';
+                if (isEmpty) {
+                    this.inlineMenu.style.top = `${blockDiv.offsetTop}px`; this.inlineMenu.classList.add('visible');
+                } else { this.inlineMenu.classList.remove('visible', 'expanded'); }
+            }
+
+            handleTextKeydown(e, block, content) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    const textContent = content.innerText; const lines = textContent.split('\n');
+                    const lastLine = lines[lines.length - 1].trim(); const trigger = `@${CONFIG.AI_NAME} `;
+
+                    if (lastLine.toLowerCase().startsWith(trigger.toLowerCase())) {
+                        e.preventDefault(); const prompt = lastLine.substring(trigger.length).trim();
+                        lines.pop(); content.innerHTML = lines.join('<br>') || '<br>';
+                        this.triggerAI(prompt, block.id);
+                    } else if (textContent.trim() !== '') {
+                        const sel = window.getSelection();
+                        if (sel.getRangeAt(0).endOffset >= content.innerText.length) {
+                            e.preventDefault(); this.activeBlockId = block.id; 
+                            const textBlock = this.addTextBlock('', 'user');
+                            setTimeout(() => textBlock.dom.querySelector('.text-content').focus(), 10);
+                        }
+                    }
+                }
+                
+                if (e.key === 'Backspace' && content.innerText.trim() === '' && this.blocks.length > 1) {
+                    e.preventDefault(); const idx = this.blocks.findIndex(b => b.id === block.id);
+                    if (idx > 0) {
+                        this.deleteBlock(block.id); this.inlineMenu.classList.remove('visible', 'expanded'); 
+                        for (let i = idx - 1; i >= 0; i--) {
+                            if (this.blocks[i].type === 'text') {
+                                const prevContent = this.blocks[i].dom.querySelector('.text-content');
+                                prevContent.focus(); this.activeBlockId = this.blocks[i].id;
+                                const range = document.createRange(); const sel = window.getSelection();
+                                range.selectNodeContents(prevContent); range.collapse(false);
+                                sel.removeAllRanges(); sel.addRange(range); break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            async triggerAI(prompt, sourceBlockId) {
+                if (!aiEngine) return alert("AI offline.");
+                this.activeBlockId = sourceBlockId;
+                const aiBlock = this.addTextBlock("<em>analyzing context...</em>", "ai");
+                const aiContentNode = aiBlock.dom.querySelector('.text-content');
+                aiContentNode.contentEditable = false;
+                
+                aiStatusEl.className = 'neon-status ai-status loading';
+                aiStatusEl.textContent = 'sys.ai.generating';
+
+                try {
+                    let docContext = this.blocks.map(b => b.type === 'text' ? b.dom.innerText : `[${b.type}]`).join('\n');
+                    
+                    // Pull memory
+                    let memoryContext = "";
+                    try {
+                        const hits = await vectorDB.search(prompt, { excludeDate: todayStr });
+                        if(hits.length > 0) {
+                            memoryContext = hits.map(h => {
+                                const b = appDB.cache[h.date]?.blocks?.find(x => x.id === h.blockId);
+                                return `[${h.date}] ${buildRecallSnippet(b)}`;
+                            }).join('\n');
+                        }
+                    } catch(e) {}
+
+                    const systemMsg = `${CONFIG.AI_PERSONALITY}\nContext:\n${docContext}\nMemories:\n${memoryContext || 'none'}`;
+                    
+                    const chunks = await aiEngine.chat.completions.create({
+                        messages: [{ role: 'system', content: systemMsg }, { role: 'user', content: prompt }],
+                        stream: true
+                    });
+
+                    let fullHtml = '';
+                    for await (const chunk of chunks) {
+                        const delta = chunk.choices[0]?.delta?.content || '';
+                        fullHtml += delta.replace(/\n/g, '<br>');
+                        aiContentNode.innerHTML = fullHtml;
+                    }
+                    aiContentNode.contentEditable = true; 
+                    
+                    this.activeBlockId = aiBlock.id;
+                    const textBlock = this.addTextBlock('', 'user');
+                    setTimeout(() => textBlock.dom.querySelector('.text-content').focus(), 50);
+
+                    scheduleSave();
+                } catch (e) { aiContentNode.innerHTML = "<em>error. connection lost.</em>"; } 
+                finally {
+                    aiStatusEl.className = 'neon-status ai-status';
+                    aiStatusEl.textContent = 'sys.ai.online';
+                }
+            }
         }
+
+        const editor = new LeanStreamEditor('lean-editor');
 
         // ============================================================================
-        // CORE APP LIFECYCLE 
+        // APP LIFECYCLE & STORAGE SYNC
         // ============================================================================
-        window.editor = null; 
-        let timestamps = {}, updateRaf, saveTimeout, isSaving = false, hasPendingSave = false;
-        let todayStr = getLocalYYYYMMDD(new Date()); window.currentDateStr = todayStr;
-
-        function getDisplayDate(dateStr) { const [y, m, d] = dateStr.split('-'); const date = new Date(y, m - 1, d); return `${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}<br>${date.toLocaleDateString(undefined, { weekday: 'long' })}`; }
-        document.getElementById('date-header').innerHTML = getDisplayDate(window.currentDateStr);
-
-        const domObserver = new MutationObserver(() => { cancelAnimationFrame(updateRaf); updateRaf = requestAnimationFrame(updateAllTimestamps); });
-
-        function updateAllTimestamps() {
-            document.querySelectorAll('.block-wrapper').forEach(block => {
-                const id = block.getAttribute('data-id'); if (!id) return;
-                let timeEl = block.querySelector('.block-time');
-                if (timestamps[id]) { timeEl.textContent = new Date(timestamps[id]).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }); } 
-                else if (window.currentDateStr === todayStr && window.editor) { timestamps[id] = Date.now(); timeEl.textContent = new Date(timestamps[id]).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }); scheduleSave(); }
-            });
-        }
-
-        function executeSave() {
-            if (!window.editor || window.currentDateStr !== todayStr) { isSaving = false; hasPendingSave = false; return; }
-            isSaving = true;
-            window.editor.save().then(outputData => {
-                outputData.timestamps = timestamps; return appDB.save(window.currentDateStr, outputData);
-            }).then(() => {
-                const indicator = document.getElementById('save-indicator');
-                if (indicator && !appDB.isMemoryOnly) { indicator.classList.add('visible'); setTimeout(() => indicator.classList.remove('visible'), 1500); }
-            }).catch(e => console.error("Save failed:", e)).finally(() => { isSaving = false; if (hasPendingSave) { hasPendingSave = false; executeSave(); } });
-        }
+        let saveTimeout;
+        const saveIndicator = document.getElementById('save-indicator');
 
         function scheduleSave(immediate = false) {
-            if (appDB.isMemoryOnly) return; clearTimeout(saveTimeout);
-            if (immediate) { if (isSaving) hasPendingSave = true; else executeSave(); } else { saveTimeout = setTimeout(() => { if (isSaving) hasPendingSave = true; else executeSave(); }, 800); }
+            if (window.currentDateStr !== todayStr || appDB.isMemoryOnly) return;
+            clearTimeout(saveTimeout);
+            const doSave = () => {
+                const data = editor.save();
+                appDB.save(window.currentDateStr, data).then(() => {
+                    saveIndicator.classList.add('visible');
+                    setTimeout(() => saveIndicator.classList.remove('visible'), 1500);
+                    vectorDB.scheduleIndexDay(window.currentDateStr, data);
+                });
+            };
+            if(immediate) doSave(); else saveTimeout = setTimeout(doSave, 800);
         }
 
-        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') scheduleSave(true); }); window.addEventListener('pagehide', () => scheduleSave(true));
-        
+        function renderDateHeader() {
+            const d = new Date(window.currentDateStr + 'T00:00:00');
+            const str = d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+            document.getElementById('date-header').textContent = str.toLowerCase();
+        }
+
+        async function loadDay(dateStr) {
+            window.currentDateStr = dateStr;
+            renderDateHeader();
+            const data = appDB.cache[dateStr] || { blocks: [] };
+            editor.load(data.blocks);
+        }
+
         document.getElementById('date-header').onclick = () => {
-            scheduleSave(true); const [y, m, d] = window.currentDateStr.split('-').map(Number);
-            DatePicker.open(new Date(y, m - 1, d), (selectedDate) => {
+            const [y, m, d] = window.currentDateStr.split('-');
+            EditorialCalendar.open(new Date(y, m-1, d), false, (selectedDate) => {
                 const selectedStr = getLocalYYYYMMDD(selectedDate);
-                if (window.currentDateStr !== selectedStr) { window.currentDateStr = selectedStr; document.getElementById('date-header').innerHTML = getDisplayDate(selectedStr); initEditor(selectedStr); }
-            }, { showTime: false, disableFuture: true, onlyNotes: true }); 
+                if (window.currentDateStr !== selectedStr) {
+                    scheduleSave(true);
+                    loadDay(selectedStr);
+                }
+            });
         };
 
-        // ============================================================================
-        // EDITOR INITIALIZATION
-        // ============================================================================
-        async function initEditor(date) {
-            if (window.editor) { scheduleSave(true); domObserver.disconnect(); window.editor.destroy(); window.editor = null; }
-            const isToday = date === todayStr; let cachedData = appDB.cache[date];
-            let editorData = cachedData ? { blocks: [...cachedData.blocks], timestamps: {...cachedData.timestamps} } : { blocks: [] };
-            timestamps = editorData.timestamps || {};
-            window.editor = new BlockManager('editor-container', { readOnly: !isToday, data: editorData, onChange: () => { if (isToday) scheduleSave(); } });
-            domObserver.observe(document.getElementById('editor-container'), { childList: true, subtree: true }); updateAllTimestamps();
-        }
+        // Boot Pipeline
+        Promise.all([appDB.init(), vectorDB.init(), mediaStore.init()]).then(() => { 
+            loadDay(todayStr); 
+            vectorDB.ensureBackfill(appDB.cache);
+        });
 
-        appDB.init().then(() => { initEditor(window.currentDateStr); });
     </script>
 </body>
 </html>
