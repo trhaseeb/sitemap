@@ -240,7 +240,7 @@
         .recalled-block { padding: 12px 16px; background: var(--bg-color); border-left: 4px solid var(--neon-purple); margin-top: 12px;}
         .recalled-orig-meta { font-family: var(--font-mono); font-size: 10px; color: var(--muted-text); font-weight: bold; text-transform: uppercase; margin-bottom: 12px; }
 
-        /* --- SMART CANVAS OVERHAUL (TRUE FULL BLEED + ROW CONTROLS) --- */
+        /* --- SMART CANVAS OVERHAUL (BLOCK BLEED + ROW CONTROLS) --- */
         .smart-canvas-selector { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; justify-content: center; }
         .smart-canvas-option {
             flex: 1; min-width: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
@@ -254,8 +254,9 @@
 
         .canvas-relative-frame.full-bleed { 
             position: relative; 
-            width: 100vw; 
-            margin-left: calc(-50vw + 50%); /* Visually pulls the element out of the padded container */
+            margin-left: -20px;
+            width: calc(100% + 40px);
+            max-width: none;
             border-radius: 0; 
             overflow: hidden; 
             margin-top: 8px; 
@@ -875,7 +876,7 @@
             save() { return this.data; }
         }
 
-        // --- OVERHAULED SMART CANVAS TOOL (STANDARD PANEL + FULL BLEED MAP) ---
+        // --- OVERHAULED SMART CANVAS TOOL (BLOCK BLEED + ROW CONTROLS) ---
         class SmartCanvasTool {
             constructor(data, isReadOnly, onChange) {
                 this.data = { 
