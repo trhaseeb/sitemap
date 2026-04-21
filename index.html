@@ -125,6 +125,11 @@
             font-style: italic; font-weight: 400; opacity: 0.5; pointer-events: none;
         }
 
+        /* Heading Styles */
+        .text-content.h1 { font-size: clamp(40px, 8vw, 56px); font-weight: 900; letter-spacing: -0.04em; line-height: 1.1; padding-top: 24px; text-transform: uppercase; }
+        .text-content.h2 { font-size: clamp(30px, 6vw, 42px); font-weight: 800; letter-spacing: -0.03em; line-height: 1.2; padding-top: 16px; }
+        .text-content.h3 { font-size: clamp(24px, 5vw, 32px); font-weight: 700; letter-spacing: -0.02em; line-height: 1.3; padding-top: 12px; }
+
         .stream-block.author-ai .text-content { font-weight: 400; color: var(--neon-purple); }
         .stream-block.author-ai::before {
             content: ''; position: absolute; left: -16px; top: 10px; bottom: 10px;
@@ -153,7 +158,7 @@
             display: flex; gap: 8px; margin-right: 8px;
             opacity: 0; pointer-events: none; transform: translateX(10px);
             transition: opacity 0.2s, transform 0.2s;
-            flex-wrap: wrap; justify-content: flex-end; width: 280px;
+            flex-wrap: wrap; justify-content: flex-end; width: 320px;
         }
         #inline-menu.expanded .inline-tools { opacity: 1; pointer-events: auto; transform: translateX(0); }
         
@@ -164,6 +169,7 @@
             transition: transform 0.1s, opacity 0.2s; padding: 10px 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
         .inline-tool-btn:active { transform: scale(0.95); opacity: 0.8; }
+        .inline-tool-btn.header-btn { background: var(--muted-text); color: var(--bg-color); }
 
         /* --- BARITONE PANELS --- */
         .baritone-panel {
@@ -232,7 +238,7 @@
         .recalled-block { padding: 12px 16px; background: var(--bg-color); border-left: 4px solid var(--neon-purple); margin-top: 12px;}
         .recalled-orig-meta { font-family: var(--font-mono); font-size: 10px; color: var(--muted-text); font-weight: bold; text-transform: uppercase; margin-bottom: 12px; }
 
-        /* --- SMART CANVAS OVERHAUL --- */
+        /* --- SMART CANVAS OVERHAUL (TRUE FULL BLEED + ROW CONTROLS) --- */
         .smart-canvas-selector { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; justify-content: center; }
         .smart-canvas-option {
             flex: 1; min-width: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
@@ -242,9 +248,10 @@
         }
         .smart-canvas-option:hover { border-color: var(--text-color); border-style: solid; background: var(--text-color); color: var(--bg-color); }
         
-        .canvas-relative-frame { position: relative; width: 100%; border-radius: 2px; overflow: hidden; margin-top: 8px; border: 2px solid var(--baritone-text); }
-        .block-controls-stack { position: absolute; top: 12px; left: 12px; display: flex; flex-direction: column; gap: 8px; z-index: 401; }
-        
+        .canvas-controls-row {
+            display: flex; flex-direction: row; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;
+        }
+
         .canvas-action-btn {
             background: var(--bg-color); border: 2px solid var(--text-color); color: var(--text-color);
             font-family: var(--font-mono); font-size: 11px; font-weight: 800; text-transform: uppercase; 
@@ -256,7 +263,20 @@
         .canvas-action-btn.danger { color: #ef4444; border-color: #ef4444; }
         .canvas-action-btn.danger.active { background: #ef4444; border-color: #ef4444; color: #fff; }
 
-        .leaflet-container { background: var(--baritone-bg) !important; width: 100%; height: 350px; z-index: 1; position: relative; }
+        .canvas-relative-frame.full-bleed { 
+            position: relative; 
+            width: 100vw; 
+            margin-left: calc(-50vw + 50%); /* Visually pulls the element out of the padded container */
+            border-radius: 0; 
+            overflow: hidden; 
+            margin-top: 8px; 
+            border-top: 2px solid var(--text-color); 
+            border-bottom: 2px solid var(--text-color);
+            height: 60vh;
+            min-height: 400px;
+        }
+
+        .leaflet-container { background: var(--bg-color) !important; width: 100%; height: 100% !important; z-index: 1; position: absolute; top:0; left:0; }
         .leaflet-container.drawing-mode, .leaflet-container.drawing-mode .leaflet-interactive { 
             cursor: crosshair !important; 
             touch-action: none !important; 
@@ -312,6 +332,9 @@
             <div id="inline-menu">
                 <button id="inline-plus" class="inline-plus">+</button>
                 <div class="inline-tools">
+                    <button class="inline-tool-btn header-btn" data-insert="h1">h1</button>
+                    <button class="inline-tool-btn header-btn" data-insert="h2">h2</button>
+                    <button class="inline-tool-btn header-btn" data-insert="h3">h3</button>
                     <button class="inline-tool-btn" data-insert="compute">compute</button>
                     <button class="inline-tool-btn" data-insert="smartCanvas">canvas</button>
                     <button class="inline-tool-btn" data-insert="voice">voice</button>
@@ -523,7 +546,7 @@
                 return dayData.blocks.map(block => {
                     if (block.type === 'recall' || !block.data) return null;
                     let searchText = '';
-                    if (block.type === 'text') searchText = normalizePlainText(block.data.text);
+                    if (['text','h1','h2','h3'].includes(block.type)) searchText = normalizePlainText(block.data.text);
                     else searchText = normalizePlainText(JSON.stringify(block.data));
                     
                     if (!searchText) return null;
@@ -602,13 +625,13 @@
         // Recall Helpers
         function getBlockSearchText(block) {
             if (!block || !block.data || block.type === 'recall') return '';
-            if (block.type === 'text') return normalizePlainText(block.data.text);
+            if (['text','h1','h2','h3'].includes(block.type)) return normalizePlainText(block.data.text);
             if (block.type === 'compute') return `${block.data.code} = ${block.data.output}`;
             return normalizePlainText(JSON.stringify(block.data));
         }
         function buildRecallSnippet(block) {
             if (!block || !block.data) return 'Empty';
-            if (block.type === 'text') return normalizePlainText(block.data.text) || 'Empty text';
+            if (['text','h1','h2','h3'].includes(block.type)) return normalizePlainText(block.data.text) || 'Empty text';
             if (block.type === 'calendar') return `Event: ${block.data.title}`;
             if (block.type === 'voice') return `Voice: ${block.data.title}`;
             if (block.type === 'smartCanvas') return `Canvas: ${block.data.title || block.data.mode}`;
@@ -870,35 +893,27 @@
             save() { return this.data; }
         }
 
-        // --- OVERHAULED SMART CANVAS TOOL ---
+        // --- OVERHAULED SMART CANVAS TOOL (STANDARD PANEL + FULL BLEED MAP) ---
         class SmartCanvasTool {
             constructor(data, isReadOnly, onChange) {
                 this.data = { 
-                    title: data.title || '', 
-                    mode: data.mode || null, 
-                    lat: data.lat || 51.505, 
-                    lng: data.lng || -0.09, 
-                    zoom: data.zoom || 13, 
-                    isLocked: data.isLocked || false, 
-                    baseImageId: data.baseImageId || null, 
-                    imgWidth: data.imgWidth || null, 
-                    imgHeight: data.imgHeight || null, 
-                    hasInitializedView: data.hasInitializedView || false, 
-                    lines: data.lines || [], 
-                    isDrawingActive: data.isDrawingActive || false 
+                    title: data.title || '', mode: data.mode || null, lat: data.lat || 51.505, lng: data.lng || -0.09, 
+                    zoom: data.zoom || 13, isLocked: data.isLocked || false, baseImageId: data.baseImageId || null, 
+                    imgWidth: data.imgWidth || null, imgHeight: data.imgHeight || null, hasInitializedView: data.hasInitializedView || false, 
+                    lines: data.lines || [], isDrawingActive: data.isDrawingActive || false 
                 };
-                this.readOnly = isReadOnly; 
-                this.onChange = onChange;
+                this.readOnly = isReadOnly; this.onChange = onChange;
                 this.container = document.createElement('div'); 
-                this.baseImageUrl = '';
-                this.currentColor = '#ef4444'; 
-                this.lineLayers = []; 
-                this.currentPolyline = null; 
-                this.currentPoints = [];
+                // Uses the exact same standard layout as other tools!
+                this.container.className = 'baritone-panel stream-block';
+                this.baseImageUrl = ''; this.currentColor = '#ef4444'; this.lineLayers = []; this.currentPolyline = null; this.currentPoints = [];
             }
 
             render() {
+                // The Panel Header (Drag controls etc) gets added automatically by the LeanStreamEditor above this render method.
                 this.container.innerHTML = '';
+                
+                // Title
                 appendTitleInput(this.data, this.readOnly, this.container, this.onChange);
 
                 if (!this.data.mode) {
@@ -908,11 +923,14 @@
                     }
                     this.renderSelector();
                 } else {
+                    // Inline Canvas Controls Row (Instead of absolute floating stack)
+                    this.buildControls();
+
+                    // Full Bleed Canvas Map wrapper
                     this.relativeFrame = document.createElement('div');
-                    this.relativeFrame.className = 'canvas-relative-frame';
+                    this.relativeFrame.className = 'canvas-relative-frame full-bleed';
                     this.container.appendChild(this.relativeFrame);
                     
-                    this.buildControls();
                     this.renderMap();
                 }
                 return this.container;
@@ -939,10 +957,8 @@
                         img.onload = async () => {
                             this.data.imgWidth = img.width; this.data.imgHeight = img.height; 
                             this.data.mode = 'image'; this.data.isLocked = false; this.data.isDrawingActive = false;
-                            
                             const mediaId = this.data.baseImageId || crypto.randomUUID();
                             await mediaStore.saveBlob(mediaId, file, 'image');
-                            
                             this.data.baseImageId = mediaId; this.baseImageUrl = tempUrl;
                             this.render(); if(this.onChange) this.onChange();
                         };
@@ -958,52 +974,32 @@
                 if (this.baseImageUrl) return this.baseImageUrl;
                 if (!this.data.baseImageId) return '';
                 const blob = await mediaStore.getBlob(this.data.baseImageId);
-                if (blob) {
-                    this.baseImageUrl = URL.createObjectURL(blob);
-                }
+                if (blob) { this.baseImageUrl = URL.createObjectURL(blob); }
                 return this.baseImageUrl;
             }
 
             buildControls() {
                 if (this.readOnly) return;
-                this.controlsStack = document.createElement('div');
-                this.controlsStack.className = 'block-controls-stack';
+                // Move controls out of absolute position and into a neat row below the header
+                this.controlsRow = document.createElement('div');
+                this.controlsRow.className = 'canvas-controls-row';
                 
-                this.lockBtn = document.createElement('button');
-                this.lockBtn.className = 'canvas-action-btn';
+                this.lockBtn = document.createElement('button'); this.lockBtn.className = 'canvas-action-btn';
                 this.lockBtn.textContent = this.data.isLocked ? 'LOCKED' : 'UNLOCK';
-                this.lockBtn.onclick = () => {
-                    this.data.isLocked = !this.data.isLocked;
-                    this.updateInteractions();
-                    if(this.onChange) this.onChange();
-                };
+                this.lockBtn.onclick = () => { this.data.isLocked = !this.data.isLocked; this.updateInteractions(); if(this.onChange) this.onChange(); };
 
-                this.drawBtn = document.createElement('button');
-                this.drawBtn.className = 'canvas-action-btn';
-                this.drawBtn.textContent = 'DRAW';
+                this.drawBtn = document.createElement('button'); this.drawBtn.className = 'canvas-action-btn'; this.drawBtn.textContent = 'DRAW';
                 
-                // Hidden Color Picker
-                this.colorPicker = document.createElement('input');
-                this.colorPicker.type = 'color';
-                this.colorPicker.value = this.currentColor;
-                this.colorPicker.style.position = 'absolute'; this.colorPicker.style.opacity = '0'; 
-                this.colorPicker.style.width = '0'; this.colorPicker.style.height = '0'; this.colorPicker.style.pointerEvents = 'none';
+                this.colorPicker = document.createElement('input'); this.colorPicker.type = 'color'; this.colorPicker.value = this.currentColor;
+                this.colorPicker.style.position = 'absolute'; this.colorPicker.style.opacity = '0'; this.colorPicker.style.width = '0'; this.colorPicker.style.height = '0'; this.colorPicker.style.pointerEvents = 'none';
                 this.colorPicker.addEventListener('input', (e) => this.currentColor = e.target.value);
 
-                // Drawing & Color Actions
-                this.drawBtn.addEventListener('dblclick', (e) => { 
-                    e.preventDefault(); e.stopPropagation(); this.colorPicker.click(); 
-                });
-                
+                this.drawBtn.addEventListener('dblclick', (e) => { e.preventDefault(); e.stopPropagation(); this.colorPicker.click(); });
                 this.drawBtn.addEventListener('click', (e) => {
-                    e.preventDefault(); e.stopPropagation(); 
-                    if (this.wasLongPress) { this.wasLongPress = false; return; }
-                    this.data.isDrawingActive = !this.data.isDrawingActive; 
-                    this.updateInteractions(); 
-                    if(this.onChange) this.onChange();
+                    e.preventDefault(); e.stopPropagation(); if (this.wasLongPress) { this.wasLongPress = false; return; }
+                    this.data.isDrawingActive = !this.data.isDrawingActive; this.updateInteractions(); if(this.onChange) this.onChange();
                 });
 
-                // Long press logic for color picker
                 const startPress = (e) => {
                     if (e.type === 'touchstart') e.stopPropagation(); this.wasLongPress = false;
                     this.pressTimer = setTimeout(() => { this.wasLongPress = true; this.colorPicker.click(); }, 600);
@@ -1012,30 +1008,25 @@
                 ['mousedown','touchstart'].forEach(evt => this.drawBtn.addEventListener(evt, startPress, {passive: true}));
                 ['mouseup','mouseleave','touchend','touchcancel'].forEach(evt => this.drawBtn.addEventListener(evt, cancelPress));
 
-                this.clearBtn = document.createElement('button');
-                this.clearBtn.className = 'canvas-action-btn';
-                this.clearBtn.textContent = 'CLEAR';
+                this.clearBtn = document.createElement('button'); this.clearBtn.className = 'canvas-action-btn'; this.clearBtn.textContent = 'CLEAR';
                 this.clearBtn.onclick = () => {
                     this.lineLayers.forEach(layer => { if(this.map) this.map.removeLayer(layer); });
-                    this.lineLayers = []; this.data.lines = [];
-                    if(this.onChange) this.onChange();
+                    this.lineLayers = []; this.data.lines = []; if(this.onChange) this.onChange();
                 };
 
-                this.controlsStack.append(this.lockBtn, this.drawBtn, this.clearBtn, this.colorPicker);
-                this.relativeFrame.appendChild(this.controlsStack);
+                this.controlsRow.append(this.lockBtn, this.drawBtn, this.clearBtn, this.colorPicker);
+                this.container.appendChild(this.controlsRow);
             }
 
             renderMap() {
                 const existingMap = this.relativeFrame.querySelector('.leaflet-container');
                 if (existingMap) existingMap.remove();
                 
-                this.mediaContainer = document.createElement('div'); 
-                this.mediaContainer.className = 'leaflet-container';
+                this.mediaContainer = document.createElement('div'); this.mediaContainer.className = 'leaflet-container';
                 this.relativeFrame.appendChild(this.mediaContainer);
                 
                 setTimeout(async () => {
                     if (!this.mediaContainer.isConnected) return;
-                    
                     if (this.data.mode === 'map') {
                         this.map = L.map(this.mediaContainer, { zoomControl: false, attributionControl: false }).setView([this.data.lat, this.data.lng], this.data.zoom);
                         const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -1048,36 +1039,20 @@
                         if (imageUrl) {
                             const bounds = [[0, 0], [this.data.imgHeight || 600, this.data.imgWidth || 800]];
                             L.imageOverlay(imageUrl, bounds).addTo(this.map);
-                            
-                            // Essential Viewport bounding fix for newly loaded images
                             if (!this.data.hasInitializedView && !this.readOnly) {
-                                this.map.fitBounds(bounds);
-                                this.data.hasInitializedView = true;
-                                if(this.onChange) this.onChange();
-                            } else {
-                                this.map.setView([this.data.lat || (bounds[1][0]/2), this.data.lng || (bounds[1][1]/2)], this.data.zoom || 0);
-                            }
-                        } else {
-                            this.map.setView([this.data.lat || 0, this.data.lng || 0], this.data.zoom || 0);
-                        }
+                                this.map.fitBounds(bounds); this.data.hasInitializedView = true; if(this.onChange) this.onChange();
+                            } else { this.map.setView([this.data.lat || (bounds[1][0]/2), this.data.lng || (bounds[1][1]/2)], this.data.zoom || 0); }
+                        } else { this.map.setView([this.data.lat || 0, this.data.lng || 0], this.data.zoom || 0); }
                     }
-                    
-                    this.renderExistingLines();
-                    this.initDrawingTracker();
-                    this.updateInteractions();
-                    this.map.invalidateSize();
-                    
+                    this.renderExistingLines(); this.initDrawingTracker(); this.updateInteractions(); this.map.invalidateSize();
                     this.map.on('moveend', () => { if(this.onChange) this.onChange(); });
                 }, 100);
             }
 
             renderExistingLines() {
                 if(!this.map) return;
-                this.lineLayers.forEach(layer => this.map.removeLayer(layer)); 
-                this.lineLayers = [];
-                this.data.lines.forEach(line => { 
-                    this.lineLayers.push(L.polyline(line.points, { color: line.color, weight: line.weight, lineCap: 'round', lineJoin: 'round', smoothFactor: 1.5 }).addTo(this.map)); 
-                });
+                this.lineLayers.forEach(layer => this.map.removeLayer(layer)); this.lineLayers = [];
+                this.data.lines.forEach(line => { this.lineLayers.push(L.polyline(line.points, { color: line.color, weight: line.weight, lineCap: 'round', lineJoin: 'round', smoothFactor: 1.5 }).addTo(this.map)); });
             }
 
             initDrawingTracker() {
@@ -1086,31 +1061,24 @@
                 
                 this.mediaContainer.addEventListener('pointerdown', (e) => {
                     if (!this.data.isDrawingActive || !this.map) return; 
-                    isPointerDown = true; 
-                    this.mediaContainer.setPointerCapture(e.pointerId);
-                    const latlng = this.map.mouseEventToLatLng(e);
-                    this.currentPoints = [latlng];
+                    isPointerDown = true; this.mediaContainer.setPointerCapture(e.pointerId);
+                    this.currentPoints = [this.map.mouseEventToLatLng(e)];
                     this.currentPolyline = L.polyline(this.currentPoints, { color: this.currentColor, weight: 4, lineCap: 'round', lineJoin: 'round', smoothFactor: 1.5 }).addTo(this.map);
                 });
                 
                 this.mediaContainer.addEventListener('pointermove', (e) => {
                     if (!this.data.isDrawingActive || !isPointerDown || !this.currentPolyline || !this.map) return;
-                    this.currentPoints.push(this.map.mouseEventToLatLng(e)); 
-                    this.currentPolyline.setLatLngs(this.currentPoints);
+                    this.currentPoints.push(this.map.mouseEventToLatLng(e)); this.currentPolyline.setLatLngs(this.currentPoints);
                 });
                 
                 const endDraw = () => {
-                    if (!isPointerDown) return; 
-                    isPointerDown = false; 
+                    if (!isPointerDown) return; isPointerDown = false; 
                     if (!this.currentPolyline || !this.data.isDrawingActive) return;
                     this.data.lines.push({ color: this.currentColor, weight: 4, points: this.currentPoints.map(p => [p.lat, p.lng]) });
-                    this.lineLayers.push(this.currentPolyline); 
-                    this.currentPolyline = null; this.currentPoints = []; 
-                    if(this.onChange) this.onChange();
+                    this.lineLayers.push(this.currentPolyline); this.currentPolyline = null; this.currentPoints = []; if(this.onChange) this.onChange();
                 };
                 
-                this.mediaContainer.addEventListener('pointerup', endDraw); 
-                this.mediaContainer.addEventListener('pointercancel', endDraw);
+                this.mediaContainer.addEventListener('pointerup', endDraw); this.mediaContainer.addEventListener('pointercancel', endDraw);
             }
 
             updateInteractions() {
@@ -1121,44 +1089,29 @@
                 const enableMoves = () => { this.map.dragging.enable(); this.map.touchZoom.enable(); this.map.doubleClickZoom.enable(); this.map.scrollWheelZoom.enable(); this.map.boxZoom.enable(); this.map.keyboard.enable(); if(this.map.tap) this.map.tap.enable(); };
 
                 if(this.readOnly) {
-                    disableMoves();
-                    this.mediaContainer.classList.add('locked-mode');
-                    if (this.controlsStack) this.controlsStack.style.display = 'none';
-                    return;
+                    disableMoves(); this.mediaContainer.classList.add('locked-mode');
+                    if (this.controlsRow) this.controlsRow.style.display = 'none'; return;
                 }
 
                 if (!this.data.isLocked) {
-                    this.data.isDrawingActive = false;
-                    enableMoves();
+                    this.data.isDrawingActive = false; enableMoves();
                     if (this.lockBtn) { this.lockBtn.textContent = 'UNLOCK'; this.lockBtn.classList.remove('active'); }
                     if (this.drawBtn) { this.drawBtn.style.display = 'none'; this.drawBtn.classList.remove('active', 'danger'); }
                     if (this.clearBtn) { this.clearBtn.style.display = 'none'; }
                 } else {
-                    disableMoves();
-                    this.mediaContainer.classList.add('locked-mode');
+                    disableMoves(); this.mediaContainer.classList.add('locked-mode');
                     if (this.lockBtn) { this.lockBtn.textContent = 'LOCKED'; this.lockBtn.classList.add('active'); }
                     if (this.drawBtn) { 
                         this.drawBtn.style.display = 'flex'; 
-                        if (this.data.isDrawingActive) {
-                            this.drawBtn.textContent = 'DRAWING';
-                            this.drawBtn.classList.add('active', 'danger');
-                            this.mediaContainer.classList.add('drawing-mode');
-                        } else {
-                            this.drawBtn.textContent = 'DRAW';
-                            this.drawBtn.classList.remove('active', 'danger');
-                        }
+                        if (this.data.isDrawingActive) { this.drawBtn.textContent = 'DRAWING'; this.drawBtn.classList.add('active', 'danger'); this.mediaContainer.classList.add('drawing-mode'); } 
+                        else { this.drawBtn.textContent = 'DRAW'; this.drawBtn.classList.remove('active', 'danger'); }
                     }
                     if (this.clearBtn) { this.clearBtn.style.display = 'flex'; }
                 }
             }
 
             save() {
-                if (this.map && this.data.mode) { 
-                    const center = this.map.getCenter(); 
-                    this.data.lat = center.lat; 
-                    this.data.lng = center.lng; 
-                    this.data.zoom = this.map.getZoom(); 
-                }
+                if (this.map && this.data.mode) { const center = this.map.getCenter(); this.data.lat = center.lat; this.data.lng = center.lng; this.data.zoom = this.map.getZoom(); }
                 return this.data;
             }
         }
@@ -1276,8 +1229,6 @@
             }
             render() {
                 this.container.innerHTML = '';
-                
-                // Unified Baritone Title added here
                 appendTitleInput(this.data, this.readOnly, this.container, this.onChange);
                 
                 if (this.data.recalled) { this.container.appendChild(this.renderRecalledState()); }
@@ -1354,8 +1305,8 @@
                         rendered.style.pointerEvents = this.data.sourceBlock.type === 'voice' ? 'auto' : 'none';
                         container.appendChild(rendered);
                     } catch(e) { container.appendChild(document.createTextNode('Render error.')); }
-                } else if (this.data.sourceBlock.type === 'text') {
-                    const p = document.createElement('div'); p.className = 'text-content'; p.innerHTML = this.data.sourceBlock.data.text; p.style.fontSize = '18px'; container.appendChild(p);
+                } else if (['text', 'h1', 'h2', 'h3'].includes(this.data.sourceBlock.type)) {
+                    const p = document.createElement('div'); p.className = `text-content ${this.data.sourceBlock.type}`; p.innerHTML = this.data.sourceBlock.data.text; p.style.fontSize = '18px'; container.appendChild(p);
                 }
                 return container;
             }
@@ -1380,7 +1331,18 @@
                     btn.onmousedown = (e) => {
                         e.preventDefault(); if (window.currentDateStr !== todayStr) return;
                         const toolType = btn.getAttribute('data-insert');
-                        this.addToolBlock(toolType, {});
+                        
+                        if (['h1', 'h2', 'h3'].includes(toolType)) {
+                            // Convert active block in place
+                            const activeBlock = this.blocks.find(b => b.id === this.activeBlockId);
+                            if (activeBlock && ['text', 'h1', 'h2', 'h3'].includes(activeBlock.type)) {
+                                this.replaceTextNodeType(activeBlock, toolType);
+                            } else {
+                                this.addBasicBlock(toolType, ''); // fallback
+                            }
+                        } else {
+                            this.addToolBlock(toolType, {});
+                        }
                         this.inlineMenu.classList.remove('expanded', 'visible');
                     };
                 });
@@ -1391,28 +1353,34 @@
                 this.blocks = []; this.inlineMenu.classList.remove('visible', 'expanded');
 
                 if (!blocksData || blocksData.length === 0) {
-                    this.addTextBlock('', 'user');
+                    this.addBasicBlock('text', '', 'user');
                 } else {
                     blocksData.forEach(b => {
-                        if (['paragraph', 'text', 'header', 'list', 'checklist'].includes(b.type)) {
+                        if (b.type === 'header') {
+                            const level = b.data?.level || 2;
+                            this.addBasicBlock(`h${level}`, b.data?.text || '', b.author || 'user', b.id, b.timestamp);
+                        } else if (['paragraph', 'text', 'h1', 'h2', 'h3', 'list', 'checklist'].includes(b.type)) {
                             let textContent = b.data.text || '';
-                            if (b.type === 'header') textContent = `<b>${textContent}</b>`;
-                            if (b.type === 'list') textContent = (b.data.items||[]).map(i => `• ${i.content||i.text}`).join('<br>');
-                            if (b.type === 'checklist') textContent = (b.data.items||[]).map(i => `${i.checked ? '[x]' : '[ ]'} ${i.text}`).join('<br>');
-                            this.addTextBlock(textContent, b.author || 'user', b.id, b.timestamp);
+                            let typeToUse = b.type;
+                            if (typeToUse === 'paragraph') typeToUse = 'text';
+                            
+                            if (b.type === 'list') { textContent = (b.data.items||[]).map(i => `• ${i.content||i.text}`).join('<br>'); typeToUse = 'text'; }
+                            if (b.type === 'checklist') { textContent = (b.data.items||[]).map(i => `${i.checked ? '[x]' : '[ ]'} ${i.text}`).join('<br>'); typeToUse = 'text'; }
+                            
+                            this.addBasicBlock(typeToUse, textContent, b.author || 'user', b.id, b.timestamp);
                         } else {
                             this.addToolBlock(b.type, b.data, b.author || 'user', b.id, b.timestamp);
                         }
                     });
                 }
-                if (this.blocks.length === 0 || this.blocks[this.blocks.length - 1].type !== 'text') this.addTextBlock('', 'user');
+                if (this.blocks.length === 0 || !['text', 'h1', 'h2', 'h3'].includes(this.blocks[this.blocks.length - 1].type)) this.addBasicBlock('text', '', 'user');
             }
 
             save() {
                 return {
                     blocks: this.blocks.map(b => {
                         let data = b.data;
-                        if (b.type === 'text') data = { text: b.dom.querySelector('.text-content').innerHTML };
+                        if (['text', 'h1', 'h2', 'h3'].includes(b.type)) data = { text: b.dom.querySelector('.text-content').innerHTML };
                         else if (b.instance && b.instance.save) data = b.instance.save();
                         return { id: b.id, type: b.type, data, author: b.author, timestamp: b.timestamp };
                     })
@@ -1434,26 +1402,62 @@
                 blockObj.dom.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
 
-            addTextBlock(html, author = 'user', id = crypto.randomUUID(), timestamp = Date.now()) {
-                const block = { id, type: 'text', data: {text: html}, author, timestamp, dom: null };
+            replaceTextNodeType(block, newType) {
+                const div = block.dom;
+                const oldContent = div.querySelector('.text-content');
+                let tag = 'div';
+                if (newType === 'h1') tag = 'h1'; else if (newType === 'h2') tag = 'h2'; else if (newType === 'h3') tag = 'h3';
+
+                const newContent = document.createElement(tag); 
+                newContent.className = `text-content ${newType === 'text' ? '' : newType}`;
+                newContent.contentEditable = window.currentDateStr === todayStr; 
+                newContent.dataset.placeholder = newType === 'text' ? "start writing..." : "Heading...";
+                newContent.innerHTML = oldContent.innerHTML; // preserve existing text
+                
+                newContent.addEventListener('focus', () => { this.activeBlockId = block.id; this.updateInlineMenuPosition(div, newContent); });
+                newContent.addEventListener('input', () => { this.checkMarkdownShortcuts(block, newContent); this.updateInlineMenuPosition(div, newContent); scheduleSave(); });
+                newContent.addEventListener('blur', () => { setTimeout(() => { if (!this.container.contains(document.activeElement) && !this.inlineMenu.contains(document.activeElement)) { this.inlineMenu.classList.remove('visible', 'expanded'); } }, 100); });
+                newContent.addEventListener('keydown', (e) => this.handleTextKeydown(e, block, newContent));
+
+                div.replaceChild(newContent, oldContent);
+                block.type = newType;
+                newContent.focus();
+                
+                // Move cursor to end of text
+                const range = document.createRange();
+                const sel = window.getSelection();
+                range.selectNodeContents(newContent);
+                range.collapse(false);
+                sel.removeAllRanges();
+                sel.addRange(range);
+            }
+
+            checkMarkdownShortcuts(block, content) {
+                if (block.type !== 'text') return;
+                const text = content.innerText;
+                if (text === '# ') { content.innerHTML = ''; this.replaceTextNodeType(block, 'h1'); }
+                else if (text === '## ') { content.innerHTML = ''; this.replaceTextNodeType(block, 'h2'); }
+                else if (text === '### ') { content.innerHTML = ''; this.replaceTextNodeType(block, 'h3'); }
+            }
+
+            addBasicBlock(type = 'text', html = '', author = 'user', id = crypto.randomUUID(), timestamp = Date.now()) {
+                const block = { id, type, data: {text: html}, author, timestamp, dom: null };
                 const div = document.createElement('div'); div.className = `stream-block author-${author}`; div.dataset.id = id;
 
-                const content = document.createElement('div'); content.className = 'text-content';
+                let tag = 'div';
+                if (type === 'h1') tag = 'h1'; else if (type === 'h2') tag = 'h2'; else if (type === 'h3') tag = 'h3';
+
+                const content = document.createElement(tag); 
+                content.className = `text-content ${type === 'text' ? '' : type}`;
                 content.contentEditable = window.currentDateStr === todayStr; 
-                content.dataset.placeholder = author === 'user' ? "start writing..." : "";
+                content.dataset.placeholder = author === 'user' ? (type==='text' ? "start writing..." : "Heading...") : "";
                 content.innerHTML = html;
                 
                 content.addEventListener('focus', () => { this.activeBlockId = id; this.updateInlineMenuPosition(div, content); });
-                content.addEventListener('input', () => { this.updateInlineMenuPosition(div, content); scheduleSave(); });
-                content.addEventListener('blur', () => {
-                    setTimeout(() => {
-                        if (!this.container.contains(document.activeElement) && !this.inlineMenu.contains(document.activeElement)) {
-                            this.inlineMenu.classList.remove('visible', 'expanded');
-                        }
-                    }, 100);
-                });
-
+                content.addEventListener('input', () => { this.checkMarkdownShortcuts(block, content); this.updateInlineMenuPosition(div, content); scheduleSave(); });
+                content.addEventListener('blur', () => { setTimeout(() => { if (!this.container.contains(document.activeElement) && !this.inlineMenu.contains(document.activeElement)) { this.inlineMenu.classList.remove('visible', 'expanded'); } }, 100); });
                 content.addEventListener('keydown', (e) => this.handleTextKeydown(e, block, content));
+
                 div.appendChild(content); block.dom = div; this.insertBlockIntoDOMArray(block); return block;
             }
 
@@ -1465,7 +1469,10 @@
                 const instance = new ToolClass(data, window.currentDateStr !== todayStr, () => scheduleSave());
                 block.instance = instance;
                 
-                const panel = document.createElement('div'); panel.className = 'baritone-panel stream-block'; panel.dataset.id = id;
+                // Unified stream-block wrapper
+                const panel = document.createElement('div'); 
+                panel.className = 'baritone-panel stream-block';
+                panel.dataset.id = id;
                 const header = document.createElement('div'); header.className = 'panel-header';
                 
                 const titleSpan = document.createElement('span'); titleSpan.textContent = `[ ${type} ]`;
@@ -1479,11 +1486,13 @@
                     controls.append(upBtn, downBtn, delBtn);
                 }
                 
-                header.append(titleSpan, controls); panel.append(header, instance.render());
+                header.append(titleSpan, controls); 
+                panel.append(header, instance.render());
+                
                 block.dom = panel; this.insertBlockIntoDOMArray(block);
                 
                 if (window.currentDateStr === todayStr) {
-                    this.activeBlockId = id; const textBlock = this.addTextBlock('', 'user');
+                    this.activeBlockId = id; const textBlock = this.addBasicBlock('text', '', 'user');
                     setTimeout(() => textBlock.dom.querySelector('.text-content').focus(), 50);
                 }
                 scheduleSave(); return block;
@@ -1503,7 +1512,7 @@
             deleteBlock(id) {
                 const idx = this.blocks.findIndex(b => b.id === id); if (idx === -1) return;
                 this.container.removeChild(this.blocks[idx].dom); this.blocks.splice(idx, 1);
-                if (this.blocks.length === 0) this.addTextBlock('', 'user'); scheduleSave();
+                if (this.blocks.length === 0) this.addBasicBlock('text', '', 'user'); scheduleSave();
             }
 
             updateInlineMenuPosition(blockDiv, contentNode) {
@@ -1527,7 +1536,7 @@
                         const sel = window.getSelection();
                         if (sel.getRangeAt(0).endOffset >= content.innerText.length) {
                             e.preventDefault(); this.activeBlockId = block.id; 
-                            const textBlock = this.addTextBlock('', 'user');
+                            const textBlock = this.addBasicBlock('text', '', 'user'); 
                             setTimeout(() => textBlock.dom.querySelector('.text-content').focus(), 10);
                         }
                     }
@@ -1538,7 +1547,7 @@
                     if (idx > 0) {
                         this.deleteBlock(block.id); this.inlineMenu.classList.remove('visible', 'expanded'); 
                         for (let i = idx - 1; i >= 0; i--) {
-                            if (this.blocks[i].type === 'text') {
+                            if (['text', 'h1', 'h2', 'h3'].includes(this.blocks[i].type)) {
                                 const prevContent = this.blocks[i].dom.querySelector('.text-content');
                                 prevContent.focus(); this.activeBlockId = this.blocks[i].id;
                                 const range = document.createRange(); const sel = window.getSelection();
@@ -1553,7 +1562,7 @@
             async triggerAI(prompt, sourceBlockId) {
                 if (!aiEngine) return alert("AI offline.");
                 this.activeBlockId = sourceBlockId;
-                const aiBlock = this.addTextBlock("<em>analyzing context...</em>", "ai");
+                const aiBlock = this.addBasicBlock('text', "<em>analyzing context...</em>", "ai");
                 const aiContentNode = aiBlock.dom.querySelector('.text-content');
                 aiContentNode.contentEditable = false;
                 
@@ -1561,7 +1570,7 @@
                 aiStatusEl.textContent = 'sys.ai.generating';
 
                 try {
-                    let docContext = this.blocks.map(b => b.type === 'text' ? b.dom.innerText : `[${b.type}]`).join('\n');
+                    let docContext = this.blocks.map(b => ['text','h1','h2','h3'].includes(b.type) ? b.dom.innerText : `[${b.type}]`).join('\n');
                     
                     // Pull memory
                     let memoryContext = "";
@@ -1591,7 +1600,7 @@
                     aiContentNode.contentEditable = true; 
                     
                     this.activeBlockId = aiBlock.id;
-                    const textBlock = this.addTextBlock('', 'user');
+                    const textBlock = this.addBasicBlock('text', '', 'user');
                     setTimeout(() => textBlock.dom.querySelector('.text-content').focus(), 50);
 
                     scheduleSave();
