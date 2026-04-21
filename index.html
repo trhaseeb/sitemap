@@ -204,7 +204,7 @@
         .raw-input { background: transparent; border: none; outline: none; color: var(--text-color); font-family: var(--font-main); font-size: 18px; font-weight: 500; width: 100%; }
         .raw-input::placeholder { color: var(--muted-text); }
 
-        /* UNIVERSAL NEO-BRUTALIST BUTTON (Replaces canvas-action-btn) */
+        /* UNIVERSAL NEO-BRUTALIST BUTTON */
         .raw-btn {
             background: var(--bg-color); border: 2px solid var(--text-color); color: var(--text-color);
             font-family: var(--font-mono); font-size: 11px; font-weight: 800; text-transform: uppercase; 
@@ -259,8 +259,6 @@
             border-radius: 0; 
             overflow: hidden; 
             margin-top: 8px; 
-            border-top: 2px solid var(--text-color); 
-            border-bottom: 2px solid var(--text-color);
             height: 60vh;
             min-height: 400px;
         }
@@ -961,7 +959,6 @@
                 this.controlsRow = document.createElement('div');
                 this.controlsRow.className = 'canvas-controls-row';
                 
-                // Using universally styled .raw-btn
                 this.lockBtn = document.createElement('button'); this.lockBtn.className = 'raw-btn';
                 this.lockBtn.textContent = this.data.isLocked ? 'LOCKED' : 'UNLOCK';
                 this.lockBtn.onclick = () => { this.data.isLocked = !this.data.isLocked; this.updateInteractions(); if(this.onChange) this.onChange(); };
