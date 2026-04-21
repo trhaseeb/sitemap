@@ -106,7 +106,7 @@
             position: relative; 
             display: flex; 
             flex-direction: column; 
-            gap: 2px; /* Much tighter gap for natural paragraph spacing */
+            gap: 2px; 
             width: 100%; 
         }
 
@@ -189,7 +189,7 @@
         /* --- BARITONE PANELS --- */
         .baritone-panel {
             background: var(--baritone-bg); border-radius: 2px;
-            padding: 16px 20px; margin: 16px 0; /* Tools break text flow with distinct margins */
+            padding: 16px 20px; margin: 16px 0; 
             display: flex; flex-direction: column; gap: 12px; width: 100%;
         }
 
@@ -444,7 +444,7 @@ Never refuse a tool execution if it fits the user's intent. Do not ask for permi
             async getEmbedder() {
                 if (this.embedder) return this.embedder;
                 if (!this.promise) {
-                    this.promise = import('https://esm.run/@huggingface/transformers').then(async ({ pipeline, env }) => {
+                    this.promise = import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0-alpha.19/+esm').then(async ({ pipeline, env }) => {
                         env.allowRemoteModels = true; env.useBrowserCache = true;
                         let pipe;
                         try { pipe = await pipeline('feature-extraction', CONFIG.EMBEDDING_MODEL_ID, { device: 'webgpu' }); } 
@@ -652,15 +652,35 @@ Never refuse a tool execution if it fits the user's intent. Do not ask for permi
             if (aiEngine || isAILoading) return;
             isAILoading = true;
             try {
-                const { CreateMLCEngine } = await import("https://esm.run/@mlc-ai/web-llm");
+                // Ensure WebGPU is available in the current context
+                if (!navigator.gpu) {
+                    throw new Error("WebGPU disabled or unsupported");
+                }
+                
+                // Using a specific, stable CDN instead of the auto-updating esm.run
+                const { CreateMLCEngine } = await import("https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm/+esm");
+                
                 aiEngine = await CreateMLCEngine(AI_MODEL_ID, {
                     initProgressCallback: (progress) => { aiStatusEl.textContent = `sys.ai.loading [${Math.round(progress.progress * 100)}%]`; }
                 });
+                
                 aiStatusEl.className = 'neon-status ai-status'; aiStatusEl.textContent = `sys.ai.online`;
             } catch (err) {
-                aiStatusEl.className = 'neon-status ai-status error'; aiStatusEl.textContent = 'sys.ai.offline'; aiEngine = null;
+                console.error("Local AI Boot Error:", err);
+                aiStatusEl.className = 'neon-status ai-status error'; 
+                
+                // Provide a specific error code to the user to help debug
+                let shortError = "sys.ai.offline";
+                if (err.message && err.message.includes("WebGPU")) shortError = "gpu.access.denied";
+                else if (err.message && err.message.includes("fetch")) shortError = "model.download.err";
+                else if (err.message && (err.message.includes("memory") || err.message.includes("quota"))) shortError = "out.of.memory";
+                
+                aiStatusEl.textContent = shortError; 
+                aiEngine = null;
             } finally { isAILoading = false; }
         }
+        
+        // Delay boot to prioritize the rest of the application UI rendering
         setTimeout(() => initializeAI(), 1500);
 
         // ============================================================================
@@ -1453,14 +1473,24 @@ Never refuse a tool execution if it fits the user's intent. Do not ask for permi
                     if (e.key === 'Escape') { e.preventDefault(); this.closeSlashMenu(); return; }
                 }
 
-                // AI Execution Trigger
+                // AI Execution Trigger (DECOUPLED FROM DOM SCRAPING)
                 if (e.key === 'Enter' && !e.shiftKey && !this.slashMenuActive) {
-                    const lines = content.innerText.split('\n'); const lastLine = lines[lines.length - 1].trim(); 
-                    const trigger = `@${CONFIG.AI_NAME} `;
+                    // Extract text purely as a string, ignoring HTML nodes and CSS layout rules
+                    let textVal = content.innerText;
+                    if (typeof textVal !== 'string') textVal = content.textContent || "";
+                    
+                    const lines = textVal.split('\n'); 
+                    const lastLine = lines[lines.length - 1].trim(); 
+                    const triggerPrefix = `@${CONFIG.AI_NAME} `;
 
-                    if (lastLine.toLowerCase().startsWith(trigger.toLowerCase())) {
-                        e.preventDefault(); const prompt = lastLine.substring(trigger.length).trim();
-                        lines.pop(); content.innerHTML = lines.join('<br>') || '<br>';
+                    if (lastLine.toLowerCase().startsWith(triggerPrefix.toLowerCase())) {
+                        e.preventDefault(); 
+                        const prompt = lastLine.substring(triggerPrefix.length).trim();
+                        
+                        // Remove the trigger line visually so the user doesn't see "@bro" sitting there
+                        lines.pop(); 
+                        content.innerHTML = lines.map(l => escapeHTML(l)).join('<br>');
+                        
                         this.triggerAI(prompt, block.id);
                         return;
                     }
@@ -1561,13 +1591,20 @@ Never refuse a tool execution if it fits the user's intent. Do not ask for permi
             async triggerAI(prompt, sourceBlockId) {
                 if (!aiEngine) return alert("AI offline.");
                 this.activeBlockId = sourceBlockId;
-                const aiBlock = this.addBasicBlock('text', "<em>analyzing context...</em>", "ai");
+                const aiBlock = this.addBasicBlock('text', "analyzing context...", "ai");
                 const aiContentNode = aiBlock.dom.querySelector('.text-content');
                 aiContentNode.contentEditable = false;
                 
                 aiStatusEl.className = 'neon-status ai-status loading'; aiStatusEl.textContent = 'sys.ai.generating';
 
-                let docContext = this.blocks.map(b => ['text','h1','h2','h3'].includes(b.type) ? b.dom.innerText : `[${b.type}]`).join('\n');
+                // DECOUPLED CONTEXT: Build context from pure, structured JSON data instead of scraping DOM nodes
+                const editorState = this.save();
+                let docContext = editorState.blocks.map(b => {
+                    if (['text','h1','h2','h3'].includes(b.type)) {
+                        return b.data && b.data.text ? normalizePlainText(b.data.text) : '';
+                    }
+                    return `[${b.type.toUpperCase()} BLOCK] ${JSON.stringify(b.data || {})}`;
+                }).join('\n');
                 
                 let messages = [
                     { role: 'system', content: `${CONFIG.AI_PERSONALITY}\nCurrent Date: ${new Date(window.currentDateStr).toDateString()}\nContext:\n${docContext}` },
@@ -1579,7 +1616,7 @@ Never refuse a tool execution if it fits the user's intent. Do not ask for permi
                     const msg = response.choices[0].message;
 
                     if (msg.tool_calls && msg.tool_calls.length > 0) {
-                        aiContentNode.innerHTML = `<em>executing AI functions...</em>`;
+                        aiContentNode.textContent = "executing AI functions...";
                         messages.push(msg); 
                         
                         for (const toolCall of msg.tool_calls) {
@@ -1589,13 +1626,17 @@ Never refuse a tool execution if it fits the user's intent. Do not ask for permi
                                 if (toolCall.function.name === 'create_compute_block') {
                                     let tempResult = "Evaluation delayed.";
                                     try { tempResult = new Function(`return (${args.code})`)(); } catch(e){}
+                                    
+                                    // DECOUPLED EXECUTION: Use the app's native addToolBlock rather than HTML injection
                                     this.addToolBlock('compute', { code: args.code, title: args.title || 'Calculation' }, 'ai');
                                     toolResultStr = `Compute block successfully created. Computed Result: ${tempResult}`;
+                                    
                                 } else if (toolCall.function.name === 'create_calendar_event') {
                                     this.addToolBlock('calendar', { title: args.title, datetime: args.datetime }, 'ai');
                                     toolResultStr = `Calendar event scheduled successfully for time: ${args.datetime}.`;
+                                    
                                 } else if (toolCall.function.name === 'search_memory') {
-                                    aiContentNode.innerHTML = `<em>searching semantic pgvector for "${args.query}"...</em>`;
+                                    aiContentNode.textContent = `searching semantic pgvector for "${args.query}"...`;
                                     const hits = await pgDB.searchSemantic(args.query, null, 4);
                                     toolResultStr = hits.length ? hits.map(h => `[Date: ${h.date}] ${h.searchText}`).join('\n') : "No relevant memories found.";
                                 }
@@ -1605,23 +1646,25 @@ Never refuse a tool execution if it fits the user's intent. Do not ask for permi
                             messages.push({ role: "tool", tool_call_id: toolCall.id, content: toolResultStr });
                         }
 
-                        aiContentNode.innerHTML = `<em>synthesizing final response...</em>`;
+                        aiContentNode.textContent = "synthesizing final response...";
                         const finalStream = await aiEngine.chat.completions.create({ messages, stream: true, temperature: 0.4 });
                         
                         let fullHtml = '';
                         for await (const chunk of finalStream) { 
-                            fullHtml += (chunk.choices[0]?.delta?.content || '').replace(/\n/g, '<br>'); 
+                            // DECOUPLED RENDERING: Safely escape AI text and format line breaks to prevent HTML corruption
+                            const textChunk = chunk.choices[0]?.delta?.content || '';
+                            fullHtml += escapeHTML(textChunk).replace(/\n/g, '<br>'); 
                             aiContentNode.innerHTML = fullHtml; 
                         }
                     } else {
-                        aiContentNode.innerHTML = (msg.content || '').replace(/\n/g, '<br>');
+                        aiContentNode.innerHTML = escapeHTML(msg.content || '').replace(/\n/g, '<br>');
                     }
                     
                     aiContentNode.contentEditable = true; 
                     this.activeBlockId = aiBlock.id; const textBlock = this.addBasicBlock('text', '', 'user');
                     setTimeout(() => textBlock.dom.querySelector('.text-content').focus(), 50); scheduleSave();
                 } catch (e) { 
-                    aiContentNode.innerHTML = "<em>error. connection lost.</em>"; 
+                    aiContentNode.textContent = "error. connection lost."; 
                     console.error("AI Generation Error", e);
                 } finally { 
                     aiStatusEl.className = 'neon-status ai-status'; aiStatusEl.textContent = 'sys.ai.online'; 
