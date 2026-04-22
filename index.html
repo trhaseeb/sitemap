@@ -46,119 +46,46 @@
             }
         }
 
-        * {
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
         body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: var(--font-main);
-            margin: 0;
-            padding: 0;
-            width: 100vw;
-            overflow-x: hidden;
-            overscroll-behavior-y: none;
+            background-color: var(--bg-color); color: var(--text-color);
+            font-family: var(--font-main); margin: 0; padding: 0; width: 100vw;
+            overflow-x: hidden; overscroll-behavior-y: none;
         }
 
         .app-container {
-            max-width: 680px;
-            width: 100%;
-            margin: 0 auto;
-            padding: 0 24px 60vh 24px;
-            position: relative;
+            max-width: 680px; width: 100%; margin: 0 auto;
+            padding: 0 24px 60vh 24px; position: relative;
         }
 
         /* --- THE HEADER --- */
         #header-container {
-            position: relative;
-            width: 100%;
-            min-height: 24vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            padding: 6vh 24px 24px 24px;
-            z-index: 100;
+            position: relative; width: 100%; min-height: 24vh;
+            display: flex; flex-direction: column; justify-content: flex-end;
+            padding: 6vh 24px 24px 24px; z-index: 100;
         }
 
-        .header-max-width {
-            max-width: 632px;
-            margin: 0 auto;
-            width: 100%;
-            position: relative;
-            z-index: 2;
-        }
+        .header-max-width { max-width: 632px; margin: 0 auto; width: 100%; position: relative; z-index: 2; }
 
-        /* --- BRUTALIST HEADER TEXT --- */
         #date-header {
-            text-align: left;
-            font-size: clamp(40px, 14vw, 110px);
-            font-weight: 900;
-            font-style: italic;
-            text-transform: uppercase;
-            letter-spacing: -0.05em;
-            line-height: 0.9;
-            color: var(--text-color);
-            margin: 0 0 10px -2px;
-            cursor: pointer;
-            transition: opacity 0.2s;
-            user-select: none;
-            display: inline-block;
+            text-align: left; font-size: clamp(40px, 14vw, 110px); font-weight: 900;
+            font-style: italic; text-transform: uppercase; letter-spacing: -0.05em;
+            line-height: 0.9; color: var(--text-color); margin: 0 0 10px -2px;
+            cursor: pointer; transition: opacity 0.2s; user-select: none; display: inline-block;
         }
+        #date-header:active { opacity: 0.5; }
 
-        #date-header:active {
-            opacity: 0.5;
-        }
+        .status-row { display: flex; align-items: center; gap: 16px; user-select: none; flex-wrap: wrap; }
+        .neon-status { font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: lowercase; }
+        
+        .ai-status { color: var(--neon-purple); opacity: 0.8; transition: opacity 0.3s ease; }
+        .ai-status.loading { animation: neon-pulse 1.5s infinite ease-in-out; }
+        .ai-status.error { color: #ef4444; opacity: 1; }
 
-        .status-row {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            user-select: none;
-            flex-wrap: wrap;
-        }
-
-        .neon-status {
-            font-family: var(--font-mono);
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: 0.05em;
-            text-transform: lowercase;
-        }
-
-        .ai-status {
-            color: var(--neon-purple);
-            opacity: 0.8;
-            transition: opacity 0.3s ease;
-        }
-
-        .ai-status.loading {
-            animation: neon-pulse 1.5s infinite ease-in-out;
-        }
-
-        .ai-status.error {
-            color: #ef4444;
-            opacity: 1;
-        }
-
-        /* Unified DB Status */
-        .db-status {
-            color: var(--neon-green);
-            opacity: 0.8;
-            transition: opacity 0.3s ease, color 0.3s ease, text-shadow 0.3s ease;
-        }
-
-        .db-status.saving {
-            opacity: 1;
-            text-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
-        }
-
-        .db-status.error {
-            color: #ef4444;
-            opacity: 1;
-            text-shadow: none;
-        }
+        .db-status { color: var(--neon-green); opacity: 0.8; transition: all 0.3s ease; }
+        .db-status.saving { opacity: 1; text-shadow: 0 0 8px rgba(16, 185, 129, 0.4); }
+        .db-status.error { color: #ef4444; opacity: 1; text-shadow: none; }
 
         @keyframes neon-pulse {
             0%, 100% { opacity: 0.8; text-shadow: 0 0 8px rgba(168, 85, 247, 0.4); }
@@ -166,457 +93,112 @@
         }
 
         /* --- EXPRESSIVE TEXT BLOCKS --- */
-        #lean-editor {
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-            width: 100%;
-            margin-top: 16px;
-            counter-reset: lean-ol;
-        }
-
-        .stream-block {
-            position: relative;
-            width: 100%;
-            transition: opacity 0.2s;
-        }
-
-        .stream-block:not(:has(.ol)) {
-            counter-reset: lean-ol;
-        }
+        #lean-editor { position: relative; display: flex; flex-direction: column; gap: 2px; width: 100%; margin-top: 16px; counter-reset: lean-ol; }
+        .stream-block { position: relative; width: 100%; transition: opacity 0.2s; }
+        .stream-block:not(:has(.ol)) { counter-reset: lean-ol; }
 
         .text-content {
-            font-size: clamp(18px, 4.5vw, 22px);
-            font-weight: 500;
-            letter-spacing: -0.02em;
-            line-height: 1.5;
-            color: var(--text-color);
-            outline: none;
-            min-height: 1.5em;
-            word-wrap: break-word;
-            padding: 4px 0;
-            width: 100%;
-            position: relative;
+            font-size: clamp(18px, 4.5vw, 22px); font-weight: 500; letter-spacing: -0.02em;
+            line-height: 1.5; color: var(--text-color); outline: none; min-height: 1.5em;
+            word-wrap: break-word; padding: 4px 0; width: 100%; position: relative;
         }
 
         .text-content[data-placeholder]:empty:before {
-            content: attr(data-placeholder);
-            color: var(--muted-text);
-            font-style: italic;
-            font-weight: 400;
-            opacity: 0.5;
-            pointer-events: none;
+            content: attr(data-placeholder); color: var(--muted-text);
+            font-style: italic; font-weight: 400; opacity: 0.5; pointer-events: none;
         }
 
-        .text-content.h1 {
-            font-size: clamp(36px, 8vw, 48px);
-            font-weight: 900;
-            letter-spacing: -0.04em;
-            line-height: 1.1;
-            margin-top: 36px;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            padding: 0;
-        }
-
-        .text-content.h2 {
-            font-size: clamp(28px, 6vw, 36px);
-            font-weight: 800;
-            letter-spacing: -0.03em;
-            line-height: 1.2;
-            margin-top: 28px;
-            margin-bottom: 6px;
-            padding: 0;
-        }
-
-        .text-content.h3 {
-            font-size: clamp(22px, 5vw, 28px);
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            line-height: 1.3;
-            margin-top: 20px;
-            margin-bottom: 4px;
-            padding: 0;
-        }
-
-        .text-content.quote {
-            font-size: clamp(20px, 5vw, 26px);
-            font-weight: 600;
-            letter-spacing: -0.01em;
-            color: var(--baritone-text);
-            background: var(--baritone-bg);
-            border-left: 4px solid var(--text-color);
-            padding: 16px 20px;
-            margin: 8px 0;
-            font-style: italic;
-        }
-
-        .text-content.ul,
-        .text-content.ol,
-        .text-content.todo,
-        .text-content.todo-checked {
-            padding-left: 32px;
-            margin-top: 4px;
-            margin-bottom: 4px;
-        }
+        /* Block Type Styles */
+        .text-content.h1 { font-size: clamp(36px, 8vw, 48px); font-weight: 900; letter-spacing: -0.04em; line-height: 1.1; margin: 36px 0 8px 0; text-transform: uppercase; padding: 0; }
+        .text-content.h2 { font-size: clamp(28px, 6vw, 36px); font-weight: 800; letter-spacing: -0.03em; line-height: 1.2; margin: 28px 0 6px 0; padding: 0; }
+        .text-content.h3 { font-size: clamp(22px, 5vw, 28px); font-weight: 700; letter-spacing: -0.02em; line-height: 1.3; margin: 20px 0 4px 0; padding: 0; }
+        .text-content.quote { font-size: clamp(20px, 5vw, 26px); font-weight: 600; letter-spacing: -0.01em; color: var(--baritone-text); background: var(--baritone-bg); border-left: 4px solid var(--text-color); padding: 16px 20px; margin: 8px 0; font-style: italic; }
+        .text-content.ul, .text-content.ol, .text-content.todo, .text-content.todo-checked { padding-left: 32px; margin: 4px 0; }
         
-        .stream-block:has(.ul)::after {
-            content: '—';
-            position: absolute;
-            left: 0;
-            top: 4px;
-            color: var(--text-color);
-            font-weight: 900;
-            pointer-events: none;
-        }
-
+        .stream-block:has(.ul)::after { content: '—'; position: absolute; left: 0; top: 4px; color: var(--text-color); font-weight: 900; pointer-events: none; }
         .stream-block:has(.ol) { counter-increment: lean-ol; }
-        
-        .stream-block:has(.ol)::after {
-            content: counter(lean-ol) ".";
-            position: absolute;
-            left: 0;
-            top: 4px;
-            font-family: var(--font-mono);
-            font-weight: 700;
-            color: var(--text-color);
-            font-size: 0.9em;
-            pointer-events: none;
-        }
+        .stream-block:has(.ol)::after { content: counter(lean-ol) "."; position: absolute; left: 0; top: 4px; font-family: var(--font-mono); font-weight: 700; color: var(--text-color); font-size: 0.9em; pointer-events: none; }
 
-        /* CHECKBOXES (TODO) STYLING */
-        .stream-block:has(.todo)::after,
-        .stream-block:has(.todo-checked)::after {
-            position: absolute;
-            left: 4px;
-            top: 8px;
-            width: 16px;
-            height: 16px;
-            border-radius: 3px;
-            cursor: pointer;
-            pointer-events: none;
-        }
-        .stream-block:has(.todo)::after {
-            content: '';
-            border: 2px solid var(--muted-text);
-        }
-        .stream-block:has(.todo-checked)::after {
-            content: '✔';
-            background: var(--text-color);
-            color: var(--bg-color);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
-            font-weight: 900;
-        }
-        .stream-block:has(.todo-checked) .text-content {
-            text-decoration: line-through;
-            color: var(--muted-text);
-            opacity: 0.8;
-        }
+        /* CHECKBOXES */
+        .stream-block:has(.todo)::after, .stream-block:has(.todo-checked)::after { position: absolute; left: 4px; top: 8px; width: 16px; height: 16px; border-radius: 3px; cursor: pointer; pointer-events: none; }
+        .stream-block:has(.todo)::after { content: ''; border: 2px solid var(--muted-text); }
+        .stream-block:has(.todo-checked)::after { content: '✔'; background: var(--text-color); color: var(--bg-color); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; }
+        .stream-block:has(.todo-checked) .text-content { text-decoration: line-through; color: var(--muted-text); opacity: 0.8; }
 
-        /* HORIZONTAL DIVIDER STYLING */
-        .text-content.hr {
-            border-bottom: 2px solid var(--baritone-bg);
-            margin: 24px 0;
-            padding: 0;
-            min-height: 0;
-            height: 0;
-            font-size: 0;
-        }
+        /* DIVIDER */
+        .text-content.hr { border-bottom: 2px solid var(--baritone-bg); margin: 24px 0; padding: 0; min-height: 0; height: 0; font-size: 0; }
         .text-content.hr:empty:before { display: none; }
 
-        /* AI RESPONSE BLOCKS STYLING */
-        .stream-block[class*="-ai"] .text-content {
-            font-weight: 400;
-            color: var(--neon-purple);
-        }
-        .stream-block[class*="-ai"]::before {
-            content: '';
-            position: absolute;
-            left: -16px;
-            top: 10px;
-            bottom: 10px;
-            width: 3px;
-            background: var(--neon-purple);
-            opacity: 0.5;
-        }
+        /* AI RESPONSE BLOCKS */
+        .stream-block[class*="-ai"] .text-content { font-weight: 400; color: var(--neon-purple); }
+        .stream-block[class*="-ai"]::before { content: ''; position: absolute; left: -16px; top: 10px; bottom: 10px; width: 3px; background: var(--neon-purple); opacity: 0.5; }
 
         /* --- MENUS --- */
-        .floating-menu {
-            position: absolute;
-            background: var(--bg-color);
-            border: 2px solid var(--text-color);
-            box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.15);
-            z-index: 1000;
-            display: none;
-            flex-direction: column;
-            width: 260px;
-            border-radius: 4px;
-            overflow: hidden;
-            padding: 8px 0;
-            transition: opacity 0.1s;
-        }
-
-        .floating-menu.active {
-            display: flex;
-        }
-
-        .menu-item {
-            padding: 10px 16px;
-            font-family: var(--font-mono);
-            font-size: 13px;
-            font-weight: 700;
-            text-transform: uppercase;
-            cursor: pointer;
-            color: var(--text-color);
-            background: transparent;
-            border: none;
-            text-align: left;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .menu-item .sub {
-            color: var(--muted-text);
-            font-size: 10px;
-            font-weight: 500;
-        }
-
-        .menu-item.selected,
-        .menu-item:hover {
-            background: var(--text-color);
-            color: var(--bg-color);
-        }
-
-        .menu-item.selected .sub,
-        .menu-item:hover .sub {
-            color: var(--bg-color);
-            opacity: 0.7;
-        }
-
-        .menu-item.create-new {
-            color: #3b82f6;
-            border-top: 1px solid var(--baritone-bg);
-        }
-
-        .menu-item.create-new.selected,
-        .menu-item.create-new:hover {
-            background: #3b82f6;
-            color: #fff;
-        }
+        .floating-menu { position: absolute; background: var(--bg-color); border: 2px solid var(--text-color); box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.15); z-index: 1000; display: none; flex-direction: column; width: 260px; border-radius: 4px; overflow: hidden; padding: 8px 0; transition: opacity 0.1s; }
+        .floating-menu.active { display: flex; }
+        .menu-item { padding: 10px 16px; font-family: var(--font-mono); font-size: 13px; font-weight: 700; text-transform: uppercase; cursor: pointer; color: var(--text-color); background: transparent; border: none; text-align: left; display: flex; justify-content: space-between; align-items: center; }
+        .menu-item .sub { color: var(--muted-text); font-size: 10px; font-weight: 500; }
+        .menu-item.selected, .menu-item:hover { background: var(--text-color); color: var(--bg-color); }
+        .menu-item.selected .sub, .menu-item:hover .sub { color: var(--bg-color); opacity: 0.7; }
+        .menu-item.create-new { color: #3b82f6; border-top: 1px solid var(--baritone-bg); }
+        .menu-item.create-new.selected, .menu-item.create-new:hover { background: #3b82f6; color: #fff; }
 
         /* --- BARITONE PANELS --- */
-        .baritone-panel {
-            background: var(--baritone-bg);
-            border-radius: 2px;
-            padding: 16px 20px;
-            margin: 16px 0;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            width: 100%;
-        }
-        
-        .baritone-panel.virtual-block {
-            border: 2px dashed var(--muted-text);
-            background: transparent;
-            opacity: 0.95;
-        }
+        .baritone-panel { background: var(--baritone-bg); border-radius: 2px; padding: 16px 20px; margin: 16px 0; display: flex; flex-direction: column; gap: 12px; width: 100%; }
+        .baritone-panel.virtual-block { border: 2px dashed var(--muted-text); background: transparent; opacity: 0.95; }
         .virtual-block .panel-header { color: var(--neon-purple); }
-
-        .panel-header {
-            font-family: var(--font-mono);
-            font-size: 10px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: var(--muted-text);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 4px;
-            user-select: none;
-        }
-
-        .panel-controls {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-        }
-
-        .panel-ctrl-btn {
-            background: none;
-            border: none;
-            padding: 0;
-            color: var(--muted-text);
-            font-size: 14px;
-            cursor: pointer;
-            transition: color 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
+        .panel-header { font-family: var(--font-mono); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted-text); display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; user-select: none; }
+        .panel-controls { display: flex; gap: 12px; align-items: center; }
+        .panel-ctrl-btn { background: none; border: none; padding: 0; color: var(--muted-text); font-size: 14px; cursor: pointer; transition: color 0.2s; display: flex; align-items: center; justify-content: center; }
         .panel-ctrl-btn:hover { color: var(--text-color); }
         .panel-ctrl-btn.delete:hover { color: #ef4444; }
 
-        .panel-title-input {
-            background: transparent;
-            border: none;
-            outline: none;
-            color: var(--text-color);
-            font-family: var(--font-main);
-            font-size: 24px;
-            font-weight: 800;
-            letter-spacing: -0.02em;
-            width: 100%;
-            margin-bottom: 8px;
-            border-bottom: 2px solid transparent;
-            transition: border-color 0.2s;
-        }
-
+        .panel-title-input { background: transparent; border: none; outline: none; color: var(--text-color); font-family: var(--font-main); font-size: 24px; font-weight: 800; letter-spacing: -0.02em; width: 100%; margin-bottom: 8px; border-bottom: 2px solid transparent; transition: border-color 0.2s; }
         .panel-title-input::placeholder { color: var(--muted-text); font-weight: 600; opacity: 0.4; }
         .panel-title-input:focus { border-bottom-color: var(--text-color); }
 
-        .raw-input {
-            background: transparent;
-            border: none;
-            outline: none;
-            color: var(--text-color);
-            font-family: var(--font-main);
-            font-size: 18px;
-            font-weight: 500;
-            width: 100%;
-        }
-
+        .raw-input { background: transparent; border: none; outline: none; color: var(--text-color); font-family: var(--font-main); font-size: 18px; font-weight: 500; width: 100%; }
         .raw-input::placeholder { color: var(--muted-text); }
-
-        .raw-btn {
-            background: var(--bg-color);
-            border: 2px solid var(--text-color);
-            color: var(--text-color);
-            font-family: var(--font-mono);
-            font-size: 11px;
-            font-weight: 800;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: all 0.2s;
-            padding: 8px 12px;
-            border-radius: 2px;
-            box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.15);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .raw-btn:active {
-            transform: translate(2px, 2px);
-            box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.15);
-        }
-
-        .raw-btn.active {
-            background: var(--text-color);
-            color: var(--bg-color);
-        }
-
-        .raw-btn.danger {
-            color: #ef4444;
-            border-color: #ef4444;
-        }
-
-        .raw-btn.danger.active {
-            background: #ef4444;
-            border-color: #ef4444;
-            color: #fff;
-        }
+        .raw-btn { background: var(--bg-color); border: 2px solid var(--text-color); color: var(--text-color); font-family: var(--font-mono); font-size: 11px; font-weight: 800; text-transform: uppercase; cursor: pointer; transition: all 0.2s; padding: 8px 12px; border-radius: 2px; box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.15); display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+        .raw-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.15); }
+        .raw-btn.active { background: var(--text-color); color: var(--bg-color); }
+        .raw-btn.danger { color: #ef4444; border-color: #ef4444; }
+        .raw-btn.danger.active { background: #ef4444; border-color: #ef4444; color: #fff; }
 
         .voice-status-text { font-family: var(--font-mono); font-size: 11px; color: var(--muted-text); }
         .scan-output { font-family: var(--font-mono); font-size: 14px; min-height: 80px; resize: none; line-height: 1.5; color: var(--baritone-text); }
-        
-        .calendar-date-display {
-            font-family: var(--font-mono);
-            font-size: 15px;
-            color: var(--neon-purple);
-            font-weight: 700;
-            display: inline-block;
-            transition: opacity 0.2s;
-            margin-bottom: 4px;
-            cursor: pointer;
-        }
+        .calendar-date-display { font-family: var(--font-mono); font-size: 15px; color: var(--neon-purple); font-weight: 700; display: inline-block; transition: opacity 0.2s; margin-bottom: 4px; cursor: pointer; }
         .calendar-date-display:hover { opacity: 0.8; }
 
         /* --- SMART CANVAS --- */
         .smart-canvas-selector { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; justify-content: center; }
-        .smart-canvas-option {
-            flex: 1; min-width: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            gap: 8px; padding: 24px 16px; background: transparent; border: 2px dashed var(--muted-text); border-radius: 2px;
-            color: var(--text-color); font-family: var(--font-mono); font-size: 13px; font-weight: 700; text-transform: uppercase;
-            cursor: pointer; transition: all 0.2s;
-        }
+        .smart-canvas-option { flex: 1; min-width: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 24px 16px; background: transparent; border: 2px dashed var(--muted-text); border-radius: 2px; color: var(--text-color); font-family: var(--font-mono); font-size: 13px; font-weight: 700; text-transform: uppercase; cursor: pointer; transition: all 0.2s; }
         .smart-canvas-option:hover { border-color: var(--text-color); border-style: solid; background: var(--text-color); color: var(--bg-color); }
-
-        .canvas-relative-frame.full-bleed {
-            position: relative; margin-left: -20px; width: calc(100% + 40px); max-width: none; border-radius: 0;
-            overflow: hidden; margin-top: 8px; height: 60vh; min-height: 400px;
-        }
-
+        .canvas-relative-frame.full-bleed { position: relative; margin-left: -20px; width: calc(100% + 40px); max-width: none; border-radius: 0; overflow: hidden; margin-top: 8px; height: 60vh; min-height: 400px; }
         .leaflet-container { background: var(--bg-color) !important; width: 100%; height: 100% !important; z-index: 1; position: absolute; top: 0; left: 0; }
         .leaflet-container.drawing-mode, .leaflet-container.drawing-mode .leaflet-interactive { cursor: crosshair !important; touch-action: none !important; }
         .leaflet-container.locked-mode { cursor: default !important; }
 
         /* --- PERSONA MENTIONS --- */
-        .persona-mention {
-            color: #3b82f6; font-weight: 700; cursor: pointer; text-decoration: none; border-bottom: 2px solid transparent;
-            transition: border-color 0.2s, opacity 0.2s; padding: 0 1px;
-        }
-        .persona-mention[data-slug$=".ai"] {
-            color: var(--neon-purple);
-        }
+        .persona-mention { color: #3b82f6; font-weight: 700; cursor: pointer; text-decoration: none; border-bottom: 2px solid transparent; transition: border-color 0.2s, opacity 0.2s; padding: 0 1px; }
         .persona-mention:hover { border-bottom-color: currentColor; opacity: 0.8; }
 
         /* --- BACKLINKS SECTION --- */
         .backlinks-section { margin-bottom: 24px; padding: 16px 20px; background: var(--baritone-bg); border-radius: 2px; }
         .backlinks-header { font-family: var(--font-mono); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted-text); margin-bottom: 12px; user-select: none; }
-        .backlink-item {
-            font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: #3b82f6; cursor: pointer;
-            padding: 6px 0; border: none; background: none; text-align: left; display: flex; gap: 8px; align-items: baseline;
-            transition: opacity 0.2s; width: 100%;
-        }
+        .backlink-item { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: #3b82f6; cursor: pointer; padding: 6px 0; border: none; background: none; text-align: left; display: flex; gap: 8px; align-items: baseline; transition: opacity 0.2s; width: 100%; }
         .backlink-item:hover { opacity: 0.7; }
         .backlink-item .backlink-preview { color: var(--muted-text); font-weight: 400; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
 
         /* --- EDITORIAL CALENDAR MODAL --- */
-        .editorial-cal-modal {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--bg-color-transparent);
-            backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 10000; display: none;
-            justify-content: center; align-items: center; padding: 20px;
-        }
+        .editorial-cal-modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--bg-color-transparent); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 10000; display: none; justify-content: center; align-items: center; padding: 20px; }
         .editorial-cal-modal.active { display: flex; }
-
-        .cal-modal-panel {
-            background: var(--bg-color); width: 100%; max-width: 400px; padding: 24px; display: flex; flex-direction: column;
-            border: 2px solid var(--text-color); box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.15); max-height: 90vh; overflow-y: auto;
-        }
-
+        .cal-modal-panel { background: var(--bg-color); width: 100%; max-width: 400px; padding: 24px; display: flex; flex-direction: column; border: 2px solid var(--text-color); box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.15); max-height: 90vh; overflow-y: auto; }
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-
-        .cal-day {
-            aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono);
-            font-size: 14px; font-weight: 700; cursor: pointer; background: var(--baritone-bg); color: var(--text-color);
-            transition: background 0.2s, color 0.2s;
-        }
+        .cal-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 14px; font-weight: 700; cursor: pointer; background: var(--baritone-bg); color: var(--text-color); transition: background 0.2s, color 0.2s; }
         .cal-day:active, .cal-day.selected { background: var(--text-color); color: var(--bg-color); }
         .cal-day.muted { opacity: 0.15; pointer-events: none; }
-
-        .time-row {
-            display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 8px; padding-bottom: 8px;
-            scrollbar-width: none; -ms-overflow-style: none;
-        }
+        .time-row { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 8px; padding-bottom: 8px; scrollbar-width: none; -ms-overflow-style: none; }
         .time-row::-webkit-scrollbar { display: none; }
         .time-row .raw-btn { flex: 0 0 auto; scroll-snap-align: center; border-radius: 20px; box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.15); }
         .time-row .raw-btn:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.15); }
@@ -624,7 +206,6 @@
 </head>
 
 <body>
-
     <!-- THE HEADER -->
     <div id="header-container">
         <div class="header-max-width">
@@ -638,9 +219,7 @@
 
     <!-- THE LEAN EDITOR -->
     <div class="app-container">
-        <div id="lean-editor">
-            <!-- Menus are dynamically generated -->
-        </div>
+        <div id="lean-editor"></div>
     </div>
 
     <!-- Editorial Calendar Overlay -->
@@ -651,9 +230,7 @@
                 <div id="ecal-title" style="font-size: 20px; font-weight: 900; font-style: italic; text-transform: uppercase; font-family: var(--font-main);">month</div>
                 <button id="ecal-next" class="raw-btn">&rarr;</button>
             </div>
-            
             <div id="ecal-grid" class="cal-grid"></div>
-            
             <div id="ecal-time-container" style="display: none; flex-direction: column; gap: 16px; margin-top: 24px; border-top: 2px solid var(--text-color); padding-top: 20px;">
                 <div style="font-family: var(--font-mono); font-size: 10px; color: var(--muted-text); text-transform: uppercase; margin-bottom: -8px;">Time</div>
                 <div class="time-row" id="ecal-hour-row"></div>
@@ -661,7 +238,6 @@
                 <div style="font-family: var(--font-mono); font-size: 10px; color: var(--muted-text); text-transform: uppercase; margin-bottom: -8px; margin-top: 8px;">Recurrence</div>
                 <div class="time-row" id="ecal-recurrence-row"></div>
             </div>
-            
             <button id="ecal-close" class="raw-btn active" style="margin-top: 24px; width: 100%; padding: 12px; font-size: 14px;">CONFIRM</button>
         </div>
     </div>
@@ -670,11 +246,7 @@
         // ============================================================================
         // ⚙️ SYSTEM UTILS & HELPERS
         // ============================================================================
-        const CONFIG = {
-            EMBEDDING_MODEL_ID: "Xenova/all-MiniLM-L6-v2",
-            DEV_ALLOW_PAST_EDITING: true // Toggle this to false later to lock the past
-        };
-
+        const CONFIG = { EMBEDDING_MODEL_ID: "Xenova/all-MiniLM-L6-v2", DEV_ALLOW_PAST_EDITING: true };
         const SLASH_COMMANDS = [
             { id: 'smartCanvas', label: 'Canvas', sub: 'Draw & Map' },
             { id: 'voice', label: 'Voice', sub: 'Audio Memo' },
@@ -683,51 +255,41 @@
             { id: 'recall', label: 'Recall', sub: 'Search Past Notes' }
         ];
 
-        function el(tag, attributes = {}, ...children) {
-            const element = document.createElement(tag);
-            for (const [key, value] of Object.entries(attributes || {})) {
-                if (key === 'style' && typeof value === 'object') Object.assign(element.style, value);
-                else if (key === 'className') element.className = value;
-                else if (key === 'innerHTML') element.innerHTML = value;
-                else if (key === 'textContent') element.textContent = value;
-                else if (key === 'value') element.value = value;
-                else if (key.startsWith('on') && typeof value === 'function') element[key] = value;
-                else if (value !== false && value !== undefined && value !== null) element.setAttribute(key, value);
+        function el(tag, attrs = {}, ...children) {
+            const e = document.createElement(tag);
+            for (const [k, v] of Object.entries(attrs || {})) {
+                if (k === 'style') Object.assign(e.style, v);
+                else if (k.startsWith('on')) e[k] = v;
+                else if (k === 'className') e.className = v;
+                else if (['innerHTML', 'textContent', 'value'].includes(k)) e[k] = v;
+                else if (v !== false && v != null) e.setAttribute(k, v);
             }
-            children.flat().filter(Boolean).forEach(child => {
-                if (typeof child === 'string' || typeof child === 'number') element.appendChild(document.createTextNode(child));
-                else if (child instanceof Node) element.appendChild(child);
-            });
-            return element;
+            children.flat().filter(Boolean).forEach(c => e.appendChild(typeof c === 'string' || typeof c === 'number' ? document.createTextNode(c) : c));
+            return e;
         }
 
-        function setCaret(el, offset = -1) {
-            el.focus();
+        function setCaret(e, offset = -1) {
+            e.focus();
             try {
-                const range = document.createRange();
-                const sel = window.getSelection();
-                if (offset === -1) { range.selectNodeContents(el); range.collapse(false); }
-                else { range.setStart(el, offset); range.collapse(true); }
+                const range = document.createRange(), sel = window.getSelection();
+                if (offset === -1) { range.selectNodeContents(e); range.collapse(false); }
+                else { range.setStart(e, offset); range.collapse(true); }
                 sel.removeAllRanges(); sel.addRange(range);
-            } catch (e) { }
+            } catch (err) { }
         }
 
-        function debounce(func, wait) {
-            let timeout;
-            return function (...args) { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), wait); };
-        }
-
+        function debounce(fn, wait) { let t; return function (...a) { clearTimeout(t); t = setTimeout(() => fn.apply(this, a), wait); }; }
         const UI = {
-            button: (text, onClick, className = '') => el('button', { className: `raw-btn ${className}`.trim(), textContent: text, onclick: onClick }),
-            row: (...children) => el('div', { style: { display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' } }, ...children),
+            button: (text, onClick, c = '') => el('button', { className: `raw-btn ${c}`.trim(), textContent: text, onclick: onClick }),
+            row: (...c) => el('div', { style: { display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' } }, ...c),
             textarea: (props) => el('textarea', { className: 'raw-input', ...props })
         };
 
-        const getLocalYYYYMMDD = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-        const parseLocal = (dateStr) => new Date(dateStr + 'T00:00:00'); // Centralized standard to prevent timezone shifting
-        const normalizePlainText = (text = '') => String(text).replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim();
-        const escapeHTML = (text = '') => String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-        const decodeHTML = (html) => { const txt = document.createElement('textarea'); txt.innerHTML = html; return txt.value; };
+        const getLocalYYYYMMDD = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const parseLocal = (s) => new Date(s + 'T00:00:00');
+        const normalizePlainText = (t = '') => String(t).replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim();
+        const escapeHTML = (t = '') => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        const decodeHTML = (html) => { const x = document.createElement('textarea'); x.innerHTML = html; return x.value; };
 
         let todayStr = getLocalYYYYMMDD(new Date());
         window.currentDateStr = todayStr;
@@ -752,41 +314,34 @@
                 if (!this.promise) {
                     this.promise = import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0-alpha.19/+esm').then(async ({ pipeline, env }) => {
                         env.allowRemoteModels = true; env.useBrowserCache = true;
-                        if (env.backends && env.backends.onnx) env.backends.onnx.logLevel = 'fatal';
-                        let pipe;
-                        try { pipe = await pipeline('feature-extraction', CONFIG.EMBEDDING_MODEL_ID, { device: 'webgpu' }); }
-                        catch (e) { pipe = await pipeline('feature-extraction', CONFIG.EMBEDDING_MODEL_ID, { dtype: 'q8' }); }
-                        this.embedder = pipe; return pipe;
+                        if (env.backends?.onnx) env.backends.onnx.logLevel = 'fatal';
+                        try { this.embedder = await pipeline('feature-extraction', CONFIG.EMBEDDING_MODEL_ID, { device: 'webgpu' }); }
+                        catch { this.embedder = await pipeline('feature-extraction', CONFIG.EMBEDDING_MODEL_ID, { dtype: 'q8' }); }
+                        return this.embedder;
                     });
                 }
                 return this.promise;
             }
             async embedText(text) {
-                const normalized = normalizePlainText(text).slice(0, 1200);
-                if (!normalized) return null;
+                const n = normalizePlainText(text).slice(0, 1200); if (!n) return null;
                 try {
                     const pipe = await this.getEmbedder();
-                    const output = await pipe(normalized, { pooling: 'mean', normalize: true });
-                    const list = typeof output.tolist === 'function' ? output.tolist() : Array.from(output.data);
+                    const out = await pipe(n, { pooling: 'mean', normalize: true });
+                    const list = typeof out.tolist === 'function' ? out.tolist() : Array.from(out.data);
                     return Array.isArray(list[0]) ? list[0] : list;
-                } catch (e) { return null; }
+                } catch { return null; }
             }
         })();
 
         // ============================================================================
-        // 💾 ROBUST STORAGE ARCHITECTURE (PGlite + Vector + IDB Media)
+        // 💾 ROBUST STORAGE ARCHITECTURE
         // ============================================================================
         class PGLiteDatabase {
             constructor() { this.pg = null; this.cache = {}; this.isReady = false; this.pendingDays = new Set(); }
-
             async init() {
-                const dbStatusEl = document.getElementById('db-status');
+                const statusEl = document.getElementById('db-status');
                 try {
-                    const [{ PGlite }, { vector }] = await Promise.all([
-                        import("https://cdn.jsdelivr.net/npm/@electric-sql/pglite/dist/index.js"),
-                        import("https://cdn.jsdelivr.net/npm/@electric-sql/pglite/dist/vector/index.js")
-                    ]);
-
+                    const [{ PGlite }, { vector }] = await Promise.all([ import("https://cdn.jsdelivr.net/npm/@electric-sql/pglite/dist/index.js"), import("https://cdn.jsdelivr.net/npm/@electric-sql/pglite/dist/vector/index.js") ]);
                     this.pg = await PGlite.create({ dataDir: 'idb://infinotes-v2', extensions: { vector } });
                     await this.pg.exec(`
                         CREATE EXTENSION IF NOT EXISTS vector;
@@ -794,241 +349,112 @@
                         CREATE TABLE IF NOT EXISTS semantic_index (key TEXT PRIMARY KEY, date_str TEXT, block_id TEXT, block_type TEXT, search_text TEXT, embedding vector(384), timestamp BIGINT);
                         CREATE TABLE IF NOT EXISTS personas_list (slug TEXT PRIMARY KEY, display_name TEXT NOT NULL, created_at BIGINT);
                     `);
-
-                    // Ensure @me persona exists by default
                     await this.pg.query(`INSERT INTO personas_list (slug, display_name, created_at) VALUES ('me', 'me', $1) ON CONFLICT DO NOTHING`, [Date.now()]);
                     
-                    this.isReady = true;
-                    dbStatusEl.textContent = 'db.ready';
-                    dbStatusEl.className = 'neon-status db-status';
-
-                    const res = await this.pg.query(`SELECT date_str, data FROM daily_notes`);
-                    res.rows.forEach(r => { this.cache[r.date_str] = typeof r.data === 'string' ? JSON.parse(r.data) : r.data; });
-
+                    this.isReady = true; statusEl.textContent = 'db.ready'; statusEl.className = 'neon-status db-status';
+                    (await this.pg.query(`SELECT date_str, data FROM daily_notes`)).rows.forEach(r => this.cache[r.date_str] = typeof r.data === 'string' ? JSON.parse(r.data) : r.data);
                     this.startBackgroundIndexer();
                 } catch (e) {
-                    console.error("PGlite Error", e);
-                    dbStatusEl.textContent = 'db.offline [memory mode]';
-                    dbStatusEl.className = 'neon-status db-status error';
+                    statusEl.textContent = 'db.offline [memory mode]'; statusEl.className = 'neon-status db-status error';
                 }
             }
-
             async saveNote(dateStr, data) {
-                this.cache[dateStr] = data;
-                localStorage.setItem(`infinotes_backup_${dateStr}`, JSON.stringify(data));
-                if (!this.isReady) throw new Error("Database is offline, saved to memory/localStorage only.");
-                
-                try {
-                    await this.pg.query(`INSERT INTO daily_notes (date_str, data) VALUES ($1, $2) ON CONFLICT (date_str) DO UPDATE SET data = EXCLUDED.data`, [dateStr, JSON.stringify(data)]);
-                    this.pendingDays.add(dateStr);
-                } catch (e) {
-                    console.error("Save Note SQL Error:", e);
-                    throw e; 
-                }
+                this.cache[dateStr] = data; localStorage.setItem(`infinotes_backup_${dateStr}`, JSON.stringify(data));
+                if (!this.isReady) throw new Error("Offline");
+                await this.pg.query(`INSERT INTO daily_notes (date_str, data) VALUES ($1, $2) ON CONFLICT (date_str) DO UPDATE SET data = EXCLUDED.data`, [dateStr, JSON.stringify(data)]);
+                this.pendingDays.add(dateStr);
             }
-
-            async getPersonas() {
-                if (!this.isReady) return [];
-                const res = await this.pg.query(`SELECT slug, display_name, created_at FROM personas_list ORDER BY created_at DESC`);
-                return res.rows;
-            }
-
-            async createPersona(slug, displayName) {
-                if (!this.isReady) return;
-                await this.pg.query(`INSERT INTO personas_list (slug, display_name, created_at) VALUES ($1, $2, $3) ON CONFLICT (slug) DO NOTHING`, [slug, displayName, Date.now()]);
-            }
-
+            async getPersonas() { return this.isReady ? (await this.pg.query(`SELECT slug, display_name, created_at FROM personas_list ORDER BY created_at DESC`)).rows : []; }
+            async createPersona(slug, displayName) { if (this.isReady) await this.pg.query(`INSERT INTO personas_list (slug, display_name, created_at) VALUES ($1, $2, $3) ON CONFLICT (slug) DO NOTHING`, [slug, displayName, Date.now()]); }
             findBacklinks(slug) {
-                const backlinks = [];
-                const searchAttr = `data-slug="${slug}"`;
-                for (const [key, dayData] of Object.entries(this.cache)) {
-                    if (key.startsWith('persona::')) continue;
-                    if (!dayData || !dayData.blocks) continue;
-                    for (const block of dayData.blocks) {
-                        if (!block.data || !block.data.text) continue;
-                        if (block.data.text.includes(searchAttr)) {
-                            const preview = decodeHTML(normalizePlainText(block.data.text)).substring(0, 80);
-                            backlinks.push({ dateStr: key, blockId: block.id, preview });
-                            break;
+                const res = [], search = `data-slug="${slug}"`;
+                for (const [key, data] of Object.entries(this.cache)) {
+                    if (key.startsWith('persona::') || !data?.blocks) continue;
+                    for (const b of data.blocks) {
+                        if (b.data?.text?.includes(search)) {
+                            res.push({ dateStr: key, blockId: b.id, preview: decodeHTML(normalizePlainText(b.data.text)).substring(0, 80) }); break;
                         }
                     }
                 }
-                backlinks.sort((a, b) => b.dateStr.localeCompare(a.dateStr));
-                return backlinks;
+                return res.sort((a, b) => b.dateStr.localeCompare(a.dateStr));
             }
-
             startBackgroundIndexer() {
                 setInterval(async () => {
-                    if (this.pendingDays.size === 0 || !this.isReady) return;
-                    const dateStr = Array.from(this.pendingDays)[0];
-                    this.pendingDays.delete(dateStr);
-
-                    const dayData = this.cache[dateStr];
-                    if (!dayData || !dayData.blocks) return;
-
+                    if (!this.isReady || !this.pendingDays.size) return;
+                    const dateStr = [...this.pendingDays][0]; this.pendingDays.delete(dateStr);
+                    const dayData = this.cache[dateStr]; if (!dayData?.blocks) return;
                     try {
                         await this.pg.query(`DELETE FROM semantic_index WHERE date_str = $1`, [dateStr]);
-
-                        for (const block of dayData.blocks) {
-                            if (!block.data) continue;
-                            const searchText = ['text', 'h1', 'h2', 'h3'].includes(block.type) ? normalizePlainText(block.data.text) : normalizePlainText(JSON.stringify(block.data));
-                            if (!searchText) continue;
-                            const vectorData = await VectorEmbedder.embedText(searchText);
-                            if (!vectorData) continue;
-
-                            await this.pg.query(
-                                `INSERT INTO semantic_index (key, date_str, block_id, block_type, search_text, embedding, timestamp) VALUES ($1, $2, $3, $4, $5, $6::vector, $7)`,
-                                [`${dateStr}::${block.id}`, dateStr, block.id, block.type, searchText, `[${vectorData.join(',')}]`, block.timestamp || Date.now()]
-                            );
+                        for (const b of dayData.blocks) {
+                            const txt = ['text', 'h1', 'h2', 'h3'].includes(b.type) ? normalizePlainText(b.data?.text) : normalizePlainText(JSON.stringify(b.data));
+                            if (!txt) continue;
+                            const vec = await VectorEmbedder.embedText(txt); if (!vec) continue;
+                            await this.pg.query(`INSERT INTO semantic_index (key, date_str, block_id, block_type, search_text, embedding, timestamp) VALUES ($1, $2, $3, $4, $5, $6::vector, $7)`, [`${dateStr}::${b.id}`, dateStr, b.id, b.type, txt, `[${vec.join(',')}]`, b.timestamp || Date.now()]);
                         }
-                    } catch (e) {
-                        console.warn("Indexer error:", e);
-                    }
+                    } catch (e) { console.warn("Indexer error:", e); }
                 }, 5000);
             }
-
             async searchSemantic(queryText, excludeDate, limit = 5) {
                 if (!this.isReady) return [];
-                const vectorData = await VectorEmbedder.embedText(queryText);
-                if (!vectorData) return [];
-                const res = await this.pg.query(
-                    `SELECT date_str as date, block_id as "blockId", block_type as type, search_text as "searchText", timestamp, 1 - (embedding <=> $1::vector) AS score FROM semantic_index WHERE date_str != $2 ORDER BY embedding <=> $1::vector ASC LIMIT $3`,
-                    [`[${vectorData.join(',')}]`, excludeDate || '', limit]
-                );
-                return res.rows;
+                const vec = await VectorEmbedder.embedText(queryText); if (!vec) return [];
+                return (await this.pg.query(`SELECT date_str as date, block_id as "blockId", block_type as type, search_text as "searchText", timestamp, 1 - (embedding <=> $1::vector) AS score FROM semantic_index WHERE date_str != $2 ORDER BY embedding <=> $1::vector ASC LIMIT $3`, [`[${vec.join(',')}]`, excludeDate || '', limit])).rows;
             }
         }
 
         class MediaBlobStore {
             constructor() { this.db = null; this.isAvailable = true; }
             init() {
-                return new Promise(resolve => {
+                return new Promise(res => {
                     try {
                         const req = indexedDB.open('InfiniteNotesMedia', 1);
                         req.onupgradeneeded = e => { if (!e.target.result.objectStoreNames.contains('media_blobs')) e.target.result.createObjectStore('media_blobs', { keyPath: 'id' }); };
-                        req.onsuccess = e => { this.db = e.target.result; resolve(); };
-                        req.onerror = () => { this.isAvailable = false; resolve(); };
-                    } catch (e) { this.isAvailable = false; resolve(); }
+                        req.onsuccess = e => { this.db = e.target.result; res(); };
+                        req.onerror = () => { this.isAvailable = false; res(); };
+                    } catch { this.isAvailable = false; res(); }
                 });
             }
-            saveBlob(id, blob, kind) {
-                return new Promise(resolve => {
-                    if (!this.db || !this.isAvailable) return resolve();
-                    const tx = this.db.transaction('media_blobs', 'readwrite');
-                    tx.objectStore('media_blobs').put({ id, blob, kind, updatedAt: Date.now() });
-                    tx.oncomplete = () => resolve(); tx.onerror = () => resolve();
-                });
-            }
-            getBlob(id) {
-                return new Promise(resolve => {
-                    if (!this.db || !this.isAvailable) return resolve(null);
-                    const req = this.db.transaction('media_blobs', 'readonly').objectStore('media_blobs').get(id);
-                    req.onsuccess = () => resolve(req.result?.blob || null);
-                    req.onerror = () => resolve(null);
-                });
-            }
+            saveBlob(id, blob, kind) { return new Promise(res => { if (!this.db || !this.isAvailable) return res(); const tx = this.db.transaction('media_blobs', 'readwrite'); tx.objectStore('media_blobs').put({ id, blob, kind, updatedAt: Date.now() }); tx.oncomplete = res; tx.onerror = res; }); }
+            getBlob(id) { return new Promise(res => { if (!this.db || !this.isAvailable) return res(null); const req = this.db.transaction('media_blobs', 'readonly').objectStore('media_blobs').get(id); req.onsuccess = () => res(req.result?.blob || null); req.onerror = () => res(null); }); }
         }
 
-        const pgDB = new PGLiteDatabase();
-        const mediaStore = new MediaBlobStore();
+        const pgDB = new PGLiteDatabase(); const mediaStore = new MediaBlobStore();
 
         // ============================================================================
-        // 🤖 ON-DEVICE AI INITIALIZATION
+        // 🤖 ON-DEVICE AI
         // ============================================================================
         const AI_MODEL_ID = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC";
-        let aiEngine = null;
-        let isAILoading = false;
+        let aiEngine = null, isAILoading = false;
         const aiStatusEl = document.getElementById('ai-inline-status');
 
         async function initializeAI() {
-            if (aiEngine || isAILoading) return;
-            isAILoading = true;
+            if (aiEngine || isAILoading) return; isAILoading = true;
             try {
-                if (!navigator.gpu) throw new Error("WebGPU disabled or unsupported");
+                if (!navigator.gpu) throw new Error("No WebGPU");
                 const { CreateMLCEngine } = await import("https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.82/+esm");
-
-                aiEngine = await CreateMLCEngine(AI_MODEL_ID, {
-                    initProgressCallback: (progress) => { aiStatusEl.textContent = `sys.ai.loading [${Math.round(progress.progress * 100)}%]`; }
-                });
-
+                aiEngine = await CreateMLCEngine(AI_MODEL_ID, { initProgressCallback: p => aiStatusEl.textContent = `sys.ai.loading [${Math.round(p.progress * 100)}%]` });
                 aiStatusEl.className = 'neon-status ai-status'; aiStatusEl.textContent = `sys.ai.online`;
             } catch (err) {
-                console.error("Local AI Boot Error:", err);
                 aiStatusEl.className = 'neon-status ai-status error';
-                let shortError = "sys.ai.offline";
-                if (err.message && err.message.includes("WebGPU")) shortError = "gpu.access.denied";
-                else if (err.message && err.message.includes("fetch")) shortError = "model.download.err";
-                else if (err.message && (err.message.includes("memory") || err.message.includes("quota"))) shortError = "out.of.memory";
-                aiStatusEl.textContent = shortError; aiEngine = null;
+                aiStatusEl.textContent = err.message.includes("WebGPU") ? "gpu.access.denied" : "sys.ai.offline";
             } finally { isAILoading = false; }
         }
-        setTimeout(() => initializeAI(), 1500);
+        setTimeout(initializeAI, 1500);
 
         // ============================================================================
         // 📅 EDITORIAL CALENDAR UI
         // ============================================================================
         const EditorialCalendar = (() => {
-            const modal = document.getElementById('editorial-cal');
-            const title = document.getElementById('ecal-title');
-            const grid = document.getElementById('ecal-grid');
-            const timeContainer = document.getElementById('ecal-time-container');
-            const hourRow = document.getElementById('ecal-hour-row');
-            const minuteRow = document.getElementById('ecal-minute-row');
-            const recurrenceRow = document.getElementById('ecal-recurrence-row');
-            
-            let viewDate, activeDate, requireTime, onConfirm;
-            let selectedHour = 0, selectedMinute = 0;
-            let selectedRecurrence = 'none';
+            const modal = document.getElementById('editorial-cal'), title = document.getElementById('ecal-title'), grid = document.getElementById('ecal-grid'), timeContainer = document.getElementById('ecal-time-container'), hourRow = document.getElementById('ecal-hour-row'), minuteRow = document.getElementById('ecal-minute-row'), recurrenceRow = document.getElementById('ecal-recurrence-row');
+            let viewDate, activeDate, requireTime, onConfirm, selectedHour = 0, selectedMinute = 0, selectedRecurrence = 'none';
+            const RECURRENCE_OPTS = [{ id: 'none', label: 'Once' }, { id: 'daily', label: 'Daily' }, { id: 'weekly', label: 'Weekly' }, { id: 'monthly', label: 'Monthly' }, { id: 'yearly', label: 'Yearly' }];
+            const formatHour = (h) => `${h % 12 || 12} ${h >= 12 ? 'PM' : 'AM'}`;
 
-            const RECURRENCE_OPTS = [
-                { id: 'none', label: 'Once' },
-                { id: 'daily', label: 'Daily' },
-                { id: 'weekly', label: 'Weekly' },
-                { id: 'monthly', label: 'Monthly' },
-                { id: 'yearly', label: 'Yearly' }
-            ];
-
-            function formatHour(h) {
-                const ampm = h >= 12 ? 'PM' : 'AM';
-                const hr = h % 12 || 12;
-                return `${hr} ${ampm}`;
-            }
-
-            function renderTimeCarousel() {
-                hourRow.innerHTML = '';
-                minuteRow.innerHTML = '';
-                
-                for (let i = 0; i < 24; i++) {
-                    const btn = el('button', {
-                        className: `raw-btn ${i === selectedHour ? 'active' : ''}`,
-                        textContent: formatHour(i),
-                        onclick: () => { selectedHour = i; renderTimeCarousel(); }
-                    });
-                    hourRow.appendChild(btn);
-                    if (i === selectedHour) setTimeout(() => btn.scrollIntoView({behavior: 'smooth', inline: 'center', block: 'nearest'}), 10);
-                }
-                
-                for (let i = 0; i < 60; i += 5) {
-                    const btn = el('button', {
-                        className: `raw-btn ${i === selectedMinute ? 'active' : ''}`,
-                        textContent: String(i).padStart(2, '0'),
-                        onclick: () => { selectedMinute = i; renderTimeCarousel(); }
-                    });
-                    minuteRow.appendChild(btn);
-                    if (i === selectedMinute) setTimeout(() => btn.scrollIntoView({behavior: 'smooth', inline: 'center', block: 'nearest'}), 10);
-                }
-            }
-
-            function renderRecurrenceCarousel() {
-                recurrenceRow.innerHTML = '';
-                RECURRENCE_OPTS.forEach(opt => {
-                    const btn = el('button', {
-                        className: `raw-btn ${opt.id === selectedRecurrence ? 'active' : ''}`,
-                        textContent: opt.label,
-                        onclick: () => { selectedRecurrence = opt.id; renderRecurrenceCarousel(); }
-                    });
-                    recurrenceRow.appendChild(btn);
-                    if (opt.id === selectedRecurrence) setTimeout(() => btn.scrollIntoView({behavior: 'smooth', inline: 'center', block: 'nearest'}), 10);
+            function renderCarousel(row, items, selectedVal, onSelect) {
+                row.innerHTML = '';
+                items.forEach(item => {
+                    const btn = el('button', { className: `raw-btn ${item.val === selectedVal ? 'active' : ''}`, textContent: item.label, onclick: () => { onSelect(item.val); renderCarousel(row, items, item.val, onSelect); } });
+                    row.appendChild(btn);
+                    if (item.val === selectedVal) setTimeout(() => btn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }), 10);
                 });
             }
 
@@ -1036,47 +462,29 @@
                 const year = viewDate.getFullYear(), month = viewDate.getMonth();
                 title.textContent = viewDate.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
                 grid.innerHTML = '';
-
-                const firstDay = new Date(year, month, 1).getDay();
-                for (let i = 0; i < firstDay; i++) grid.appendChild(el('div', { className: 'cal-day muted' }));
-
+                for (let i = 0; i < new Date(year, month, 1).getDay(); i++) grid.appendChild(el('div', { className: 'cal-day muted' }));
                 const daysInMonth = new Date(year, month + 1, 0).getDate();
                 for (let i = 1; i <= daysInMonth; i++) {
-                    const cellDateStr = getLocalYYYYMMDD(new Date(year, month, i));
                     const isSelected = (year === activeDate.getFullYear() && month === activeDate.getMonth() && i === activeDate.getDate());
-                    const isMuted = !requireTime && cellDateStr > todayStr;
-
-                    grid.appendChild(el('div', {
-                        className: `cal-day ${isSelected ? 'selected' : ''} ${isMuted ? 'muted' : ''}`,
-                        textContent: i,
-                        onclick: () => { if (!isMuted) { activeDate = new Date(year, month, i); render(); } }
-                    }));
+                    const isMuted = !requireTime && getLocalYYYYMMDD(new Date(year, month, i)) > todayStr;
+                    grid.appendChild(el('div', { className: `cal-day ${isSelected ? 'selected' : ''} ${isMuted ? 'muted' : ''}`, textContent: i, onclick: () => { if (!isMuted) { activeDate = new Date(year, month, i); render(); } } }));
                 }
             }
 
             document.getElementById('ecal-prev').onclick = () => { viewDate.setMonth(viewDate.getMonth() - 1); render(); };
             document.getElementById('ecal-next').onclick = () => { viewDate.setMonth(viewDate.getMonth() + 1); render(); };
-            document.getElementById('ecal-close').onclick = () => {
-                modal.classList.remove('active');
-                if (requireTime) activeDate.setHours(selectedHour, selectedMinute, 0);
-                if (onConfirm) onConfirm(activeDate, requireTime ? selectedRecurrence : null);
-            };
+            document.getElementById('ecal-close').onclick = () => { modal.classList.remove('active'); if (requireTime) activeDate.setHours(selectedHour, selectedMinute, 0); if (onConfirm) onConfirm(activeDate, requireTime ? selectedRecurrence : null); };
 
             return {
                 open: (initialDate, needsTime, initialRecurrence, callback) => {
-                    activeDate = initialDate || new Date(); 
-                    viewDate = new Date(activeDate);
-                    requireTime = needsTime; 
-                    onConfirm = callback;
-                    
-                    timeContainer.style.display = needsTime ? 'flex' : 'none';
+                    activeDate = initialDate || new Date(); viewDate = new Date(activeDate); requireTime = needsTime; onConfirm = callback; timeContainer.style.display = needsTime ? 'flex' : 'none';
                     if (needsTime) {
-                        selectedHour = activeDate.getHours();
-                        selectedMinute = Math.round(activeDate.getMinutes() / 5) * 5;
+                        selectedHour = activeDate.getHours(); selectedMinute = Math.round(activeDate.getMinutes() / 5) * 5;
                         if (selectedMinute === 60) { selectedMinute = 0; selectedHour = (selectedHour + 1) % 24; }
                         selectedRecurrence = initialRecurrence || 'none';
-                        renderTimeCarousel();
-                        renderRecurrenceCarousel();
+                        renderCarousel(hourRow, Array.from({ length: 24 }, (_, i) => ({ val: i, label: formatHour(i) })), selectedHour, v => selectedHour = v);
+                        renderCarousel(minuteRow, Array.from({ length: 12 }, (_, i) => ({ val: i * 5, label: String(i * 5).padStart(2, '0') })), selectedMinute, v => selectedMinute = v);
+                        renderCarousel(recurrenceRow, RECURRENCE_OPTS.map(o => ({ val: o.id, label: o.label })), selectedRecurrence, v => selectedRecurrence = v);
                     }
                     render(); modal.classList.add('active');
                 }
@@ -1084,37 +492,21 @@
         })();
 
         // ============================================================================
-        // ⬛ FLOATING MENU SYSTEM
+        // ⬛ MENUS & TOOLS
         // ============================================================================
         class FloatingMenu {
-            constructor(id, container) {
-                this.el = el('div', { id, className: 'floating-menu' });
-                container.appendChild(this.el);
-                this.container = container;
-                this.active = false; this.index = 0; this.items = []; this.context = null; this.onExecute = null;
-            }
+            constructor(id, container) { this.el = el('div', { id, className: 'floating-menu' }); container.appendChild(this.el); this.container = container; this.active = false; this.index = 0; }
             open(context, range, filterStr, onExecute, renderFn) {
-                this.active = true; this.context = { ...context, range }; this.index = 0;
-                this.onExecute = onExecute; this.renderFn = renderFn;
-                
-                let rect = range.getBoundingClientRect();
-                if (rect.width === 0) rect = context.content.getBoundingClientRect();
-                const cRect = this.container.getBoundingClientRect();
-                
-                this.el.style.top = `${rect.bottom - cRect.top + this.container.scrollTop + 8}px`;
-                this.el.style.left = `${Math.max(0, rect.left - cRect.left)}px`;
+                this.active = true; this.context = { ...context, range }; this.index = 0; this.onExecute = onExecute; this.renderFn = renderFn;
+                const rect = range.getBoundingClientRect().width === 0 ? context.content.getBoundingClientRect() : range.getBoundingClientRect(), cRect = this.container.getBoundingClientRect();
+                this.el.style.top = `${rect.bottom - cRect.top + this.container.scrollTop + 8}px`; this.el.style.left = `${Math.max(0, rect.left - cRect.left)}px`;
                 this.update(filterStr);
             }
             close() { this.active = false; this.el.classList.remove('active'); this.context = null; }
             update(items) {
-                this.items = items; this.el.innerHTML = '';
-                if (!items.length) { this.close(); return; }
+                this.items = items; this.el.innerHTML = ''; if (!items.length) return this.close();
                 if (this.index >= items.length) this.index = 0;
-                items.forEach((item, i) => {
-                    const btn = this.renderFn(item, i === this.index);
-                    btn.onmousedown = (e) => { e.preventDefault(); this.onExecute(item, this.context); };
-                    this.el.appendChild(btn);
-                });
+                items.forEach((item, i) => { const btn = this.renderFn(item, i === this.index); btn.onmousedown = (e) => { e.preventDefault(); this.onExecute(item, this.context); }; this.el.appendChild(btn); });
                 this.el.classList.add('active');
             }
             handleKey(e) {
@@ -1127,22 +519,16 @@
             }
         }
 
-        // ============================================================================
-        // ⬛ BARITONE TOOL COMPONENTS
-        // ============================================================================
         class BaseTool {
             constructor(data, isReadOnly, onChange) { this.data = data || {}; this.readOnly = isReadOnly; this.onChange = onChange; }
-            renderContainer(contentElements) {
-                const titleInput = el('input', { className: 'panel-title-input', type: 'text', placeholder: 'block title...', value: this.data.title || '', readonly: this.readOnly ? true : null, oninput: (e) => { this.data.title = e.target.value; if (this.onChange) this.onChange(); } });
-                return el('div', {}, titleInput, ...contentElements);
-            }
+            renderContainer(contentElements) { return el('div', {}, el('input', { className: 'panel-title-input', type: 'text', placeholder: 'block title...', value: this.data.title || '', readonly: this.readOnly ? true : null, oninput: (e) => { this.data.title = e.target.value; if (this.onChange) this.onChange(); } }), ...contentElements); }
             save() { return this.data; }
             destroy() {}
         }
 
         class VoiceTool extends BaseTool {
-            constructor(data, isReadOnly, onChange) { super({ title: data.title || '', mediaId: data.mediaId || null }, isReadOnly, onChange); this.recorder = null; this.chunks = []; this.isPlaying = false; this.isRecording = false; this.objectUrl = ''; }
-            async hydrate() { if (this.objectUrl || !this.data.mediaId) return; const blob = await mediaStore.getBlob(this.data.mediaId); if (blob) { this.objectUrl = URL.createObjectURL(blob); this.audio.src = this.objectUrl; this.updateUI(); } }
+            constructor(data, isReadOnly, onChange) { super({ title: data.title || '', mediaId: data.mediaId || null }, isReadOnly, onChange); this.isPlaying = false; this.isRecording = false; this.objectUrl = ''; }
+            async hydrate() { if (this.objectUrl || !this.data.mediaId) return; const blob = await mediaStore.getBlob(this.data.mediaId); if (blob) { this.audio.src = URL.createObjectURL(blob); this.updateUI(); } }
             render() {
                 this.btn = UI.button('record', () => this.handleAction(), 'danger'); this.statusTxt = el('span', { className: 'voice-status-text' });
                 this.audio = el('audio', { onplay: () => { this.isPlaying = true; this.updateUI(); }, onpause: () => { this.isPlaying = false; this.updateUI(); }, onended: () => { this.isPlaying = false; this.updateUI(); } });
@@ -1157,190 +543,145 @@
             }
             async handleAction() {
                 if (this.readOnly && !this.audio.src) return;
-                if (this.audio.src) { this.isPlaying ? this.audio.pause() : this.audio.play(); }
+                if (this.audio.src) return this.isPlaying ? this.audio.pause() : this.audio.play();
+                if (this.isRecording) { this.recorder.stop(); this.isRecording = false; }
                 else {
-                    if (this.isRecording) { this.recorder.stop(); this.isRecording = false; }
-                    else {
-                        try {
-                            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                            this.recorder = new MediaRecorder(stream); this.chunks = []; this.recorder.ondataavailable = e => this.chunks.push(e.data);
-                            this.recorder.onstop = async () => {
-                                const blob = new Blob(this.chunks, { type: 'audio/webm' }); const mediaId = this.data.mediaId || crypto.randomUUID();
-                                await mediaStore.saveBlob(mediaId, blob, 'audio'); this.data.mediaId = mediaId; this.objectUrl = URL.createObjectURL(blob);
-                                this.audio.src = this.objectUrl; this.updateUI(); if (this.onChange) this.onChange(); stream.getTracks().forEach(t => t.stop());
-                            };
-                            this.recorder.start(); this.isRecording = true; this.updateUI();
-                        } catch (e) { alert("Mic access denied"); }
-                    }
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        this.recorder = new MediaRecorder(stream); const chunks = []; this.recorder.ondataavailable = e => chunks.push(e.data);
+                        this.recorder.onstop = async () => {
+                            const blob = new Blob(chunks, { type: 'audio/webm' }), mediaId = this.data.mediaId || crypto.randomUUID();
+                            await mediaStore.saveBlob(mediaId, blob, 'audio'); this.data.mediaId = mediaId; this.audio.src = URL.createObjectURL(blob);
+                            this.updateUI(); if (this.onChange) this.onChange(); stream.getTracks().forEach(t => t.stop());
+                        };
+                        this.recorder.start(); this.isRecording = true; this.updateUI();
+                    } catch { alert("Mic access denied"); }
                 }
             }
-            destroy() {
-                if (this.audio) { this.audio.pause(); this.audio.src = ''; }
-                if (this.recorder && this.isRecording) this.recorder.stop();
-            }
+            destroy() { if (this.audio) { this.audio.pause(); this.audio.src = ''; } if (this.recorder && this.isRecording) this.recorder.stop(); }
         }
 
         class SmartCanvasTool extends BaseTool {
-            constructor(data, isReadOnly, onChange) { super({ title: data.title || '', mode: data.mode || null, lat: data.lat || 51.505, lng: data.lng || -0.09, zoom: data.zoom || 13, isLocked: data.isLocked || false, baseImageId: data.baseImageId || null, imgWidth: data.imgWidth || null, imgHeight: data.imgHeight || null, hasInitializedView: data.hasInitializedView || false, lines: data.lines || [], isDrawingActive: data.isDrawingActive || false }, isReadOnly, onChange); this.baseImageUrl = ''; this.currentColor = '#ef4444'; this.lineLayers = []; this.currentPolyline = null; this.currentPoints = []; this.mainContainer = el('div'); }
+            constructor(data, isReadOnly, onChange) { super(Object.assign({ title: '', mode: null, lat: 51.505, lng: -0.09, zoom: 13, isLocked: false, lines: [] }, data), isReadOnly, onChange); this.currentColor = '#ef4444'; this.lineLayers = []; }
             render() {
-                this.mainContainer.innerHTML = ''; const baseEl = this.renderContainer([]); this.mainContainer.appendChild(baseEl);
-                if (!this.data.mode) { if (this.readOnly) baseEl.appendChild(el('div', { style: { padding: '24px', textAlign: 'center', color: 'var(--muted-text)', fontSize: '14px' }, textContent: 'Blank Canvas' })); else baseEl.appendChild(this.renderSelector()); }
-                else { this.controlsRow = this.buildControls(); this.relativeFrame = el('div', { className: 'canvas-relative-frame full-bleed' }); if (this.controlsRow) baseEl.appendChild(this.controlsRow); baseEl.appendChild(this.relativeFrame); this.renderMap(); }
-                return this.mainContainer;
-            }
-            renderSelector() {
-                const fileInput = el('input', { type: 'file', accept: 'image/*', style: { display: 'none' } });
-                fileInput.onchange = async (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                        const tempUrl = URL.createObjectURL(file); const img = new Image();
-                        img.onload = async () => {
-                            this.data.imgWidth = img.width; this.data.imgHeight = img.height; this.data.mode = 'image'; this.data.isLocked = false; this.data.isDrawingActive = false;
-                            const mediaId = this.data.baseImageId || crypto.randomUUID(); await mediaStore.saveBlob(mediaId, file, 'image');
-                            this.data.baseImageId = mediaId; this.baseImageUrl = tempUrl; this.render(); if (this.onChange) this.onChange();
-                        };
-                        img.src = tempUrl;
+                const baseEl = this.renderContainer([]);
+                if (!this.data.mode) {
+                    if (this.readOnly) baseEl.appendChild(el('div', { style: { padding: '24px', textAlign: 'center', color: 'var(--muted-text)', fontSize: '14px' }, textContent: 'Blank Canvas' }));
+                    else {
+                        const fileInput = el('input', { type: 'file', accept: 'image/*', style: { display: 'none' }, onchange: async (e) => { const f = e.target.files[0]; if (f) { const u = URL.createObjectURL(f), img = new Image(); img.onload = async () => { this.data.imgWidth = img.width; this.data.imgHeight = img.height; this.data.mode = 'image'; this.data.baseImageId = crypto.randomUUID(); await mediaStore.saveBlob(this.data.baseImageId, f, 'image'); this.render(); if (this.onChange) this.onChange(); }; img.src = u; } } });
+                        baseEl.appendChild(el('div', { className: 'smart-canvas-selector' }, UI.button('Map Mode', () => { this.data.mode = 'map'; this.render(); if (this.onChange) this.onChange(); }, 'smart-canvas-option'), UI.button('Photo Overlay', () => fileInput.click(), 'smart-canvas-option'), UI.button('Blank Canvas', () => { this.data.mode = 'blank'; this.render(); if (this.onChange) this.onChange(); }, 'smart-canvas-option'), fileInput));
                     }
-                };
-                return el('div', { className: 'smart-canvas-selector' }, el('button', { className: 'smart-canvas-option', textContent: 'Map Mode', onclick: () => { this.data.mode = 'map'; this.render(); if (this.onChange) this.onChange(); } }), el('button', { className: 'smart-canvas-option', textContent: 'Photo Overlay', onclick: () => fileInput.click() }), el('button', { className: 'smart-canvas-option', textContent: 'Blank Canvas', onclick: () => { this.data.mode = 'blank'; this.render(); if (this.onChange) this.onChange(); } }), fileInput);
+                } else {
+                    this.controlsRow = this.buildControls(); this.relativeFrame = el('div', { className: 'canvas-relative-frame full-bleed' });
+                    if (this.controlsRow) baseEl.appendChild(this.controlsRow); baseEl.appendChild(this.relativeFrame); this.renderMap();
+                }
+                return el('div', {}, baseEl);
             }
-            async hydrateBaseImage() { if (this.baseImageUrl) return this.baseImageUrl; if (!this.data.baseImageId) return ''; const blob = await mediaStore.getBlob(this.data.baseImageId); if (blob) { this.baseImageUrl = URL.createObjectURL(blob); } return this.baseImageUrl; }
             buildControls() {
                 if (this.readOnly) return null;
-                this.lockBtn = UI.button(this.data.isLocked ? 'LOCKED' : 'UNLOCK', () => { this.data.isLocked = !this.data.isLocked; this.updateInteractions(); if (this.onChange) this.onChange(); }); if (this.data.isLocked) this.lockBtn.classList.add('active');
+                this.lockBtn = UI.button(this.data.isLocked ? 'LOCKED' : 'UNLOCK', () => { this.data.isLocked = !this.data.isLocked; this.updateInteractions(); if (this.onChange) this.onChange(); }, this.data.isLocked ? 'active' : '');
                 this.colorPicker = el('input', { type: 'color', value: this.currentColor, style: { position: 'absolute', opacity: '0', width: '0', height: '0', pointerEvents: 'none' }, oninput: (e) => this.currentColor = e.target.value });
-                this.drawBtn = UI.button('DRAW', (e) => { e.preventDefault(); e.stopPropagation(); if (this.wasLongPress) { this.wasLongPress = false; return; } this.data.isDrawingActive = !this.data.isDrawingActive; this.updateInteractions(); if (this.onChange) this.onChange(); });
+                this.drawBtn = UI.button('DRAW', (e) => { e.preventDefault(); e.stopPropagation(); this.data.isDrawingActive = !this.data.isDrawingActive; this.updateInteractions(); if (this.onChange) this.onChange(); });
                 this.drawBtn.addEventListener('dblclick', (e) => { e.preventDefault(); e.stopPropagation(); this.colorPicker.click(); });
-                const startPress = (e) => { if (e.type === 'touchstart') e.stopPropagation(); this.wasLongPress = false; this.pressTimer = setTimeout(() => { this.wasLongPress = true; this.colorPicker.click(); }, 600); };
-                ['mousedown', 'touchstart'].forEach(evt => this.drawBtn.addEventListener(evt, startPress, { passive: true }));['mouseup', 'mouseleave', 'touchend', 'touchcancel'].forEach(evt => this.drawBtn.addEventListener(evt, () => clearTimeout(this.pressTimer)));
-                this.clearBtn = UI.button('CLEAR', () => { this.lineLayers.forEach(layer => { if (this.map) this.map.removeLayer(layer); }); this.lineLayers = []; this.data.lines = []; if (this.onChange) this.onChange(); });
+                this.clearBtn = UI.button('CLEAR', () => { this.lineLayers.forEach(l => this.map?.removeLayer(l)); this.lineLayers = []; this.data.lines = []; if (this.onChange) this.onChange(); });
                 return UI.row(this.lockBtn, this.drawBtn, this.clearBtn, this.colorPicker);
             }
-            renderMap() {
+            async renderMap() {
                 this.mediaContainer = el('div', { className: 'leaflet-container' }); this.relativeFrame.appendChild(this.mediaContainer);
                 setTimeout(async () => {
                     if (!this.mediaContainer.isConnected) return;
                     if (this.data.mode === 'map') {
                         this.map = L.map(this.mediaContainer, { zoomControl: false, attributionControl: false }).setView([this.data.lat, this.data.lng], this.data.zoom);
-                        const tileUrl = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'; L.tileLayer(tileUrl).addTo(this.map);
+                        L.tileLayer(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(this.map);
                     } else {
                         this.map = L.map(this.mediaContainer, { crs: L.CRS.Simple, zoomControl: false, attributionControl: false, minZoom: -4 });
-                        const imageUrl = this.data.mode === 'image' ? await this.hydrateBaseImage() : '';
+                        const imageUrl = this.data.mode === 'image' && this.data.baseImageId ? URL.createObjectURL(await mediaStore.getBlob(this.data.baseImageId)) : '';
                         if (imageUrl) {
-                            const bounds = [[0, 0], [this.data.imgHeight || 600, this.data.imgWidth || 800]]; L.imageOverlay(imageUrl, bounds).addTo(this.map);
-                            if (!this.data.hasInitializedView && !this.readOnly) { this.map.fitBounds(bounds); this.data.hasInitializedView = true; if (this.onChange) this.onChange(); }
-                            else { this.map.setView([this.data.lat || (bounds[1][0] / 2), this.data.lng || (bounds[1][1] / 2)], this.data.zoom || 0); }
-                        } else { this.map.setView([this.data.lat || 0, this.data.lng || 0], this.data.zoom || 0); }
+                            const b = [[0, 0], [this.data.imgHeight || 600, this.data.imgWidth || 800]]; L.imageOverlay(imageUrl, b).addTo(this.map);
+                            if (!this.data.hasInitializedView && !this.readOnly) { this.map.fitBounds(b); this.data.hasInitializedView = true; if (this.onChange) this.onChange(); }
+                            else this.map.setView([this.data.lat || b[1][0] / 2, this.data.lng || b[1][1] / 2], this.data.zoom || 0);
+                        } else this.map.setView([this.data.lat || 0, this.data.lng || 0], this.data.zoom || 0);
                     }
-                    this.renderExistingLines(); this.initDrawingTracker(); this.updateInteractions(); this.map.invalidateSize(); this.map.on('moveend', () => { if (this.onChange) this.onChange(); });
+                    this.data.lines.forEach(l => this.lineLayers.push(L.polyline(l.points, { color: l.color, weight: l.weight, lineCap: 'round', lineJoin: 'round', smoothFactor: 1.5 }).addTo(this.map)));
+                    this.initDrawingTracker(); this.updateInteractions(); this.map.invalidateSize(); this.map.on('moveend', () => { if (this.onChange) this.onChange(); });
                 }, 100);
             }
-            renderExistingLines() { if (!this.map) return; this.lineLayers.forEach(layer => this.map.removeLayer(layer)); this.lineLayers = []; this.data.lines.forEach(line => { this.lineLayers.push(L.polyline(line.points, { color: line.color, weight: line.weight, lineCap: 'round', lineJoin: 'round', smoothFactor: 1.5 }).addTo(this.map)); }); }
             initDrawingTracker() {
-                if (this.readOnly) return; let isPointerDown = false;
-                this.mediaContainer.addEventListener('pointerdown', (e) => {
-                    if (!this.data.isDrawingActive || !this.map) return; isPointerDown = true; this.mediaContainer.setPointerCapture(e.pointerId); this.currentPoints = [this.map.mouseEventToLatLng(e)]; this.currentPolyline = L.polyline(this.currentPoints, { color: this.currentColor, weight: 4, lineCap: 'round', lineJoin: 'round', smoothFactor: 1.5 }).addTo(this.map);
-                });
-                this.mediaContainer.addEventListener('pointermove', (e) => { if (!this.data.isDrawingActive || !isPointerDown || !this.currentPolyline || !this.map) return; this.currentPoints.push(this.map.mouseEventToLatLng(e)); this.currentPolyline.setLatLngs(this.currentPoints); });
-                const endDraw = () => { if (!isPointerDown) return; isPointerDown = false; if (!this.currentPolyline || !this.data.isDrawingActive) return; this.data.lines.push({ color: this.currentColor, weight: 4, points: this.currentPoints.map(p => [p.lat, p.lng]) }); this.lineLayers.push(this.currentPolyline); this.currentPolyline = null; this.currentPoints = []; if (this.onChange) this.onChange(); };
-                this.mediaContainer.addEventListener('pointerup', endDraw); this.mediaContainer.addEventListener('pointercancel', endDraw);
+                if (this.readOnly) return; let isDown = false;
+                this.mediaContainer.addEventListener('pointerdown', (e) => { if (!this.data.isDrawingActive || !this.map) return; isDown = true; this.mediaContainer.setPointerCapture(e.pointerId); this.currentPoints = [this.map.mouseEventToLatLng(e)]; this.currentPolyline = L.polyline(this.currentPoints, { color: this.currentColor, weight: 4 }).addTo(this.map); });
+                this.mediaContainer.addEventListener('pointermove', (e) => { if (isDown && this.currentPolyline) { this.currentPoints.push(this.map.mouseEventToLatLng(e)); this.currentPolyline.setLatLngs(this.currentPoints); } });
+                const end = () => { if (!isDown) return; isDown = false; if (this.currentPolyline && this.data.isDrawingActive) { this.data.lines.push({ color: this.currentColor, weight: 4, points: this.currentPoints.map(p => [p.lat, p.lng]) }); this.lineLayers.push(this.currentPolyline); this.currentPolyline = null; if (this.onChange) this.onChange(); } };
+                this.mediaContainer.addEventListener('pointerup', end); this.mediaContainer.addEventListener('pointercancel', end);
             }
             updateInteractions() {
                 if (!this.map || !this.mediaContainer) return; this.mediaContainer.classList.remove('drawing-mode', 'locked-mode');
-                const toggleMoves = (enable) => { const action = enable ? 'enable' : 'disable'; this.map.dragging[action](); this.map.touchZoom[action](); this.map.doubleClickZoom[action](); this.map.scrollWheelZoom[action](); this.map.boxZoom[action](); this.map.keyboard[action](); if (this.map.tap) this.map.tap[action](); };
-                if (this.readOnly) { toggleMoves(false); this.mediaContainer.classList.add('locked-mode'); if (this.controlsRow) this.controlsRow.style.display = 'none'; return; }
-                if (!this.data.isLocked) { this.data.isDrawingActive = false; toggleMoves(true); if (this.lockBtn) { this.lockBtn.textContent = 'UNLOCK'; this.lockBtn.classList.remove('active'); } if (this.drawBtn) { this.drawBtn.style.display = 'none'; this.drawBtn.classList.remove('active', 'danger'); } if (this.clearBtn) { this.clearBtn.style.display = 'none'; } }
-                else { toggleMoves(false); this.mediaContainer.classList.add('locked-mode'); if (this.lockBtn) { this.lockBtn.textContent = 'LOCKED'; this.lockBtn.classList.add('active'); } if (this.drawBtn) { this.drawBtn.style.display = 'flex'; if (this.data.isDrawingActive) { this.drawBtn.textContent = 'DRAWING'; this.drawBtn.classList.add('active', 'danger'); this.mediaContainer.classList.add('drawing-mode'); } else { this.drawBtn.textContent = 'DRAW'; this.drawBtn.classList.remove('active', 'danger'); } } if (this.clearBtn) { this.clearBtn.style.display = 'flex'; } }
+                const t = (en) => { const a = en ? 'enable' : 'disable'; this.map.dragging[a](); this.map.touchZoom[a](); this.map.doubleClickZoom[a](); this.map.scrollWheelZoom[a](); this.map.boxZoom[a](); this.map.keyboard[a](); if (this.map.tap) this.map.tap[a](); };
+                if (this.readOnly) { t(false); this.mediaContainer.classList.add('locked-mode'); if (this.controlsRow) this.controlsRow.style.display = 'none'; return; }
+                if (!this.data.isLocked) { this.data.isDrawingActive = false; t(true); this.lockBtn.textContent = 'UNLOCK'; this.lockBtn.classList.remove('active'); this.drawBtn.style.display = 'none'; this.clearBtn.style.display = 'none'; }
+                else { t(false); this.mediaContainer.classList.add('locked-mode'); this.lockBtn.textContent = 'LOCKED'; this.lockBtn.classList.add('active'); this.drawBtn.style.display = 'flex'; this.clearBtn.style.display = 'flex'; if (this.data.isDrawingActive) { this.drawBtn.textContent = 'DRAWING'; this.drawBtn.classList.add('active', 'danger'); this.mediaContainer.classList.add('drawing-mode'); } else { this.drawBtn.textContent = 'DRAW'; this.drawBtn.classList.remove('active', 'danger'); } }
             }
-            save() { if (this.map && this.data.mode) { const center = this.map.getCenter(); this.data.lat = center.lat; this.data.lng = center.lng; this.data.zoom = this.map.getZoom(); } return this.data; }
+            save() { if (this.map && this.data.mode) { const c = this.map.getCenter(); this.data.lat = c.lat; this.data.lng = c.lng; this.data.zoom = this.map.getZoom(); } return this.data; }
             destroy() { if (this.map) { this.map.remove(); this.map = null; } }
         }
 
         class CalendarTool extends BaseTool {
             constructor(data, isReadOnly, onChange) { 
-                super({ id: data.id || crypto.randomUUID(), title: data.title || '', datetime: data.datetime || new Date().toISOString(), notified: data.notified || false, recurrence: data.recurrence || 'none' }, isReadOnly, onChange); 
+                super(Object.assign({ id: crypto.randomUUID(), title: '', datetime: new Date().toISOString(), notified: false, recurrence: 'none' }, data), isReadOnly, onChange); 
                 if (!this.data.notified && !this.readOnly && new Date(this.data.datetime) > new Date()) NotificationEngine.schedule(this.data.id, this.data.datetime, this.data.title); 
             }
             render() {
-                this.dateDisp = el('div', { 
-                    className: 'calendar-date-display', 
-                    style: { cursor: this.readOnly ? 'default' : 'pointer', marginBottom: '8px' }, 
-                    onclick: this.readOnly ? null : () => { 
-                        EditorialCalendar.open(new Date(this.data.datetime), true, this.data.recurrence, (nd, newRecurrence) => { 
-                            this.data.datetime = nd.toISOString(); 
-                            this.data.recurrence = newRecurrence;
-                            this.data.notified = false; 
-                            this.updateDateDisplay(); 
-                            NotificationEngine.schedule(this.data.id, this.data.datetime, this.data.title); 
-                            if (this.onChange) this.onChange(); 
-                        }); 
-                    } 
-                });
-                
+                this.dateDisp = el('div', { className: 'calendar-date-display', style: { cursor: this.readOnly ? 'default' : 'pointer', marginBottom: '8px' }, onclick: this.readOnly ? null : () => EditorialCalendar.open(new Date(this.data.datetime), true, this.data.recurrence, (nd, r) => { this.data.datetime = nd.toISOString(); this.data.recurrence = r; this.data.notified = false; this.updateDateDisplay(); NotificationEngine.schedule(this.data.id, this.data.datetime, this.data.title); if (this.onChange) this.onChange(); }) });
                 this.updateDateDisplay();
-
-                const exportBtn = UI.button('export ics', () => { const start = new Date(this.data.datetime); const formatICS = (d) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'; const icsContent = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'BEGIN:VEVENT', `DTSTART:${formatICS(start)}`, `DTEND:${formatICS(new Date(start.getTime() + 3600000))}`, `SUMMARY:${this.data.title || 'Event'}`, `RRULE:FREQ=${(this.data.recurrence !== 'none') ? this.data.recurrence.toUpperCase() : ''}`, 'END:VEVENT', 'END:VCALENDAR'].join('\n'); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([icsContent], { type: 'text/calendar;charset=utf-8' })); a.download = `${this.data.title ? this.data.title.replace(/\s+/g, '_') : 'event'}.ics`; a.click(); });
-                const actions = [exportBtn]; if (!this.readOnly) { const notifyLabel = (typeof Notification !== 'undefined' && Notification.permission === 'granted') ? 'notifications on' : 'notify me'; actions.push(UI.button(notifyLabel, async (e) => { if (!('Notification' in window)) return alert('Not supported'); if (await Notification.requestPermission() === 'granted') { e.target.textContent = 'notifications on'; NotificationEngine.schedule(this.data.id, this.data.datetime, this.data.title); } })); }
-                
+                const actions = [UI.button('export ics', () => { const s = new Date(this.data.datetime), f = d => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'; const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([`BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART:${f(s)}\nDTEND:${f(new Date(s.getTime() + 3600000))}\nSUMMARY:${this.data.title || 'Event'}\nRRULE:FREQ=${this.data.recurrence !== 'none' ? this.data.recurrence.toUpperCase() : ''}\nEND:VEVENT\nEND:VCALENDAR`], { type: 'text/calendar;charset=utf-8' })); a.download = `${this.data.title?.replace(/\s+/g, '_') || 'event'}.ics`; a.click(); })];
+                if (!this.readOnly) actions.push(UI.button(('Notification' in window && Notification.permission === 'granted') ? 'notifications on' : 'notify me', async (e) => { if (await Notification.requestPermission() === 'granted') { e.target.textContent = 'notifications on'; NotificationEngine.schedule(this.data.id, this.data.datetime, this.data.title); } }));
                 return this.renderContainer([this.dateDisp, UI.row(...actions)]);
             }
-            updateDateDisplay() { 
-                const d = new Date(this.data.datetime); 
-                let recText = '';
-                if (this.data.recurrence && this.data.recurrence !== 'none') recText = ` ↻ ${this.data.recurrence}`;
-                this.dateDisp.textContent = `${d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} @ ${d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}${recText}`; 
-            }
+            updateDateDisplay() { const d = new Date(this.data.datetime); this.dateDisp.textContent = `${d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} @ ${d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}${this.data.recurrence !== 'none' ? ` ↻ ${this.data.recurrence}` : ''}`; }
         }
 
         class ScanTool extends BaseTool {
-            constructor(data, isReadOnly, onChange) { super({ title: data.title || '', text: data.text || '' }, isReadOnly, onChange); this.mainContainer = el('div'); }
+            constructor(data, isReadOnly, onChange) { super(Object.assign({ title: '', text: '' }, data), isReadOnly, onChange); }
             render() {
-                this.mainContainer.innerHTML = ''; const baseElements = [];
-                if (this.data.text || this.readOnly) { this.output = UI.textarea({ className: 'raw-input scan-output', value: this.data.text, readonly: this.readOnly ? true : null, oninput: e => { this.data.text = e.target.value; this.output.style.height = this.output.scrollHeight + 'px'; if (this.onChange) this.onChange(); } }); baseElements.push(this.output); setTimeout(() => { if (this.output) this.output.style.height = this.output.scrollHeight + 'px'; }, 0); }
-                else { this.fileInput = el('input', { type: 'file', accept: 'image/*', style: { display: 'none' }, onchange: e => this.handleScan(e.target.files[0]) }); this.btn = UI.button('select image', () => this.fileInput.click()); baseElements.push(el('br'), this.btn, this.fileInput); }
-                this.mainContainer.appendChild(this.renderContainer(baseElements)); return this.mainContainer;
+                const els = [];
+                if (this.data.text || this.readOnly) {
+                    this.output = UI.textarea({ className: 'raw-input scan-output', value: this.data.text, readonly: this.readOnly ? true : null, oninput: e => { this.data.text = e.target.value; this.output.style.height = this.output.scrollHeight + 'px'; if (this.onChange) this.onChange(); } });
+                    els.push(this.output); setTimeout(() => { if (this.output) this.output.style.height = this.output.scrollHeight + 'px'; }, 0);
+                } else {
+                    this.fileInput = el('input', { type: 'file', accept: 'image/*', style: { display: 'none' }, onchange: e => this.handleScan(e.target.files[0]) });
+                    this.btn = UI.button('select image', () => this.fileInput.click()); els.push(el('br'), this.btn, this.fileInput);
+                }
+                return el('div', {}, this.renderContainer(els));
             }
             async handleScan(file) {
                 if (!file) return; this.btn.textContent = 'analyzing...'; this.btn.classList.add('active');
                 try {
-                    if (typeof Tesseract === 'undefined') { await new Promise(r => { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'; s.onload = r; document.head.appendChild(s); }); }
-                    const worker = await Tesseract.createWorker('eng'); const { data: { text } } = await worker.recognize(file); await worker.terminate(); this.data.text = text.trim(); this.render(); if (this.onChange) this.onChange();
-                } catch (e) { this.btn.textContent = 'failed. retry'; this.btn.classList.remove('active'); }
+                    if (typeof Tesseract === 'undefined') await new Promise(r => document.head.appendChild(el('script', { src: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js', onload: r })));
+                    const w = await Tesseract.createWorker('eng'); const { data: { text } } = await w.recognize(file); await w.terminate();
+                    this.data.text = text.trim(); this.render(); if (this.onChange) this.onChange();
+                } catch { this.btn.textContent = 'failed. retry'; this.btn.classList.remove('active'); }
             }
         }
 
         class RecallTool extends BaseTool {
-            constructor(data, isReadOnly, onChange) { super({ title: data.title || '', searchQuery: data.searchQuery || '', selectedItem: data.selectedItem || null }, isReadOnly, onChange); this.mainContainer = el('div'); }
+            constructor(data, isReadOnly, onChange) { super(Object.assign({ title: '', searchQuery: '', selectedItem: null }, data), isReadOnly, onChange); }
             render() {
-                this.mainContainer.innerHTML = ''; const baseElements = [];
+                const els = [];
                 if (this.data.selectedItem) {
-                    const item = this.data.selectedItem;
-                    const textContainer = el('div', { className: 'text-content', innerHTML: escapeHTML(item.text), style: { borderLeft: '2px solid #eab308', paddingLeft: '12px', opacity: '0.85', pointerEvents: 'none', color: '#eab308' } });
-                    const d = parseLocal(item.date);
-                    const dateStr = d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-                    const dateInfo = el('span', { className: 'voice-status-text', textContent: `original: ${dateStr}`, style: { marginLeft: '8px' } });
-                    const viewBtn = UI.button('view original', () => { if (typeof loadDay === 'function') loadDay(item.date); });
-                    baseElements.push(textContainer, UI.row(viewBtn, dateInfo));
+                    const item = this.data.selectedItem, dStr = parseLocal(item.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+                    els.push(el('div', { className: 'text-content', innerHTML: escapeHTML(item.text), style: { borderLeft: '2px solid #eab308', paddingLeft: '12px', opacity: '0.85', pointerEvents: 'none', color: '#eab308' } }), UI.row(UI.button('view original', () => { if (typeof loadDay === 'function') loadDay(item.date); }), el('span', { className: 'voice-status-text', textContent: `original: ${dStr}`, style: { marginLeft: '8px' } })));
                 } else if (!this.readOnly) {
                     this.input = UI.textarea({ className: 'raw-input', placeholder: 'search past notes...', value: this.data.searchQuery, oninput: (e) => { this.data.searchQuery = e.target.value; this.input.style.height = 'auto'; this.input.style.height = this.input.scrollHeight + 'px'; this.scheduleSearch(); } });
                     this.resultsContainer = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '8px' } });
-                    this.scheduleSearch = debounce(() => this.performSearch(), 300);
-                    baseElements.push(this.input, this.resultsContainer);
-                    setTimeout(() => { if (this.input) this.input.style.height = this.input.scrollHeight + 'px'; }, 0);
-                    if (this.data.searchQuery) this.performSearch();
-                } else { baseElements.push(el('div', { style: { padding: '24px', textAlign: 'center', color: 'var(--muted-text)', fontSize: '14px' }, textContent: 'Empty Recall' })); }
-                this.mainContainer.appendChild(this.renderContainer(baseElements)); return this.mainContainer;
+                    this.scheduleSearch = debounce(() => this.performSearch(), 300); els.push(this.input, this.resultsContainer);
+                    setTimeout(() => { if (this.input) this.input.style.height = this.input.scrollHeight + 'px'; }, 0); if (this.data.searchQuery) this.performSearch();
+                } else els.push(el('div', { style: { padding: '24px', textAlign: 'center', color: 'var(--muted-text)', fontSize: '14px' }, textContent: 'Empty Recall' }));
+                return el('div', {}, this.renderContainer(els));
             }
-            
             async performSearch() {
-                if (!this.data.searchQuery.trim() || !pgDB.isReady) { this.resultsContainer.innerHTML = ''; return; }
-                const results = await pgDB.searchSemantic(this.data.searchQuery, window.currentDateStr, 5);
-                this.resultsContainer.innerHTML = '';
-                if (results.length === 0) { this.resultsContainer.appendChild(el('div', { className: 'voice-status-text', textContent: 'no matches found.' })); return; }
-                results.forEach(res => {
-                    const btn = el('button', { className: 'menu-item', style: { width: '100%', marginBottom: '4px', border: '1px solid var(--baritone-bg)' }, onclick: () => { this.data.selectedItem = { date: res.date, blockId: res.blockId, text: res.searchText }; this.render(); if (this.onChange) this.onChange(); } }, el('span', { textContent: res.searchText.substring(0, 60) + (res.searchText.length > 60 ? '...' : '') }), el('span', { className: 'sub', textContent: res.date }));
-                    this.resultsContainer.appendChild(btn);
-                });
+                if (!this.data.searchQuery.trim() || !pgDB.isReady) return this.resultsContainer.innerHTML = '';
+                const res = await pgDB.searchSemantic(this.data.searchQuery, window.currentDateStr, 5); this.resultsContainer.innerHTML = '';
+                if (!res.length) return this.resultsContainer.appendChild(el('div', { className: 'voice-status-text', textContent: 'no matches found.' }));
+                res.forEach(r => this.resultsContainer.appendChild(el('button', { className: 'menu-item', style: { width: '100%', marginBottom: '4px', border: '1px solid var(--baritone-bg)' }, onclick: () => { this.data.selectedItem = { date: r.date, blockId: r.blockId, text: r.searchText }; this.render(); if (this.onChange) this.onChange(); } }, el('span', { textContent: r.searchText.substring(0, 60) + (r.searchText.length > 60 ? '...' : '') }), el('span', { className: 'sub', textContent: r.date }))));
             }
         }
 
@@ -1353,11 +694,8 @@
 
         class LeanStreamEditor {
             constructor(containerId) {
-                this.container = document.getElementById(containerId);
-                this.blocks = []; this.activeBlockId = null;
-
-                this.slashMenu = new FloatingMenu('slash-menu-ui', this.container);
-                this.personaMenu = new FloatingMenu('persona-menu-ui', this.container);
+                this.container = document.getElementById(containerId); this.blocks = []; this.activeBlockId = null;
+                this.slashMenu = new FloatingMenu('slash-menu-ui', this.container); this.personaMenu = new FloatingMenu('persona-menu-ui', this.container);
 
                 document.addEventListener('mousedown', (e) => {
                     if (this.slashMenu.active && !this.slashMenu.el.contains(e.target)) this.slashMenu.close();
@@ -1366,66 +704,45 @@
 
                 document.addEventListener('click', (e) => {
                     const mention = e.target.closest('.persona-mention');
-                    if (mention) { e.preventDefault(); e.stopPropagation(); const slug = mention.getAttribute('data-slug'); if (slug) loadPersonaPage(slug); return; }
-
-                    // Global Checkbox Toggle Logic
+                    if (mention) { e.preventDefault(); e.stopPropagation(); loadPersonaPage(mention.getAttribute('data-slug')); return; }
                     const block = e.target.closest('.stream-block');
                     if (block && isEditable()) {
                         const content = block.querySelector('.todo, .todo-checked');
-                        if (content) {
-                            const rect = block.getBoundingClientRect();
-                            if (e.clientX - rect.left < 30) {
-                                const isChecked = content.classList.contains('todo-checked');
-                                content.classList.remove(isChecked ? 'todo-checked' : 'todo');
-                                content.classList.add(isChecked ? 'todo' : 'todo-checked');
-                                
-                                const editorBlock = this.blocks.find(b => b.id === block.getAttribute('data-id'));
-                                if (editorBlock) {
-                                    editorBlock.type = isChecked ? 'todo' : 'todo-checked';
-                                    scheduleSave();
-                                }
-                                e.preventDefault();
-                                e.stopPropagation();
-                            }
+                        if (content && e.clientX - block.getBoundingClientRect().left < 30) {
+                            const isChecked = content.classList.contains('todo-checked');
+                            content.className = `text-content ${isChecked ? 'todo' : 'todo-checked'}`;
+                            const edBlock = this.blocks.find(b => b.id === block.getAttribute('data-id'));
+                            if (edBlock) { edBlock.type = isChecked ? 'todo' : 'todo-checked'; scheduleSave(); }
+                            e.preventDefault(); e.stopPropagation();
                         }
                     }
                 });
             }
 
+            getPlaceholder(type, isBlockEditable) {
+                if (!isBlockEditable || type === 'hr') return '';
+                const p = { h1: 'Heading...', h2: 'Heading...', h3: 'Heading...', ul: 'List item...', ol: 'List item...', todo: 'To-do...', 'todo-checked': 'To-do...', quote: 'Quote...' };
+                return p[type] || "start writing, or type '/' for commands...";
+            }
+
             load(blocksData) {
-                this.blocks.forEach(b => { if (b.instance && b.instance.destroy) b.instance.destroy(); });
-                Array.from(this.container.children).forEach(child => { if (!child.classList.contains('floating-menu')) this.container.removeChild(child); });
+                this.blocks.forEach(b => b.instance?.destroy?.());
+                Array.from(this.container.children).filter(c => !c.classList.contains('floating-menu')).forEach(c => c.remove());
                 this.blocks = []; this.slashMenu.close(); this.personaMenu.close();
 
-                if (!blocksData || blocksData.length === 0) this.addBasicBlock('text', '', 'user');
-                else {
-                    blocksData.forEach(b => {
-                        if (['paragraph', 'text', 'h1', 'h2', 'h3', 'header', 'list', 'checklist', 'ul', 'ol', 'quote', 'todo', 'todo-checked', 'hr'].includes(b.type)) {
-                            let textContent = b.data?.text || '';
-                            let typeToUse = b.type;
-                            if (['paragraph'].includes(b.type)) typeToUse = 'text'; // Legacy mappings
-                            if (b.type === 'header') typeToUse = `h${b.data?.level || 2}`;
-                            if (b.type === 'list') { typeToUse = 'ul'; textContent = (b.data.items || []).map(i => `${i.content || i.text}`).join('<br>'); }
-                            if (b.type === 'checklist') { typeToUse = 'todo'; textContent = (b.data.items || []).map(i => `${i.checked ? '[x]' : '[ ]'} ${i.text}`).join('<br>'); }
-                            
-                            this.addBasicBlock(typeToUse, textContent, b.author || 'user', b.id, b.timestamp);
-                        } else if (TOOLS_MAP[b.type]) {
-                            this.addToolBlock(b.type, b.data, b.author || 'user', b.id, b.timestamp, b.isVirtual, b.originalNoteKey, true);
-                        }
-                    });
-                }
+                (blocksData?.length ? blocksData : [{ type: 'text', data: { text: '' } }]).forEach(b => {
+                    if (['text', 'h1', 'h2', 'h3', 'ul', 'ol', 'quote', 'todo', 'todo-checked', 'hr'].includes(b.type)) {
+                        this.addBasicBlock(b.type, b.data?.text || '', b.author || 'user', b.id, b.timestamp);
+                    } else if (TOOLS_MAP[b.type]) this.addToolBlock(b.type, b.data, b.author || 'user', b.id, b.timestamp, b.isVirtual, b.originalNoteKey, true);
+                });
                 if (this.blocks.length === 0 || !['text', 'h1', 'h2', 'h3', 'ul', 'ol', 'quote', 'todo', 'todo-checked', 'hr'].includes(this.blocks[this.blocks.length - 1].type)) this.addBasicBlock('text', '', 'user');
             }
 
             save() {
-                return {
-                    blocks: this.blocks.filter(b => !b.isVirtual).map(b => {
-                        let data = b.data;
-                        if (['text', 'h1', 'h2', 'h3', 'ul', 'ol', 'quote', 'todo', 'todo-checked', 'hr'].includes(b.type)) data = { text: b.dom.querySelector('.text-content').innerHTML };
-                        else if (b.instance && b.instance.save) data = b.instance.save();
-                        return { id: b.id, type: b.type, data, author: b.author, timestamp: b.timestamp };
-                    })
-                };
+                return { blocks: this.blocks.filter(b => !b.isVirtual).map(b => ({
+                    id: b.id, type: b.type, author: b.author, timestamp: b.timestamp,
+                    data: TOOLS_MAP[b.type] ? b.instance.save() : { text: b.dom.querySelector('.text-content').innerHTML }
+                }))};
             }
 
             getBlockIndex(id) { return this.blocks.findIndex(b => b.id === id); }
@@ -1433,197 +750,97 @@
             replaceTextNodeType(block, newType, clearContent = false) {
                 const tag = ['h1', 'h2', 'h3'].includes(newType) ? newType : newType === 'quote' ? 'blockquote' : 'div';
                 const oldContent = block.dom.querySelector('.text-content');
-                
-                let placeholder = "start writing, or type '/' for commands...";
-                if (newType === 'hr') placeholder = "";
-                else if (['h1', 'h2', 'h3'].includes(newType)) placeholder = "Heading...";
-                else if (['ul', 'ol'].includes(newType)) placeholder = "List item...";
-                else if (['todo', 'todo-checked'].includes(newType)) placeholder = "To-do...";
-                else if (newType === 'quote') placeholder = "Quote...";
-
-                const newContent = el(tag, { 
-                    className: `text-content ${newType === 'text' ? '' : newType}`, 
-                    contentEditable: newType !== 'hr' && isEditable(), 
-                    'data-placeholder': placeholder, 
-                    innerHTML: clearContent ? '' : oldContent.innerHTML, 
-                    onfocus: () => { this.activeBlockId = block.id; }, 
-                    oninput: () => { this.handleTextInput(block, newContent); scheduleSave(); }, 
-                    onkeydown: (e) => this.handleTextKeydown(e, block, newContent) 
-                });
-                block.dom.replaceChild(newContent, oldContent); 
-                block.type = newType; 
+                const newContent = el(tag, { className: `text-content ${newType === 'text' ? '' : newType}`, contentEditable: newType !== 'hr' && isEditable(), 'data-placeholder': this.getPlaceholder(newType, isEditable()), innerHTML: clearContent ? '' : oldContent.innerHTML, onfocus: () => this.activeBlockId = block.id, oninput: () => { this.handleTextInput(block, newContent); scheduleSave(); }, onkeydown: (e) => this.handleTextKeydown(e, block, newContent) });
+                block.dom.replaceChild(newContent, oldContent); block.type = newType;
                 if (clearContent && newType !== 'hr') setCaret(newContent);
             }
 
             addBasicBlock(type = 'text', html = '', author = 'user', id = crypto.randomUUID(), timestamp = Date.now(), insertAfterId = null) {
-                const tag = type === 'h1' ? 'h1' : type === 'h2' ? 'h2' : type === 'h3' ? 'h3' : type === 'quote' ? 'blockquote' : 'div';
                 const block = { id, type, data: { text: html }, author, timestamp, dom: null };
+                const content = el(['h1', 'h2', 'h3'].includes(type) ? type : type === 'quote' ? 'blockquote' : 'div', { className: `text-content ${type === 'text' ? '' : type}`, contentEditable: isEditable() && type !== 'hr', 'data-placeholder': this.getPlaceholder(type, isEditable() && author === 'user'), innerHTML: html, onfocus: () => this.activeBlockId = id, oninput: () => { this.handleTextInput(block, content); scheduleSave(); }, onkeydown: (e) => this.handleTextKeydown(e, block, content) });
                 
-                let placeholder = author === 'user' && type !== 'hr' ? "start writing, or type '/' for commands..." : "";
-                if (type === 'hr') placeholder = "";
-                else if (['h1', 'h2', 'h3'].includes(type) && author === 'user') placeholder = "Heading...";
-                else if (['ul', 'ol'].includes(type) && author === 'user') placeholder = "List item...";
-                else if (['todo', 'todo-checked'].includes(type) && author === 'user') placeholder = "To-do...";
-                else if (type === 'quote' && author === 'user') placeholder = "Quote...";
-
-                const isReadonly = (!isEditable() || type === 'hr');
-
-                const content = el(tag, { className: `text-content ${type === 'text' ? '' : type}`, contentEditable: !isReadonly, 'data-placeholder': placeholder, innerHTML: html, onfocus: () => { this.activeBlockId = id; }, oninput: () => { this.handleTextInput(block, content); scheduleSave(); }, onkeydown: (e) => this.handleTextKeydown(e, block, content) });
-                
-                // Use dashed classname for specific AI styling targeting
-                const safeAuthorClass = author.replace('.', '-'); 
-                block.dom = el('div', { className: `stream-block author-${safeAuthorClass}`, 'data-id': id }, content);
-
-                let insertIndex = this.blocks.length;
-                if (insertAfterId) {
-                    const idx = this.getBlockIndex(insertAfterId);
-                    if (idx !== -1) insertIndex = idx + 1;
-                } else {
-                    const activeIndex = this.getBlockIndex(this.activeBlockId);
-                    if (activeIndex !== -1) insertIndex = activeIndex + 1;
-                }
-
-                if (insertIndex >= this.blocks.length) { 
-                    this.container.appendChild(block.dom); 
-                    this.blocks.push(block); 
-                } else { 
-                    this.container.insertBefore(block.dom, this.blocks[insertIndex].dom); 
-                    this.blocks.splice(insertIndex, 0, block); 
-                }
+                block.dom = el('div', { className: `stream-block author-${author.replace(/[^a-z0-9_-]/gi, '-')}`, 'data-id': id }, content);
+                const insertIndex = insertAfterId ? this.getBlockIndex(insertAfterId) + 1 || this.blocks.length : this.getBlockIndex(this.activeBlockId) !== -1 ? this.getBlockIndex(this.activeBlockId) + 1 : this.blocks.length;
+                this.blocks.splice(insertIndex, 0, block); this.container.insertBefore(block.dom, this.container.children[insertIndex] || null);
                 return block;
             }
 
             addToolBlock(type, data, author = 'user', id = crypto.randomUUID(), timestamp = Date.now(), isVirtual = false, originalNoteKey = null, fromLoad = false) {
-                const ToolClass = TOOLS_MAP[type];
-                if (!ToolClass) return null;
-                
+                const ToolClass = TOOLS_MAP[type]; if (!ToolClass) return null;
                 const instance = new ToolClass(data, isVirtual || !isEditable(), () => scheduleSave());
                 const block = { id, type, data, author, timestamp, instance, dom: null, isVirtual, originalNoteKey };
-                
                 const controls = el('div', { className: 'panel-controls' });
-                if (isEditable() && !isVirtual) controls.append(el('button', { className: 'panel-ctrl-btn', textContent: '↑', onclick: () => this.moveBlock(id, -1) }), el('button', { className: 'panel-ctrl-btn', textContent: '↓', onclick: () => this.moveBlock(id, 1) }), el('button', { className: 'panel-ctrl-btn delete', textContent: '✕', onclick: () => this.deleteBlock(id) }));
+                if (isEditable() && !isVirtual) controls.append(UI.button('↑', () => this.moveBlock(id, -1), 'panel-ctrl-btn'), UI.button('↓', () => this.moveBlock(id, 1), 'panel-ctrl-btn'), UI.button('✕', () => this.deleteBlock(id), 'panel-ctrl-btn delete'));
                 
                 let headerContent = [el('span', { textContent: `[ ${type} ]` })];
-                if (isVirtual) {
-                    let sourceDisplay = originalNoteKey;
-                    if (sourceDisplay.startsWith('persona::')) sourceDisplay = `@${sourceDisplay.replace('persona::', '').toUpperCase()}`;
-                    else sourceDisplay = parseLocal(sourceDisplay).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+                if (isVirtual) headerContent = [el('span', { textContent: `[ scheduled event ]` }), el('button', { textContent: `↗ original: ${originalNoteKey.startsWith('persona::') ? `@${originalNoteKey.replace('persona::', '').toUpperCase()}` : parseLocal(originalNoteKey).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`, style: { background: 'none', border: 'none', color: 'var(--neon-purple)', fontSize: '10px', cursor: 'pointer', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.05em', marginLeft: '8px', textDecoration: 'underline' }, onclick: () => { if (originalNoteKey.startsWith('persona::')) loadPersonaPage(originalNoteKey.replace('persona::', '')); else { scheduleSave(true); loadDay(originalNoteKey); } } })];
 
-                    headerContent = [
-                        el('span', { textContent: `[ scheduled event ]` }),
-                        el('button', { textContent: `↗ original: ${sourceDisplay}`, style: { background: 'none', border: 'none', color: 'var(--neon-purple)', fontSize: '10px', cursor: 'pointer', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.05em', marginLeft: '8px', textDecoration: 'underline' }, onclick: () => { if (originalNoteKey.startsWith('persona::')) loadPersonaPage(originalNoteKey.replace('persona::', '')); else { scheduleSave(true); loadDay(originalNoteKey); } } })
-                    ];
-                }
-
-                const safeAuthorClass = author.replace('.', '-');
-                block.dom = el('div', { className: `baritone-panel stream-block author-${safeAuthorClass} ${isVirtual ? 'virtual-block' : ''}`, 'data-id': id }, el('div', { className: 'panel-header' }, el('div', { style: { display: 'flex', alignItems: 'center' } }, ...headerContent), controls), instance.render());
+                block.dom = el('div', { className: `baritone-panel stream-block author-${author.replace(/[^a-z0-9_-]/gi, '-')} ${isVirtual ? 'virtual-block' : ''}`, 'data-id': id }, el('div', { className: 'panel-header' }, el('div', { style: { display: 'flex', alignItems: 'center' } }, ...headerContent), controls), instance.render());
+                const insertIndex = this.getBlockIndex(this.activeBlockId) !== -1 ? this.getBlockIndex(this.activeBlockId) + 1 : this.blocks.length;
+                this.blocks.splice(insertIndex, 0, block); this.container.insertBefore(block.dom, this.container.children[insertIndex] || null);
                 
-                let insertIndex = this.blocks.length;
-                const activeIndex = this.getBlockIndex(this.activeBlockId);
-                if (activeIndex !== -1) insertIndex = activeIndex + 1;
-
-                if (insertIndex >= this.blocks.length) { 
-                    this.container.appendChild(block.dom); 
-                    this.blocks.push(block); 
-                } else { 
-                    this.container.insertBefore(block.dom, this.blocks[insertIndex].dom); 
-                    this.blocks.splice(insertIndex, 0, block); 
-                }
-                
-                if (isEditable() && !isVirtual && !fromLoad) { this.activeBlockId = id; const textBlock = this.addBasicBlock('text', '', 'user'); setTimeout(() => setCaret(textBlock.dom.querySelector('.text-content')), 50); }
-                if (!isVirtual && !fromLoad) scheduleSave(); 
+                if (isEditable() && !isVirtual && !fromLoad) { this.activeBlockId = id; const textBlock = this.addBasicBlock('text', '', 'user'); setTimeout(() => setCaret(textBlock.dom.querySelector('.text-content')), 50); scheduleSave(); }
                 return block;
             }
 
             moveBlock(id, direction) {
                 const idx = this.getBlockIndex(id); if (idx === -1) return;
-                if (direction === -1 && idx > 0) {
-                    const prev = this.blocks[idx - 1]; this.container.insertBefore(this.blocks[idx].dom, prev.dom);
-                    [this.blocks[idx - 1], this.blocks[idx]] = [this.blocks[idx], this.blocks[idx - 1]]; scheduleSave();
-                } else if (direction === 1 && idx < this.blocks.length - 1) {
-                    const next = this.blocks[idx + 1]; this.container.insertBefore(next.dom, this.blocks[idx].dom);
-                    [this.blocks[idx + 1], this.blocks[idx]] = [this.blocks[idx], this.blocks[idx + 1]]; scheduleSave();
+                const swapIdx = idx + direction;
+                if (swapIdx >= 0 && swapIdx < this.blocks.length) {
+                    const targetDom = direction === -1 ? this.blocks[swapIdx].dom : this.blocks[idx].dom.nextSibling;
+                    this.container.insertBefore(direction === -1 ? this.blocks[idx].dom : this.blocks[swapIdx].dom, targetDom);
+                    [this.blocks[idx], this.blocks[swapIdx]] = [this.blocks[swapIdx], this.blocks[idx]]; scheduleSave();
                 }
             }
 
             deleteBlock(id) {
                 const idx = this.getBlockIndex(id); if (idx === -1) return;
-                const block = this.blocks[idx];
-                if (block.instance && block.instance.destroy) block.instance.destroy();
-                this.container.removeChild(block.dom); this.blocks.splice(idx, 1);
-                if (this.blocks.length === 0) this.addBasicBlock('text', '', 'user');
+                this.blocks[idx].instance?.destroy?.(); this.blocks[idx].dom.remove(); this.blocks.splice(idx, 1);
+                if (!this.blocks.length) this.addBasicBlock('text', '', 'user');
                 scheduleSave();
             }
 
             handleTextInput(block, content) {
                 const text = content.textContent.replace(/\u00A0/g, ' ');
                 if (block.type === 'text') {
-                    let newType = null;
-                    if (text === '# ') newType = 'h1';
-                    else if (text === '## ') newType = 'h2';
-                    else if (text === '### ') newType = 'h3';
-                    else if (text === '- ' || text === '* ') newType = 'ul';
-                    else if (text === '1. ') newType = 'ol';
-                    else if (text === '> ') newType = 'quote';
-                    else if (text === '[] ' || text === '[ ] ') newType = 'todo';
-                    else if (text === '[x] ' || text === '[X] ') newType = 'todo-checked';
-                    else if (text === '---') newType = 'hr';
-
-                    if (newType) {
-                        this.replaceTextNodeType(block, newType, true);
-                        if (newType === 'hr') {
-                            const newBlock = this.addBasicBlock('text', '', 'user');
-                            setTimeout(() => setCaret(newBlock.dom.querySelector('.text-content')), 10);
-                        }
-                        scheduleSave();
-                        return;
+                    const mapping = { '# ': 'h1', '## ': 'h2', '### ': 'h3', '- ': 'ul', '* ': 'ul', '1. ': 'ol', '> ': 'quote', '[] ': 'todo', '[ ] ': 'todo', '[x] ': 'todo-checked', '[X] ': 'todo-checked', '---': 'hr' };
+                    if (mapping[text]) {
+                        this.replaceTextNodeType(block, mapping[text], true);
+                        if (mapping[text] === 'hr') setTimeout(() => setCaret(this.addBasicBlock('text', '', 'user').dom.querySelector('.text-content')), 10);
+                        return scheduleSave();
                     }
                 }
-
                 const sel = window.getSelection();
                 if (sel.rangeCount > 0) {
-                    const range = sel.getRangeAt(0);
-                    const preCaretRange = range.cloneRange(); preCaretRange.selectNodeContents(content); preCaretRange.setEnd(range.startContainer, range.startOffset);
+                    const range = sel.getRangeAt(0), preCaretRange = range.cloneRange(); preCaretRange.selectNodeContents(content); preCaretRange.setEnd(range.startContainer, range.startOffset);
                     const textBeforeCursor = preCaretRange.toString();
-
                     const slashMatch = textBeforeCursor.match(/(?:^|\n)\/([a-zA-Z0-9_]*)$/);
                     if (slashMatch) this.openSlashMenu(block, content, slashMatch[1].toLowerCase(), range); else this.slashMenu.close();
-
-                    const refMatch = textBeforeCursor.match(/(?:^|\s|\n)@([a-zA-Z0-9_.]*)$/);
+                    const refMatch = textBeforeCursor.match(/(?:^|\s|\n)@([a-zA-Z0-9_-]*)$/);
                     if (refMatch && !this.slashMenu.active) this.openPersonaMenu(block, content, refMatch[1], range); else this.personaMenu.close();
                 }
             }
 
             openSlashMenu(block, content, filterText, currentRange) {
                 const items = SLASH_COMMANDS.filter(cmd => cmd.id.toLowerCase().includes(filterText) || cmd.label.toLowerCase().includes(filterText));
-                this.slashMenu.open({ block, content }, currentRange, items, 
-                    (item, ctx) => {
-                        ctx.content.innerHTML = ctx.content.innerHTML.replace(/\/[a-zA-Z0-9_]*$/, '');
-                        if (ctx.content.innerHTML === '<br>') ctx.content.innerHTML = '';
-                        const isEmpty = ctx.content.textContent.trim() === '';
-                        this.addToolBlock(item.id, {}, 'user', crypto.randomUUID(), Date.now(), false, null, false);
-                        if (isEmpty) this.deleteBlock(ctx.block.id);
-                        this.slashMenu.close();
-                    },
-                    (item, isSelected) => el('button', { className: `menu-item ${isSelected ? 'selected' : ''}` }, el('span', { textContent: item.label }), el('span', { className: 'sub', textContent: item.sub }))
-                );
+                this.slashMenu.open({ block, content }, currentRange, items, (item, ctx) => {
+                    ctx.content.innerHTML = ctx.content.innerHTML.replace(/\/[a-zA-Z0-9_]*$/, '');
+                    if (ctx.content.innerHTML === '<br>') ctx.content.innerHTML = '';
+                    const isEmpty = ctx.content.textContent.trim() === '';
+                    this.addToolBlock(item.id, {}, 'user', crypto.randomUUID(), Date.now());
+                    if (isEmpty) this.deleteBlock(ctx.block.id);
+                    this.slashMenu.close();
+                }, (item, isSelected) => el('button', { className: `menu-item ${isSelected ? 'selected' : ''}` }, el('span', { textContent: item.label }), el('span', { className: 'sub', textContent: item.sub })));
             }
 
             async openPersonaMenu(block, content, filterText, currentRange) {
                 const filterLower = filterText.toLowerCase().trim();
                 if (!this.cachedPersonas) {
-                    const personas = await pgDB.getPersonas(); 
-                    const activePersonas = [];
+                    const personas = await pgDB.getPersonas(), activePersonas = [];
                     for (const persona of personas) {
-                        const backlinks = pgDB.findBacklinks(persona.slug); 
                         const personaData = pgDB.cache[`persona::${persona.slug}`];
-                        const hasContent = personaData && personaData.blocks && personaData.blocks.length > 0 && !(personaData.blocks.length === 1 && !personaData.blocks[0].data.text);
-                        
-                        if (backlinks.length > 0 || hasContent || persona.slug === 'me' || persona.slug.endsWith('.ai')) {
-                            activePersonas.push(persona); 
-                        } else { 
-                            await pgDB.pg.query(`DELETE FROM personas_list WHERE slug = $1`, [persona.slug]); 
-                        }
+                        if (pgDB.findBacklinks(persona.slug).length > 0 || (personaData?.blocks?.length > 0 && !(personaData.blocks.length === 1 && !personaData.blocks[0].data.text)) || persona.slug === 'me') activePersonas.push(persona);
+                        else await pgDB.pg.query(`DELETE FROM personas_list WHERE slug = $1`, [persona.slug]);
                     }
                     this.cachedPersonas = activePersonas;
                 }
@@ -1633,74 +850,64 @@
                 if (filterLower && !this.cachedPersonas.some(r => r.display_name.toLowerCase() === filterLower)) items.push({ slug: null, name: filterText.trim(), isNew: true });
                 if (items.length === 0 && !filterLower) return;
 
-                this.personaMenu.open({ block, content }, currentRange, items, 
-                    async (item, ctx) => {
-                        let slug = item.slug; let displayName = item.name;
-                        if (item.isNew) { 
-                            slug = displayName.toLowerCase().replace(/[^a-z0-9.]+/g, '-').replace(/^-|-$/g, '') || 'persona-' + Date.now(); 
-                            await pgDB.createPersona(slug, displayName); 
-                            this.cachedPersonas = null; 
-                        }
-                        
-                        const sel = window.getSelection();
-                        if (sel.rangeCount > 0) {
-                            const range = sel.getRangeAt(0); const preCaretRange = range.cloneRange(); preCaretRange.selectNodeContents(ctx.content); preCaretRange.setEnd(range.startContainer, range.startOffset);
-                            const atIdx = preCaretRange.toString().lastIndexOf('@');
-                            if (atIdx >= 0) {
-                                const walker = document.createTreeWalker(ctx.content, NodeFilter.SHOW_TEXT, null, false);
-                                let charCount = 0, startNode = null, startOffset = 0;
-                                while (walker.nextNode()) {
-                                    const nodeLen = walker.currentNode.textContent.length;
-                                    if (!startNode && charCount + nodeLen > atIdx) { startNode = walker.currentNode; startOffset = atIdx - charCount; }
-                                    charCount += nodeLen;
-                                }
-                                if (startNode) {
-                                    const deleteRange = document.createRange(); deleteRange.setStart(startNode, startOffset); deleteRange.setEnd(range.startContainer, range.startOffset); deleteRange.deleteContents();
-                                    const mention = el('span', { className: 'persona-mention', 'data-slug': slug, contentEditable: 'false', textContent: `@${displayName.toUpperCase()}` });
-                                    const spaceAfter = document.createTextNode('\u00A0');
-                                    deleteRange.insertNode(spaceAfter); deleteRange.insertNode(mention);
-                                    const newRange = document.createRange(); newRange.setStartAfter(spaceAfter); newRange.collapse(true);
-                                    sel.removeAllRanges(); sel.addRange(newRange);
-                                }
+                this.personaMenu.open({ block, content }, currentRange, items, async (item, ctx) => {
+                    let { slug, name } = item;
+                    if (item.isNew) { slug = name.toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-|-$/g, '') || 'persona-' + Date.now(); await pgDB.createPersona(slug, name); this.cachedPersonas = null; }
+                    
+                    const sel = window.getSelection();
+                    if (sel.rangeCount > 0) {
+                        const range = sel.getRangeAt(0), preCaretRange = range.cloneRange(); preCaretRange.selectNodeContents(ctx.content); preCaretRange.setEnd(range.startContainer, range.startOffset);
+                        const atIdx = preCaretRange.toString().lastIndexOf('@');
+                        if (atIdx >= 0) {
+                            const walker = document.createTreeWalker(ctx.content, NodeFilter.SHOW_TEXT, null, false);
+                            let charCount = 0, startNode = null, startOffset = 0;
+                            while (walker.nextNode()) { const len = walker.currentNode.textContent.length; if (!startNode && charCount + len > atIdx) { startNode = walker.currentNode; startOffset = atIdx - charCount; } charCount += len; }
+                            if (startNode) {
+                                const deleteRange = document.createRange(); deleteRange.setStart(startNode, startOffset); deleteRange.setEnd(range.startContainer, range.startOffset); deleteRange.deleteContents();
+                                const spaceAfter = document.createTextNode('\u00A0'); deleteRange.insertNode(spaceAfter); deleteRange.insertNode(el('span', { className: 'persona-mention', 'data-slug': slug, contentEditable: 'false', textContent: `@${name.toUpperCase()}` }));
+                                const newRange = document.createRange(); newRange.setStartAfter(spaceAfter); newRange.collapse(true); sel.removeAllRanges(); sel.addRange(newRange);
                             }
                         }
-                        this.personaMenu.close(); scheduleSave();
-                    },
-                    (item, isSelected) => el('button', { className: `menu-item ${item.isNew ? 'create-new' : ''} ${isSelected ? 'selected' : ''}` }, el('span', { textContent: item.isNew ? `+ ${item.name.toUpperCase()}` : item.name.toUpperCase() }), el('span', { className: 'sub', textContent: item.isNew ? (item.name.endsWith('.ai') ? 'create ai persona' : 'create persona') : 'persona' }))
-                );
+                    }
+                    this.personaMenu.close(); scheduleSave();
+                }, (item, isSelected) => el('button', { className: `menu-item ${item.isNew ? 'create-new' : ''} ${isSelected ? 'selected' : ''}` }, el('span', { textContent: item.isNew ? `+ ${item.name.toUpperCase()}` : item.name.toUpperCase() }), el('span', { className: 'sub', textContent: item.isNew ? 'create persona' : 'persona' })));
             }
 
             handleTextKeydown(e, block, content) {
-                if (this.slashMenu.handleKey(e)) return;
-                if (this.personaMenu.handleKey(e)) return;
+                if (this.slashMenu.handleKey(e) || this.personaMenu.handleKey(e)) return;
 
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    if (['ul', 'ol', 'quote', 'todo', 'todo-checked'].includes(block.type) && content.textContent.trim() === '') { 
-                        this.replaceTextNodeType(block, 'text'); 
-                        scheduleSave(); 
-                        return; 
-                    }
+                    if (['ul', 'ol', 'quote', 'todo', 'todo-checked'].includes(block.type) && content.textContent.trim() === '') return this.replaceTextNodeType(block, 'text'), scheduleSave();
+                    
                     const sel = window.getSelection();
                     if (sel.rangeCount > 0) {
-                        const range = sel.getRangeAt(0); const postCaretRange = range.cloneRange(); postCaretRange.selectNodeContents(content); postCaretRange.setStart(range.endContainer, range.endOffset);
+                        const range = sel.getRangeAt(0), postCaretRange = range.cloneRange(); postCaretRange.selectNodeContents(content); postCaretRange.setStart(range.endContainer, range.endOffset);
                         const tempDiv = document.createElement('div'); tempDiv.appendChild(postCaretRange.extractContents());
                         let postHtml = tempDiv.innerHTML === '<br>' ? '' : tempDiv.innerHTML;
                         if (content.innerHTML.endsWith('<br>')) content.innerHTML = content.innerHTML.slice(0, -4);
+                        
                         this.activeBlockId = block.id; 
-                        
-                        let nextType = 'text';
-                        if (['ul', 'ol', 'quote'].includes(block.type)) nextType = block.type;
-                        if (['todo', 'todo-checked'].includes(block.type)) nextType = 'todo'; 
-                        
-                        const newBlock = this.addBasicBlock(nextType, postHtml, 'user');
+                        const newBlock = this.addBasicBlock(['ul', 'ol', 'quote'].includes(block.type) ? block.type : ['todo', 'todo-checked'].includes(block.type) ? 'todo' : 'text', postHtml, 'user');
 
-                        // Check for AI Personas in the original block before focusing the new one
-                        const aiMentions = Array.from(content.querySelectorAll('.persona-mention')).filter(m => m.getAttribute('data-slug').endsWith('.ai'));
-                        if (aiMentions.length > 0) {
-                            this.triggerAIPersonas(block, content, aiMentions);
-                        }
+                        // --- AI COLLAB DETECTION PIPELINE ---
+                        const aiMentions = [];
+                        // 1. Cleanly convert plaintext rapid typing to proper tags
+                        content.innerHTML = content.innerHTML.replace(/@([a-zA-Z0-9_-]+)\.collab/gi, (match, p1) => {
+                            const slug = p1.toLowerCase(); pgDB.createPersona(slug, p1.toUpperCase()); this.cachedPersonas = null; aiMentions.push({ slug, name: p1.toUpperCase() });
+                            return `<span class="persona-mention" data-slug="${slug}">@${p1.toUpperCase()}</span>`;
+                        });
+                        // 2. Identify existing tags adjacent to .collab text
+                        Array.from(content.querySelectorAll('.persona-mention')).forEach(m => {
+                            let next = m.nextSibling;
+                            if (next && next.nodeType === Node.TEXT_NODE && /^\s*\.collab/i.test(next.textContent)) {
+                                aiMentions.push({ slug: m.getAttribute('data-slug'), name: m.textContent.replace('@', '') });
+                                next.textContent = next.textContent.replace(/^\s*\.collab/i, '');
+                            }
+                        });
 
+                        if (aiMentions.length > 0) this.triggerAIPersonas(block, content, aiMentions);
+                        // ------------------------------------
                         setTimeout(() => setCaret(newBlock.dom.querySelector('.text-content'), 0), 10); scheduleSave();
                     }
                     return;
@@ -1709,28 +916,20 @@
                 if (e.key === 'Backspace') {
                     const sel = window.getSelection();
                     if (sel.rangeCount > 0) {
-                        const range = sel.getRangeAt(0); const preCaretRange = range.cloneRange(); preCaretRange.selectNodeContents(content); preCaretRange.setEnd(range.startContainer, range.startOffset);
+                        const range = sel.getRangeAt(0), preCaretRange = range.cloneRange(); preCaretRange.selectNodeContents(content); preCaretRange.setEnd(range.startContainer, range.startOffset);
                         if (preCaretRange.toString().length === 0) {
                             e.preventDefault(); 
-                            if (block.type !== 'text') { this.replaceTextNodeType(block, 'text'); scheduleSave(); return; }
+                            if (block.type !== 'text') return this.replaceTextNodeType(block, 'text'), scheduleSave();
 
                             const idx = this.getBlockIndex(block.id);
                             if (idx > 0) {
                                 const prevBlock = this.blocks[idx - 1]; 
+                                if (prevBlock.type === 'hr') return this.deleteBlock(prevBlock.id);
+                                if (!['text', 'h1', 'h2', 'h3'].includes(prevBlock.type)) return this.deleteBlock(prevBlock.id);
                                 
-                                if (prevBlock.type === 'hr') {
-                                    this.deleteBlock(prevBlock.id);
-                                    scheduleSave();
-                                    return;
-                                }
-
-                                const currentHtml = content.innerHTML.replace(/<br>$/, ''); const isEmpty = content.textContent.trim() === '';
-                                if (!['text', 'h1', 'h2', 'h3'].includes(prevBlock.type)) this.deleteBlock(prevBlock.id);
-                                else {
-                                    const prevContentNode = prevBlock.dom.querySelector('.text-content');
-                                    if (!isEmpty) { const originalChildCount = prevContentNode.childNodes.length; prevContentNode.innerHTML += currentHtml; this.deleteBlock(block.id); setTimeout(() => setCaret(prevContentNode, originalChildCount), 10); }
-                                    else { this.deleteBlock(block.id); setCaret(prevContentNode); }
-                                }
+                                const currentHtml = content.innerHTML.replace(/<br>$/, ''), prevContentNode = prevBlock.dom.querySelector('.text-content');
+                                if (content.textContent.trim() !== '') { const childCount = prevContentNode.childNodes.length; prevContentNode.innerHTML += currentHtml; this.deleteBlock(block.id); setTimeout(() => setCaret(prevContentNode, childCount), 10); }
+                                else { this.deleteBlock(block.id); setCaret(prevContentNode); }
                             }
                         }
                     }
@@ -1739,70 +938,29 @@
 
             async triggerAIPersonas(triggerBlock, triggerContent, aiMentions) {
                 if (!aiEngine || isAILoading) return;
-                
                 const userPrompt = normalizePlainText(triggerContent.textContent);
-
-                // Fetch @me personality
-                const meData = pgDB.cache['persona::me'];
-                const meContext = meData && meData.blocks ? meData.blocks.map(b => b.data && b.data.text ? normalizePlainText(b.data.text) : '').join('\n') : '';
-
-                // Fetch general context
-                let topicalContext = '';
-                if (pgDB.isReady && userPrompt.length > 3) {
-                    const hits = await pgDB.searchSemantic(userPrompt, window.currentDateStr, 3);
-                    if (hits && hits.length > 0) topicalContext = hits.map(h => h.searchText).join('\n\n---\n\n');
-                }
+                const meContext = pgDB.cache['persona::me']?.blocks?.map(b => normalizePlainText(b.data?.text)).join('\n') || '';
+                const topicalContext = (userPrompt.length > 3 && pgDB.isReady) ? (await pgDB.searchSemantic(userPrompt, window.currentDateStr, 3)).map(h => h.searchText).join('\n\n---\n\n') : '';
 
                 let lastInsertId = triggerBlock.id;
-
                 for (const mention of aiMentions) {
-                    const aiSlug = mention.getAttribute('data-slug');
-                    const aiName = mention.textContent.replace('@', '');
-
-                    const aiData = pgDB.cache[`persona::${aiSlug}`];
-                    const aiInstructions = aiData && aiData.blocks ? aiData.blocks.map(b => b.data && b.data.text ? normalizePlainText(b.data.text) : '').join('\n') : '';
-
-                    const aiBlockId = crypto.randomUUID();
-                    const aiBlock = this.addBasicBlock('text', `<span class="neon-status ai-status loading">${aiName} thinking...</span>`, aiSlug, aiBlockId, Date.now(), lastInsertId);
-                    lastInsertId = aiBlockId; 
-
-                    const sysPrompt = `You are ${aiName}.
-[User Personality & Context (@me)]:
-${meContext || 'None provided.'}
-
-[Your Persona Instructions & Memory]:
-${aiInstructions || 'You are a helpful AI assistant.'}
-
-[Relevant Past Notes]:
-${topicalContext || '(None)'}
-
-CRITICAL INSTRUCTIONS:
-1. Respond concisely and strictly to the prompt.
-2. DO NOT prefix your response with your name or any label.
-3. Be helpful, direct, and embody your persona instructions perfectly.`;
+                    const { slug, name } = mention;
+                    const aiInstructions = pgDB.cache[`persona::${slug}`]?.blocks?.map(b => normalizePlainText(b.data?.text)).join('\n') || '';
+                    
+                    const aiBlock = this.addBasicBlock('text', `<span class="neon-status ai-status loading">${name} thinking...</span>`, slug, crypto.randomUUID(), Date.now(), lastInsertId);
+                    lastInsertId = aiBlock.id; 
 
                     try {
                         const response = await aiEngine.chat.completions.create({
                             messages: [
-                                { role: 'system', content: sysPrompt },
+                                { role: 'system', content: `You are embodying the persona, topic, or knowledge base of "${name}".\n[Global User Context (@me)]:\n${meContext || 'None'}\n\n[Your Core Knowledge & Instructions]:\n${aiInstructions || `You have no specific notes. Act as a helpful expert on ${name}.`}\n\n[Relevant Past Notes]:\n${topicalContext || 'None'}\n\nCRITICAL INSTRUCTIONS:\n1. Respond directly and concisely.\n2. DO NOT prefix your response with your name.\n3. Embody the knowledge of "${name}".` },
                                 { role: 'user', content: userPrompt }
-                            ],
-                            temperature: 0.7,
-                            max_tokens: 500
+                            ], temperature: 0.7, max_tokens: 500
                         });
-
-                        let aiText = response.choices[0].message.content || "";
-                        
-                        const aiContentNode = aiBlock.dom.querySelector('.text-content');
-                        aiContentNode.innerHTML = escapeHTML(aiText).replace(/\n/g, '<br>');
-
-                        // Save the interaction silently to the AI's persona page so it remembers 
-                        await this.appendToPersonaPage(aiSlug, userPrompt, aiText);
-                        
-                    } catch (err) {
-                        const aiContentNode = aiBlock.dom.querySelector('.text-content');
-                        aiContentNode.innerHTML = '<span style="color:#ef4444">connection failed.</span>';
-                    }
+                        const aiText = response.choices[0].message.content || "";
+                        aiBlock.dom.querySelector('.text-content').innerHTML = escapeHTML(aiText).replace(/\n/g, '<br>');
+                        await this.appendToPersonaPage(slug, userPrompt, aiText);
+                    } catch { aiBlock.dom.querySelector('.text-content').innerHTML = '<span style="color:#ef4444">connection failed.</span>'; }
                 }
                 scheduleSave();
             }
@@ -1810,144 +968,84 @@ CRITICAL INSTRUCTIONS:
             async appendToPersonaPage(slug, userText, aiText) {
                 const pageKey = `persona::${slug}`;
                 if (!pgDB.cache[pageKey]) pgDB.cache[pageKey] = { blocks: [] };
-                
-                const b1 = { id: crypto.randomUUID(), type: 'quote', data: { text: escapeHTML(userText) }, author: 'user', timestamp: Date.now() };
-                const b2 = { id: crypto.randomUUID(), type: 'text', data: { text: escapeHTML(aiText).replace(/\n/g, '<br>') }, author: slug, timestamp: Date.now() };
-                
-                pgDB.cache[pageKey].blocks.push(b1, b2);
-                if (pgDB.isReady) {
-                    await pgDB.saveNote(pageKey, pgDB.cache[pageKey]);
-                }
+                pgDB.cache[pageKey].blocks.push(
+                    { id: crypto.randomUUID(), type: 'quote', data: { text: escapeHTML(userText) }, author: 'user', timestamp: Date.now() },
+                    { id: crypto.randomUUID(), type: 'text', data: { text: escapeHTML(aiText).replace(/\n/g, '<br>') }, author: slug, timestamp: Date.now() }
+                );
+                if (pgDB.isReady) await pgDB.saveNote(pageKey, pgDB.cache[pageKey]);
             }
         }
 
-        const editor = new LeanStreamEditor('lean-editor');
-        window.editor = editor;
+        const editor = new LeanStreamEditor('lean-editor'); window.editor = editor;
 
         // ============================================================================
         // APP LIFECYCLE & STORAGE SYNC
         // ============================================================================
-        window.isPersonaPage = false;
-        window.currentPersonaSlug = null;
+        window.isPersonaPage = false; window.currentPersonaSlug = null;
 
-        const scheduleSave = debounce(async (immediate = false) => {
+        const scheduleSave = debounce(async () => {
             if (!(CONFIG.DEV_ALLOW_PAST_EDITING || window.currentDateStr === todayStr || window.isPersonaPage)) return;
-            const data = editor.save();
-            const dbStatusEl = document.getElementById('db-status');
+            const statusEl = document.getElementById('db-status');
             try {
-                await pgDB.saveNote(window.currentDateStr, data);
-                dbStatusEl.textContent = 'db.saved'; dbStatusEl.classList.add('saving');
-                setTimeout(() => { if (dbStatusEl.textContent === 'db.saved') { dbStatusEl.textContent = 'db.ready'; dbStatusEl.classList.remove('saving'); } }, 1500);
+                await pgDB.saveNote(window.currentDateStr, editor.save());
+                statusEl.textContent = 'db.saved'; statusEl.classList.add('saving');
+                setTimeout(() => { if (statusEl.textContent === 'db.saved') { statusEl.textContent = 'db.ready'; statusEl.classList.remove('saving'); } }, 1500);
             } catch (e) {
-                console.error("Schedule Save Error:", e);
-                if (!pgDB.isReady) {
-                    dbStatusEl.textContent = 'memory.saved [offline]';
-                    setTimeout(() => { if (dbStatusEl.textContent === 'memory.saved [offline]') dbStatusEl.textContent = 'db.offline [memory mode]'; }, 1500);
-                } else {
-                    dbStatusEl.textContent = 'db.error [save failed]'; dbStatusEl.className = 'neon-status db-status error';
-                    setTimeout(() => { if (dbStatusEl.textContent === 'db.error [save failed]') { dbStatusEl.textContent = 'db.ready'; dbStatusEl.className = 'neon-status db-status'; } }, 3000);
-                }
+                statusEl.textContent = pgDB.isReady ? 'db.error [save failed]' : 'memory.saved [offline]';
+                if (pgDB.isReady) statusEl.className = 'neon-status db-status error';
+                setTimeout(() => { if (statusEl.textContent.includes('saved')) { statusEl.textContent = pgDB.isReady ? 'db.ready' : 'db.offline [memory mode]'; if (pgDB.isReady) statusEl.className = 'neon-status db-status'; } }, pgDB.isReady ? 3000 : 1500);
             }
         }, 800);
 
         function renderDateHeader() {
-            const headerEl = document.getElementById('date-header');
+            const h = document.getElementById('date-header');
             if (window.isPersonaPage && window.currentPersonaSlug) {
-                pgDB.getPersonas().then(personas => { 
-                    const persona = personas.find(p => p.slug === window.currentPersonaSlug); 
-                    headerEl.textContent = `@${persona ? persona.display_name.toUpperCase() : window.currentPersonaSlug.toUpperCase()}`; 
-                });
-            } else {
-                headerEl.textContent = parseLocal(window.currentDateStr).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).toLowerCase();
-            }
+                pgDB.getPersonas().then(p => h.textContent = `@${p.find(x => x.slug === window.currentPersonaSlug)?.display_name.toUpperCase() || window.currentPersonaSlug.toUpperCase()}`);
+            } else h.textContent = parseLocal(window.currentDateStr).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).toLowerCase();
         }
 
-        function getVirtualCalendarBlocks(targetDateStr) {
-            const virtuals = []; const targetTime = parseLocal(targetDateStr).getTime();
-            for (const [noteDate, dayData] of Object.entries(pgDB.cache)) {
-                if (noteDate === targetDateStr || noteDate.startsWith('persona::') || !dayData || !dayData.blocks) continue;
-                for (const block of dayData.blocks) {
-                    if (block.type === 'calendar' && block.data && block.data.datetime) {
-                        const eventDateObj = new Date(block.data.datetime);
-                        const eventDateStr = getLocalYYYYMMDD(eventDateObj);
-                        const eventTime = parseLocal(eventDateStr).getTime();
-                        let matches = false;
-                        
-                        if (targetDateStr === eventDateStr) matches = true;
-                        else if (targetTime > eventTime) {
-                            const rec = block.data.recurrence || 'none';
-                            if (rec === 'daily') matches = true;
-                            else if (rec === 'weekly' && Math.round((targetTime - eventTime) / 86400000) % 7 === 0) matches = true;
-                            else if (rec === 'monthly' && parseLocal(targetDateStr).getDate() === eventDateObj.getDate()) matches = true;
-                            else if (rec === 'yearly' && targetDateStr.slice(5) === eventDateStr.slice(5)) matches = true;
-                        }
-
-                        if (matches) {
-                            const vBlock = JSON.parse(JSON.stringify(block));
-                            vBlock.isVirtual = true; vBlock.originalNoteKey = noteDate; 
-                            virtuals.push(vBlock);
+        async function loadDay(dateStr) {
+            if (pgDB.isReady && isEditable()) try { await pgDB.saveNote(window.currentDateStr, editor.save()); } catch{}
+            window.isPersonaPage = false; window.currentPersonaSlug = null; window.currentDateStr = dateStr;
+            renderDateHeader(); document.getElementById('backlinks-container')?.remove();
+            
+            let dayData = pgDB.cache[dateStr] || JSON.parse(localStorage.getItem(`infinotes_backup_${dateStr}`) || '{"blocks":[]}');
+            pgDB.cache[dateStr] = dayData;
+            
+            const virtuals = []; const targetTime = parseLocal(dateStr).getTime();
+            for (const [nDate, dData] of Object.entries(pgDB.cache)) {
+                if (nDate === dateStr || nDate.startsWith('persona::') || !dData?.blocks) continue;
+                for (const b of dData.blocks) {
+                    if (b.type === 'calendar' && b.data?.datetime) {
+                        const eDate = new Date(b.data.datetime), eDateStr = getLocalYYYYMMDD(eDate), eTime = parseLocal(eDateStr).getTime(), rec = b.data.recurrence || 'none';
+                        if (dateStr === eDateStr || (targetTime > eTime && (rec === 'daily' || (rec === 'weekly' && Math.round((targetTime - eTime) / 86400000) % 7 === 0) || (rec === 'monthly' && parseLocal(dateStr).getDate() === eDate.getDate()) || (rec === 'yearly' && dateStr.slice(5) === eDateStr.slice(5))))) {
+                            virtuals.push(Object.assign({}, b, { isVirtual: true, originalNoteKey: nDate }));
                         }
                     }
                 }
             }
-            return virtuals;
-        }
-
-        async function loadDay(dateStr) {
-            if (pgDB.isReady && isEditable()) { try { await pgDB.saveNote(window.currentDateStr, editor.save()); } catch(e) {} }
-            window.isPersonaPage = false; window.currentPersonaSlug = null; window.currentDateStr = dateStr;
-            renderDateHeader(); removeBacklinksSection();
-            
-            let dayData = pgDB.cache[dateStr];
-            if (!dayData || !dayData.blocks || dayData.blocks.length === 0) {
-                const backup = localStorage.getItem(`infinotes_backup_${dateStr}`);
-                if (backup) { try { dayData = JSON.parse(backup); pgDB.cache[dateStr] = dayData; } catch(e) {} }
-            }
-            if (!dayData) dayData = { blocks: [] };
-            editor.load([...getVirtualCalendarBlocks(dateStr), ...dayData.blocks]);
+            editor.load([...virtuals, ...dayData.blocks]);
         }
 
         async function loadPersonaPage(slug) {
-            if (pgDB.isReady && isEditable()) { try { await pgDB.saveNote(window.currentDateStr, editor.save()); } catch(e) {} }
+            if (pgDB.isReady && isEditable()) try { await pgDB.saveNote(window.currentDateStr, editor.save()); } catch{}
             window.isPersonaPage = true; window.currentPersonaSlug = slug; window.currentDateStr = `persona::${slug}`;
-            renderDateHeader();
-            editor.load((pgDB.cache[`persona::${slug}`] || { blocks: [] }).blocks);
-            renderBacklinksSection(slug);
+            renderDateHeader(); editor.load((pgDB.cache[`persona::${slug}`] || { blocks: [] }).blocks);
+            
+            document.getElementById('backlinks-container')?.remove();
+            const bl = pgDB.findBacklinks(slug); if (!bl.length) return;
+            const section = el('div', { className: 'backlinks-section', id: 'backlinks-container' }, el('div', { className: 'backlinks-header' }, `[ ${bl.length} backlink${bl.length > 1 ? 's' : ''} ]`));
+            bl.forEach(b => section.appendChild(el('button', { className: 'backlink-item', onclick: () => b.dateStr.startsWith('persona::') ? loadPersonaPage(b.dateStr.replace('persona::', '')) : loadDay(b.dateStr) }, el('span', { textContent: b.dateStr.startsWith('persona::') ? `@${b.dateStr.replace('persona::', '').toUpperCase()}` : parseLocal(b.dateStr).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase() }), el('span', { className: 'backlink-preview', textContent: b.preview }))));
+            document.querySelector('.app-container').insertBefore(section, document.querySelector('.app-container').firstChild);
         }
-
-        function renderBacklinksSection(slug) {
-            removeBacklinksSection();
-            const backlinks = pgDB.findBacklinks(slug);
-            if (backlinks.length === 0) return;
-
-            const section = el('div', { className: 'backlinks-section', id: 'backlinks-container' }, el('div', { className: 'backlinks-header' }, `[ ${backlinks.length} backlink${backlinks.length !== 1 ? 's' : ''} ]`));
-            backlinks.forEach(bl => {
-                section.appendChild(el('button', { className: 'backlink-item', onclick: () => {
-                    if (bl.dateStr.startsWith('persona::')) loadPersonaPage(bl.dateStr.replace('persona::', ''));
-                    else loadDay(bl.dateStr);
-                }},
-                    el('span', { textContent: bl.dateStr.startsWith('persona::') ? `@${bl.dateStr.replace('persona::', '').toUpperCase()}` : parseLocal(bl.dateStr).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase() }),
-                    el('span', { className: 'backlink-preview', textContent: bl.preview })
-                ));
-            });
-            const appContainer = document.querySelector('.app-container');
-            appContainer.insertBefore(section, appContainer.firstChild);
-        }
-
-        function removeBacklinksSection() { const existing = document.getElementById('backlinks-container'); if (existing) existing.remove(); }
 
         document.getElementById('date-header').onclick = () => {
             if (window.isPersonaPage) return loadDay(todayStr);
             const [y, m, d] = window.currentDateStr.split('-');
-            EditorialCalendar.open(new Date(y, m - 1, d), false, null, (selectedDate) => {
-                const selectedStr = getLocalYYYYMMDD(selectedDate);
-                if (window.currentDateStr !== selectedStr) { scheduleSave(true); loadDay(selectedStr); }
-            });
+            EditorialCalendar.open(new Date(y, m - 1, d), false, null, (sd) => { const sStr = getLocalYYYYMMDD(sd); if (window.currentDateStr !== sStr) { scheduleSave(); loadDay(sStr); } });
         };
 
-        // Boot Pipeline
         Promise.all([pgDB.init(), mediaStore.init()]).then(() => loadDay(todayStr));
-
     </script>
 </body>
 </html>
