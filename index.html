@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
     <title>Infinite Notes</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -21,13 +23,13 @@
     <style>
         /* --- CORE THEME & EXPRESSIVE TYPOGRAPHY --- */
         :root {
-            --bg-color: #ffffff; 
+            --bg-color: #ffffff;
             --bg-color-transparent: rgba(255, 255, 255, 0.85);
-            --text-color: #000000; 
+            --text-color: #000000;
             --muted-text: #888888;
             --neon-purple: #a855f7;
             --neon-green: #10b981;
-            --baritone-bg: #f2f2f2; 
+            --baritone-bg: #f2f2f2;
             --baritone-text: #333333;
             --font-main: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Inter", sans-serif;
             --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
@@ -35,36 +37,40 @@
 
         @media (prefers-color-scheme: dark) {
             :root {
-                --bg-color: #0a0a0a; 
+                --bg-color: #0a0a0a;
                 --bg-color-transparent: rgba(10, 10, 10, 0.85);
-                --text-color: #f0f0f0; 
+                --text-color: #f0f0f0;
                 --muted-text: #666666;
-                --baritone-bg: #151515; 
+                --baritone-bg: #151515;
                 --baritone-text: #cccccc;
             }
         }
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
 
-        body { 
-            background-color: var(--bg-color); 
-            color: var(--text-color); 
-            font-family: var(--font-main); 
-            margin: 0; padding: 0; 
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-main);
+            margin: 0;
+            padding: 0;
             width: 100vw;
-            overflow-x: hidden; 
+            overflow-x: hidden;
             overscroll-behavior-y: none;
         }
 
-        .app-container { 
-            max-width: 680px; 
+        .app-container {
+            max-width: 680px;
             width: 100%;
-            margin: 0 auto; 
-            padding: 0 24px 60vh 24px; 
+            margin: 0 auto;
+            padding: 0 24px 60vh 24px;
             position: relative;
         }
 
-        /* --- THE ATLAS HEADER --- */
+        /* --- THE HEADER --- */
         #header-container {
             position: relative;
             width: 100%;
@@ -73,241 +79,624 @@
             flex-direction: column;
             justify-content: flex-end;
             padding: 6vh 24px 24px 24px;
-            cursor: pointer;
-            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
             z-index: 100;
         }
+
         .header-max-width {
-            max-width: 632px; /* 680 - 48 padding */
+            max-width: 632px;
+            /* 680 - 48 padding */
             margin: 0 auto;
             width: 100%;
             position: relative;
             z-index: 2;
         }
-        #header-map {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;
-            pointer-events: none;
-        }
-        #header-tint {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;
-            background: linear-gradient(to bottom, var(--bg-color-transparent) 0%, var(--bg-color) 95%);
-            pointer-events: none;
-            transition: all 0.5s ease;
-        }
-        
-        /* FULLSCREEN ATLAS MODE */
-        #header-container.fullscreen-atlas {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            padding: 10vh 24px; z-index: 2000; cursor: default;
-        }
-        #header-container.fullscreen-atlas #header-tint {
-            background: var(--bg-color); opacity: 0.15;
-        }
-        #header-container.fullscreen-atlas #header-map {
-            pointer-events: auto;
-        }
 
         /* --- BRUTALIST HEADER TEXT --- */
-        #date-header { 
-            text-align: left; 
-            font-size: clamp(40px, 14vw, 110px); 
-            font-weight: 900; 
-            font-style: italic; 
-            text-transform: uppercase; 
-            letter-spacing: -0.05em; 
-            line-height: 0.9; 
-            color: var(--text-color); 
-            margin: 0 0 10px -2px; 
-            cursor: pointer; 
-            transition: opacity 0.2s; 
-            user-select: none; 
+        #date-header {
+            text-align: left;
+            font-size: clamp(40px, 14vw, 110px);
+            font-weight: 900;
+            font-style: italic;
+            text-transform: uppercase;
+            letter-spacing: -0.05em;
+            line-height: 0.9;
+            color: var(--text-color);
+            margin: 0 0 10px -2px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            user-select: none;
             display: inline-block;
         }
-        #date-header:active { opacity: 0.5; }
 
-        .status-row { display: flex; align-items: center; gap: 16px; user-select: none; flex-wrap: wrap; }
-        
-        .neon-status { font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: lowercase; }
-        .ai-status { color: var(--neon-purple); opacity: 0.8; transition: opacity 0.3s ease; }
-        .ai-status.loading { animation: neon-pulse 1.5s infinite ease-in-out; }
-        .ai-status.error { color: #ef4444; opacity: 1; }
-        .save-status { color: var(--muted-text); opacity: 0; transition: opacity 0.4s ease; }
-        .save-status.visible { opacity: 1; color: var(--neon-green); }
-        .storage-warning { color: #ef4444; display: none; }
+        #date-header:active {
+            opacity: 0.5;
+        }
 
-        @keyframes neon-pulse { 0%, 100% { opacity: 0.8; text-shadow: 0 0 8px rgba(168, 85, 247, 0.4); } 50% { opacity: 0.3; text-shadow: none; } }
+        .status-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            user-select: none;
+            flex-wrap: wrap;
+        }
+
+        .neon-status {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: lowercase;
+        }
+
+        .ai-status {
+            color: var(--neon-purple);
+            opacity: 0.8;
+            transition: opacity 0.3s ease;
+        }
+
+        .ai-status.loading {
+            animation: neon-pulse 1.5s infinite ease-in-out;
+        }
+
+        .ai-status.error {
+            color: #ef4444;
+            opacity: 1;
+        }
+
+        .save-status {
+            color: var(--muted-text);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .save-status.visible {
+            opacity: 1;
+            color: var(--neon-green);
+        }
+
+        .storage-warning {
+            color: #ef4444;
+            display: none;
+        }
+
+        @keyframes neon-pulse {
+
+            0%,
+            100% {
+                opacity: 0.8;
+                text-shadow: 0 0 8px rgba(168, 85, 247, 0.4);
+            }
+
+            50% {
+                opacity: 0.3;
+                text-shadow: none;
+            }
+        }
 
         /* --- EXPRESSIVE TEXT BLOCKS --- */
-        #lean-editor { position: relative; display: flex; flex-direction: column; gap: 2px; width: 100%; margin-top: 16px; }
-        .stream-block { position: relative; width: 100%; transition: opacity 0.2s; }
-        
-        .text-content { 
-            font-size: clamp(18px, 4.5vw, 22px); font-weight: 500; letter-spacing: -0.02em; 
-            line-height: 1.5; color: var(--text-color); outline: none; min-height: 1.5em;
-            word-wrap: break-word; padding: 4px 0; width: 100%; position: relative;
+        #lean-editor {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            width: 100%;
+            margin-top: 16px;
         }
+
+        .stream-block {
+            position: relative;
+            width: 100%;
+            transition: opacity 0.2s;
+        }
+
+        .text-content {
+            font-size: clamp(18px, 4.5vw, 22px);
+            font-weight: 500;
+            letter-spacing: -0.02em;
+            line-height: 1.5;
+            color: var(--text-color);
+            outline: none;
+            min-height: 1.5em;
+            word-wrap: break-word;
+            padding: 4px 0;
+            width: 100%;
+            position: relative;
+        }
+
         .text-content[data-placeholder]:empty:before {
-            content: attr(data-placeholder); color: var(--muted-text);
-            font-style: italic; font-weight: 400; opacity: 0.5; pointer-events: none;
+            content: attr(data-placeholder);
+            color: var(--muted-text);
+            font-style: italic;
+            font-weight: 400;
+            opacity: 0.5;
+            pointer-events: none;
         }
 
         .text-content[data-ghost]::after {
-            content: attr(data-ghost); color: var(--neon-purple); opacity: 0.6;
-            pointer-events: none; user-select: none; display: inline;
+            content: attr(data-ghost);
+            color: var(--neon-purple);
+            opacity: 0.6;
+            pointer-events: none;
+            user-select: none;
+            display: inline;
         }
 
-        .text-content.h1 { font-size: clamp(36px, 8vw, 48px); font-weight: 900; letter-spacing: -0.04em; line-height: 1.1; margin-top: 36px; margin-bottom: 8px; text-transform: uppercase; padding: 0; }
-        .text-content.h2 { font-size: clamp(28px, 6vw, 36px); font-weight: 800; letter-spacing: -0.03em; line-height: 1.2; margin-top: 28px; margin-bottom: 6px; padding: 0; }
-        .text-content.h3 { font-size: clamp(22px, 5vw, 28px); font-weight: 700; letter-spacing: -0.02em; line-height: 1.3; margin-top: 20px; margin-bottom: 4px; padding: 0; }
+        .text-content.h1 {
+            font-size: clamp(36px, 8vw, 48px);
+            font-weight: 900;
+            letter-spacing: -0.04em;
+            line-height: 1.1;
+            margin-top: 36px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            padding: 0;
+        }
 
-        .stream-block.author-ai .text-content { font-weight: 400; color: var(--neon-purple); }
+        .text-content.h2 {
+            font-size: clamp(28px, 6vw, 36px);
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            line-height: 1.2;
+            margin-top: 28px;
+            margin-bottom: 6px;
+            padding: 0;
+        }
+
+        .text-content.h3 {
+            font-size: clamp(22px, 5vw, 28px);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.3;
+            margin-top: 20px;
+            margin-bottom: 4px;
+            padding: 0;
+        }
+
+        .stream-block.author-ai .text-content {
+            font-weight: 400;
+            color: var(--neon-purple);
+        }
+
         .stream-block.author-ai::before {
-            content: ''; position: absolute; left: -16px; top: 10px; bottom: 10px;
-            width: 3px; background: var(--neon-purple); opacity: 0.5;
+            content: '';
+            position: absolute;
+            left: -16px;
+            top: 10px;
+            bottom: 10px;
+            width: 3px;
+            background: var(--neon-purple);
+            opacity: 0.5;
         }
 
         /* --- SLASH COMMAND MENU --- */
         #slash-menu {
-            position: absolute; background: var(--bg-color); border: 2px solid var(--text-color);
-            box-shadow: 6px 6px 0 rgba(0,0,0,0.15); z-index: 1000; display: none;
-            flex-direction: column; width: 240px; border-radius: 4px; overflow: hidden;
-            padding: 8px 0; transition: opacity 0.1s;
+            position: absolute;
+            background: var(--bg-color);
+            border: 2px solid var(--text-color);
+            box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            width: 240px;
+            border-radius: 4px;
+            overflow: hidden;
+            padding: 8px 0;
+            transition: opacity 0.1s;
         }
-        #slash-menu.active { display: flex; }
+
+        #slash-menu.active {
+            display: flex;
+        }
+
         .slash-item {
-            padding: 10px 16px; font-family: var(--font-mono); font-size: 13px; font-weight: 700;
-            text-transform: uppercase; cursor: pointer; color: var(--text-color); background: transparent;
-            border: none; text-align: left; display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 16px;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            cursor: pointer;
+            color: var(--text-color);
+            background: transparent;
+            border: none;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-        .slash-item .sub { color: var(--muted-text); font-size: 10px; font-weight: 500; }
-        .slash-item.selected, .slash-item:hover { background: var(--text-color); color: var(--bg-color); }
-        .slash-item.selected .sub, .slash-item:hover .sub { color: var(--bg-color); opacity: 0.7; }
+
+        .slash-item .sub {
+            color: var(--muted-text);
+            font-size: 10px;
+            font-weight: 500;
+        }
+
+        .slash-item.selected,
+        .slash-item:hover {
+            background: var(--text-color);
+            color: var(--bg-color);
+        }
+
+        .slash-item.selected .sub,
+        .slash-item:hover .sub {
+            color: var(--bg-color);
+            opacity: 0.7;
+        }
 
         /* --- BARITONE PANELS --- */
         .baritone-panel {
-            background: var(--baritone-bg); border-radius: 2px; padding: 16px 20px; margin: 16px 0; 
-            display: flex; flex-direction: column; gap: 12px; width: 100%;
+            background: var(--baritone-bg);
+            border-radius: 2px;
+            padding: 16px 20px;
+            margin: 16px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
         }
+
         .panel-header {
-            font-family: var(--font-mono); font-size: 10px; font-weight: 700; text-transform: uppercase; 
-            letter-spacing: 0.1em; color: var(--muted-text); display: flex; justify-content: space-between; 
-            align-items: center; margin-bottom: 4px; user-select: none;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--muted-text);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+            user-select: none;
         }
-        .panel-controls { display: flex; gap: 12px; align-items: center; }
+
+        .panel-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
         .panel-ctrl-btn {
-            background: none; border: none; padding: 0; color: var(--muted-text); font-size: 14px; 
-            cursor: pointer; transition: color 0.2s; display: flex; align-items: center; justify-content: center;
+            background: none;
+            border: none;
+            padding: 0;
+            color: var(--muted-text);
+            font-size: 14px;
+            cursor: pointer;
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .panel-ctrl-btn:hover { color: var(--text-color); }
-        .panel-ctrl-btn.delete:hover { color: #ef4444; }
+
+        .panel-ctrl-btn:hover {
+            color: var(--text-color);
+        }
+
+        .panel-ctrl-btn.delete:hover {
+            color: #ef4444;
+        }
 
         .panel-title-input {
-            background: transparent; border: none; outline: none; color: var(--text-color); 
-            font-family: var(--font-main); font-size: 24px; font-weight: 800; letter-spacing: -0.02em; 
-            width: 100%; margin-bottom: 8px; border-bottom: 2px solid transparent; transition: border-color 0.2s;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-color);
+            font-family: var(--font-main);
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            width: 100%;
+            margin-bottom: 8px;
+            border-bottom: 2px solid transparent;
+            transition: border-color 0.2s;
         }
-        .panel-title-input::placeholder { color: var(--muted-text); font-weight: 600; opacity: 0.4; }
-        .panel-title-input:focus { border-bottom-color: var(--text-color); }
 
-        .raw-input { background: transparent; border: none; outline: none; color: var(--text-color); font-family: var(--font-main); font-size: 18px; font-weight: 500; width: 100%; }
-        .raw-input::placeholder { color: var(--muted-text); }
+        .panel-title-input::placeholder {
+            color: var(--muted-text);
+            font-weight: 600;
+            opacity: 0.4;
+        }
+
+        .panel-title-input:focus {
+            border-bottom-color: var(--text-color);
+        }
+
+        .raw-input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-color);
+            font-family: var(--font-main);
+            font-size: 18px;
+            font-weight: 500;
+            width: 100%;
+        }
+
+        .raw-input::placeholder {
+            color: var(--muted-text);
+        }
 
         .raw-btn {
-            background: var(--bg-color); border: 2px solid var(--text-color); color: var(--text-color);
-            font-family: var(--font-mono); font-size: 11px; font-weight: 800; text-transform: uppercase; 
-            cursor: pointer; transition: all 0.2s; padding: 8px 12px; border-radius: 2px;
-            box-shadow: 4px 4px 0 rgba(0,0,0,0.15); display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            background: var(--bg-color);
+            border: 2px solid var(--text-color);
+            color: var(--text-color);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+            padding: 8px 12px;
+            border-radius: 2px;
+            box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.15);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
-        .raw-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 rgba(0,0,0,0.15); }
-        .raw-btn.active { background: var(--text-color); color: var(--bg-color); }
-        .raw-btn.danger { color: #ef4444; border-color: #ef4444; }
-        .raw-btn.danger.active { background: #ef4444; border-color: #ef4444; color: #fff; }
 
-        .compute-code { font-family: var(--font-mono); font-size: 16px; font-weight: 500; resize: none; min-height: 22px; line-height: 1.4; border-bottom: 1px dashed var(--muted-text); padding-bottom: 8px; margin-bottom: 8px;}
-        .compute-output { font-family: var(--font-mono); font-size: 22px; font-weight: 700; color: var(--neon-purple); word-break: break-word; }
-        .compute-error { color: #ef4444; font-size: 14px; }
-        
-        .voice-status-text { font-family: var(--font-mono); font-size: 11px; color: var(--muted-text); }
-        .scan-output { font-family: var(--font-mono); font-size: 14px; min-height: 80px; resize: none; line-height: 1.5; color: var(--baritone-text); }
-        .calendar-date-display { font-family: var(--font-mono); font-size: 15px; color: var(--neon-purple); font-weight: 700; display: inline-block; transition: opacity 0.2s; margin-bottom: 4px; cursor: pointer; }
-        .calendar-date-display:hover { opacity: 0.8; }
+        .raw-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.15);
+        }
+
+        .raw-btn.active {
+            background: var(--text-color);
+            color: var(--bg-color);
+        }
+
+        .raw-btn.danger {
+            color: #ef4444;
+            border-color: #ef4444;
+        }
+
+        .raw-btn.danger.active {
+            background: #ef4444;
+            border-color: #ef4444;
+            color: #fff;
+        }
+
+        .compute-code {
+            font-family: var(--font-mono);
+            font-size: 16px;
+            font-weight: 500;
+            resize: none;
+            min-height: 22px;
+            line-height: 1.4;
+            border-bottom: 1px dashed var(--muted-text);
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+        }
+
+        .compute-output {
+            font-family: var(--font-mono);
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--neon-purple);
+            word-break: break-word;
+        }
+
+        .compute-error {
+            color: #ef4444;
+            font-size: 14px;
+        }
+
+        .voice-status-text {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--muted-text);
+        }
+
+        .scan-output {
+            font-family: var(--font-mono);
+            font-size: 14px;
+            min-height: 80px;
+            resize: none;
+            line-height: 1.5;
+            color: var(--baritone-text);
+        }
+
+        .calendar-date-display {
+            font-family: var(--font-mono);
+            font-size: 15px;
+            color: var(--neon-purple);
+            font-weight: 700;
+            display: inline-block;
+            transition: opacity 0.2s;
+            margin-bottom: 4px;
+            cursor: pointer;
+        }
+
+        .calendar-date-display:hover {
+            opacity: 0.8;
+        }
 
         /* --- SMART CANVAS --- */
-        .smart-canvas-selector { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; justify-content: center; }
+        .smart-canvas-selector {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+            justify-content: center;
+        }
+
         .smart-canvas-option {
-            flex: 1; min-width: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
-            padding: 24px 16px; background: transparent; border: 2px dashed var(--muted-text); border-radius: 2px;
-            color: var(--text-color); font-family: var(--font-mono); font-size: 13px; font-weight: 700; text-transform: uppercase;
-            cursor: pointer; transition: all 0.2s;
-        }
-        .smart-canvas-option:hover { border-color: var(--text-color); border-style: solid; background: var(--text-color); color: var(--bg-color); }
-        
-        .canvas-relative-frame.full-bleed { 
-            position: relative; margin-left: -20px; width: calc(100% + 40px); max-width: none;
-            border-radius: 0; overflow: hidden; margin-top: 8px; height: 60vh; min-height: 400px;
+            flex: 1;
+            min-width: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 24px 16px;
+            background: transparent;
+            border: 2px dashed var(--muted-text);
+            border-radius: 2px;
+            color: var(--text-color);
+            font-family: var(--font-mono);
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
         }
 
-        .leaflet-container { background: var(--bg-color) !important; width: 100%; height: 100% !important; z-index: 1; position: absolute; top:0; left:0; }
-        .leaflet-container.drawing-mode, .leaflet-container.drawing-mode .leaflet-interactive { cursor: crosshair !important; touch-action: none !important; }
-        .leaflet-container.locked-mode { cursor: default !important; }
-
-        /* --- ATLAS BUTTON (Header Overlay) --- */
-        #atlas-close-btn {
-            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
-            width: calc(100% - 48px); max-width: 632px; padding: 20px;
-            background: var(--text-color); color: var(--bg-color);
-            font-family: var(--font-mono); font-size: 16px; font-weight: 800; 
-            text-transform: uppercase; border: none; cursor: pointer; letter-spacing: 0.1em;
-            display: none; z-index: 10; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        .smart-canvas-option:hover {
+            border-color: var(--text-color);
+            border-style: solid;
+            background: var(--text-color);
+            color: var(--bg-color);
         }
+
+        .canvas-relative-frame.full-bleed {
+            position: relative;
+            margin-left: -20px;
+            width: calc(100% + 40px);
+            max-width: none;
+            border-radius: 0;
+            overflow: hidden;
+            margin-top: 8px;
+            height: 60vh;
+            min-height: 400px;
+        }
+
+        .leaflet-container {
+            background: var(--bg-color) !important;
+            width: 100%;
+            height: 100% !important;
+            z-index: 1;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .leaflet-container.drawing-mode,
+        .leaflet-container.drawing-mode .leaflet-interactive {
+            cursor: crosshair !important;
+            touch-action: none !important;
+        }
+
+        .leaflet-container.locked-mode {
+            cursor: default !important;
+        }
+
+
 
         /* --- EDITORIAL CALENDAR OVERLAY --- */
         .editorial-cal-modal {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: var(--bg-color); z-index: 10000; display: none; flex-direction: column; 
-            padding: 10vh 32px 32px 32px; overflow-y: auto;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: var(--bg-color);
+            z-index: 10000;
+            display: none;
+            flex-direction: column;
+            padding: 10vh 32px 32px 32px;
+            overflow-y: auto;
         }
-        .editorial-cal-modal.active { display: flex; }
-        
-        .cal-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
-        .cal-nav-btn { background: none; border: none; font-size: 40px; font-weight: 300; color: var(--text-color); cursor: pointer; }
-        .cal-month-title { font-size: clamp(30px, 8vw, 60px); font-weight: 900; font-style: italic; letter-spacing: -0.04em; text-transform: uppercase; }
-        
-        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+
+        .editorial-cal-modal.active {
+            display: flex;
+        }
+
+        .cal-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .cal-nav-btn {
+            background: none;
+            border: none;
+            font-size: 40px;
+            font-weight: 300;
+            color: var(--text-color);
+            cursor: pointer;
+        }
+
+        .cal-month-title {
+            font-size: clamp(30px, 8vw, 60px);
+            font-weight: 900;
+            font-style: italic;
+            letter-spacing: -0.04em;
+            text-transform: uppercase;
+        }
+
+        .cal-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+
         .cal-day {
-            aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
-            font-size: 20px; font-weight: 600; cursor: pointer; background: var(--baritone-bg); transition: background 0.2s, color 0.2s;
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            background: var(--baritone-bg);
+            transition: background 0.2s, color 0.2s;
         }
-        .cal-day:active, .cal-day.selected { background: var(--text-color); color: var(--bg-color); }
-        .cal-day.muted { opacity: 0.15; pointer-events: none; }
-        
+
+        .cal-day:active,
+        .cal-day.selected {
+            background: var(--text-color);
+            color: var(--bg-color);
+        }
+
+        .cal-day.muted {
+            opacity: 0.15;
+            pointer-events: none;
+        }
+
         .cal-time-input {
-            margin-top: 40px; width: 100%; padding: 20px; background: transparent; border: 2px solid var(--baritone-bg);
-            color: var(--text-color); font-family: var(--font-mono); font-size: 24px; text-align: center; border-radius: 4px; outline: none;
+            margin-top: 40px;
+            width: 100%;
+            padding: 20px;
+            background: transparent;
+            border: 2px solid var(--baritone-bg);
+            color: var(--text-color);
+            font-family: var(--font-mono);
+            font-size: 24px;
+            text-align: center;
+            border-radius: 4px;
+            outline: none;
         }
-        
+
         .cal-close-btn {
-            margin-top: auto; padding: 20px; width: 100%; background: var(--text-color); color: var(--bg-color);
-            font-family: var(--font-mono); font-size: 16px; font-weight: 800; text-transform: uppercase; border: none; cursor: pointer; letter-spacing: 0.1em;
+            margin-top: auto;
+            padding: 20px;
+            width: 100%;
+            background: var(--text-color);
+            color: var(--bg-color);
+            font-family: var(--font-mono);
+            font-size: 16px;
+            font-weight: 800;
+            text-transform: uppercase;
+            border: none;
+            cursor: pointer;
+            letter-spacing: 0.1em;
         }
     </style>
 </head>
+
 <body>
 
-    <!-- THE GEOGRAPHIC ATLAS HEADER -->
+    <!-- THE HEADER -->
     <div id="header-container">
-        <div id="header-map"></div>
-        <div id="header-tint"></div>
-        
         <div class="header-max-width">
             <div id="date-header">today</div>
             <div class="status-row">
                 <span id="ai-inline-status" class="neon-status ai-status loading">sys.ai.booting</span>
-                <span id="db-status" class="neon-status" style="color: var(--neon-purple); opacity: 0.8;">pg_vector.init</span>
+                <span id="db-status" class="neon-status"
+                    style="color: var(--neon-purple); opacity: 0.8;">pg_vector.init</span>
                 <span id="save-indicator" class="neon-status save-status">saved</span>
                 <span id="storage-warning" class="neon-status storage-warning">db.offline [memory mode]</span>
             </div>
-            <button id="atlas-close-btn">Return to Notes</button>
         </div>
     </div>
 
@@ -340,8 +729,7 @@
         };
 
         const SLASH_COMMANDS = [
-            { id: 'ai_continue', label: 'AI: Think', sub: 'Continue this thought (Cmd+Enter)' },
-            { id: 'profile', label: 'AI Memory', sub: 'View/Edit Profile Facts' },
+            { id: 'profile', label: 'Persona', sub: 'My Persona' },
             { id: 'h1', label: 'Heading 1', sub: 'Big Title' },
             { id: 'h2', label: 'Heading 2', sub: 'Medium Title' },
             { id: 'h3', label: 'Heading 3', sub: 'Small Title' },
@@ -375,10 +763,10 @@
             try {
                 const range = document.createRange();
                 const sel = window.getSelection();
-                if (offset === -1) { range.selectNodeContents(el); range.collapse(false); } 
+                if (offset === -1) { range.selectNodeContents(el); range.collapse(false); }
                 else { range.setStart(el, offset); range.collapse(true); }
                 sel.removeAllRanges(); sel.addRange(range);
-            } catch(e) {}
+            } catch (e) { }
         }
 
         function debounce(func, wait) {
@@ -395,107 +783,21 @@
         const getLocalYYYYMMDD = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
         const normalizePlainText = (text = '') => String(text).replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim();
         const escapeHTML = (text = '') => String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-        
+
         let todayStr = getLocalYYYYMMDD(new Date());
         window.currentDateStr = todayStr;
 
         const NotificationEngine = {
             timers: new Map(),
-            schedule: function(id, dt, title) {
+            schedule: function (id, dt, title) {
                 this.cancel(id); if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
                 const delay = new Date(dt).getTime() - Date.now();
                 if (delay > 0) this.timers.set(id, setTimeout(() => { new Notification('Note Reminder', { body: title || 'Event Reached' }); this.timers.delete(id); }, delay));
             },
-            cancel: function(id) { if (this.timers.has(id)) { clearTimeout(this.timers.get(id)); this.timers.delete(id); } }
+            cancel: function (id) { if (this.timers.has(id)) { clearTimeout(this.timers.get(id)); this.timers.delete(id); } }
         };
 
-        // ============================================================================
-        // 🌍 GEOGRAPHIC ATLAS SYSTEM
-        // ============================================================================
-        let currentLocation = null;
-        let headerMapInstance = null;
-        let isAtlasMode = false;
-        let atlasMarkers = [];
 
-        function initHeaderMap() {
-            headerMapInstance = L.map('header-map', {
-                zoomControl: false, attributionControl: false,
-                dragging: false, touchZoom: false, doubleClickZoom: false, scrollWheelZoom: false, boxZoom: false, keyboard: false
-            }).setView([20, 0], 2);
-            
-            const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            const tileUrl = isDark ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-            L.tileLayer(tileUrl).addTo(headerMapInstance);
-
-            // Attempt Geolocation invisibly
-            if ("geolocation" in navigator) {
-                navigator.geolocation.getCurrentPosition((pos) => {
-                    currentLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                    if (window.currentDateStr === todayStr) {
-                        headerMapInstance.setView([currentLocation.lat, currentLocation.lng], 13);
-                        scheduleSave(); // Saves the coordinate to today's note
-                    }
-                }, () => {}, { enableHighAccuracy: false, maximumAge: 300000 });
-            }
-        }
-
-        async function toggleAtlasMode() {
-            const container = document.getElementById('header-container');
-            const closeBtn = document.getElementById('atlas-close-btn');
-            isAtlasMode = !isAtlasMode;
-            
-            if (isAtlasMode) {
-                container.classList.add('fullscreen-atlas');
-                closeBtn.style.display = 'block';
-                headerMapInstance.dragging.enable(); headerMapInstance.touchZoom.enable(); 
-                headerMapInstance.doubleClickZoom.enable(); headerMapInstance.scrollWheelZoom.enable();
-                
-                // Clear old markers
-                atlasMarkers.forEach(m => headerMapInstance.removeLayer(m));
-                atlasMarkers = [];
-                
-                // Plot all historical locations
-                if (pgDB.isReady) {
-                    const res = await pgDB.pg.query(`SELECT date_str, data FROM daily_notes`);
-                    const bounds = [];
-                    res.rows.forEach(r => {
-                        const data = typeof r.data === 'string' ? JSON.parse(r.data) : r.data;
-                        if (data.location && data.location.lat && data.location.lng) {
-                            const marker = L.circleMarker([data.location.lat, data.location.lng], {
-                                radius: 8, fillColor: 'var(--neon-purple)', color: 'var(--bg-color)', weight: 2, fillOpacity: 0.8
-                            }).addTo(headerMapInstance);
-                            marker.bindPopup(`<div style="font-family:var(--font-mono);font-weight:bold;color:#000;">${r.date_str}</div><div style="font-size:11px;color:#666;">${data.blocks ? data.blocks.length : 0} Memory Blocks</div>`);
-                            atlasMarkers.push(marker);
-                            bounds.push([data.location.lat, data.location.lng]);
-                        }
-                    });
-                    
-                    setTimeout(() => { 
-                        headerMapInstance.invalidateSize(); 
-                        if (bounds.length > 0) headerMapInstance.fitBounds(bounds, { padding: [50, 50] });
-                    }, 400); 
-                }
-            } else {
-                container.classList.remove('fullscreen-atlas');
-                closeBtn.style.display = 'none';
-                headerMapInstance.dragging.disable(); headerMapInstance.touchZoom.disable(); 
-                headerMapInstance.doubleClickZoom.disable(); headerMapInstance.scrollWheelZoom.disable();
-                
-                setTimeout(() => { 
-                    headerMapInstance.invalidateSize(); 
-                    const dayData = pgDB.cache[window.currentDateStr] || {};
-                    if (dayData.location) headerMapInstance.setView([dayData.location.lat, dayData.location.lng], 13);
-                    else if (currentLocation && window.currentDateStr === todayStr) headerMapInstance.setView([currentLocation.lat, currentLocation.lng], 13);
-                }, 400);
-            }
-        }
-
-        document.getElementById('header-container').onclick = (e) => {
-            // Prevent expansion if clicking specific interactive elements inside the header
-            if (e.target.closest('#date-header') || e.target.closest('.status-row') || e.target.closest('#atlas-close-btn')) return;
-            if (!isAtlasMode) toggleAtlasMode();
-        };
-        document.getElementById('atlas-close-btn').onclick = toggleAtlasMode;
 
         // ============================================================================
         // 🧠 VECTOR EMBEDDING ENGINE (Transformers.js)
@@ -508,7 +810,7 @@
                     this.promise = import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0-alpha.19/+esm').then(async ({ pipeline, env }) => {
                         env.allowRemoteModels = true; env.useBrowserCache = true;
                         let pipe;
-                        try { pipe = await pipeline('feature-extraction', CONFIG.EMBEDDING_MODEL_ID, { device: 'webgpu' }); } 
+                        try { pipe = await pipeline('feature-extraction', CONFIG.EMBEDDING_MODEL_ID, { device: 'webgpu' }); }
                         catch (e) { pipe = await pipeline('feature-extraction', CONFIG.EMBEDDING_MODEL_ID, { dtype: 'q8' }); }
                         this.embedder = pipe; return pipe;
                     });
@@ -532,28 +834,28 @@
         // ============================================================================
         class PGLiteDatabase {
             constructor() { this.pg = null; this.cache = {}; this.isReady = false; this.pendingDays = new Set(); }
-            
+
             async init() {
                 try {
                     const [{ PGlite }, { vector }] = await Promise.all([
                         import("https://cdn.jsdelivr.net/npm/@electric-sql/pglite/dist/index.js"),
                         import("https://cdn.jsdelivr.net/npm/@electric-sql/pglite/dist/vector/index.js")
                     ]);
-                    
+
                     this.pg = await PGlite.create({ dataDir: 'idb://infinotes-v2', extensions: { vector } });
-                    
+
                     await this.pg.exec(`
                         CREATE EXTENSION IF NOT EXISTS vector;
                         CREATE TABLE IF NOT EXISTS daily_notes (date_str TEXT PRIMARY KEY, data JSONB);
                         CREATE TABLE IF NOT EXISTS semantic_index (key TEXT PRIMARY KEY, date_str TEXT, block_id TEXT, block_type TEXT, search_text TEXT, embedding vector(384), timestamp BIGINT);
-                        CREATE TABLE IF NOT EXISTS user_knowledge (id SERIAL PRIMARY KEY, fact TEXT, timestamp BIGINT);
+                        CREATE TABLE IF NOT EXISTS profile_settings (key TEXT PRIMARY KEY, value TEXT);
                     `);
                     this.isReady = true;
                     document.getElementById('db-status').textContent = 'pg_vector.ready';
-                    
+
                     const res = await this.pg.query(`SELECT date_str, data FROM daily_notes`);
                     res.rows.forEach(r => { this.cache[r.date_str] = typeof r.data === 'string' ? JSON.parse(r.data) : r.data; });
-                    
+
                     this.startBackgroundIndexer();
                 } catch (e) {
                     console.error("PGlite Error", e);
@@ -561,45 +863,48 @@
                     document.getElementById('storage-warning').style.display = 'inline';
                 }
             }
-            
-            async getKnowledge() {
-                if (!this.isReady) return [];
-                const res = await this.pg.query(`SELECT id, fact FROM user_knowledge ORDER BY timestamp ASC`);
-                return res.rows;
+
+
+            async getProfile() {
+                if (!this.isReady) return {};
+                const res = await this.pg.query(`SELECT key, value FROM profile_settings`);
+                const profile = {};
+                res.rows.forEach(r => profile[r.key] = r.value);
+                return profile;
             }
-            async addKnowledge(fact) {
-                if (!this.isReady || !fact) return;
-                await this.pg.query(`INSERT INTO user_knowledge (fact, timestamp) VALUES ($1, $2)`, [fact, Date.now()]);
-            }
-            async removeKnowledge(id) {
+            async updateProfile(key, value) {
                 if (!this.isReady) return;
-                await this.pg.query(`DELETE FROM user_knowledge WHERE id = $1`, [id]);
+                await this.pg.query(`INSERT INTO profile_settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`, [key, value]);
+            }
+            async removeProfile(key) {
+                if (!this.isReady) return;
+                await this.pg.query(`DELETE FROM profile_settings WHERE key = $1`, [key]);
             }
             async saveNote(dateStr, data) {
                 this.cache[dateStr] = data;
                 if (!this.isReady) return;
-                await this.pg.query(`INSERT INTO daily_notes (date_str, data) VALUES ($1, $2) ON CONFLICT (date_str) DO UPDATE SET data = EXCLUDED.data`, [dateStr, JSON.stringify(data)] );
+                await this.pg.query(`INSERT INTO daily_notes (date_str, data) VALUES ($1, $2) ON CONFLICT (date_str) DO UPDATE SET data = EXCLUDED.data`, [dateStr, JSON.stringify(data)]);
                 this.pendingDays.add(dateStr);
             }
-            
+
             startBackgroundIndexer() {
                 setInterval(async () => {
                     if (this.pendingDays.size === 0 || !this.isReady) return;
                     const dateStr = Array.from(this.pendingDays)[0];
                     this.pendingDays.delete(dateStr);
-                    
+
                     const dayData = this.cache[dateStr];
                     if (!dayData || !dayData.blocks) return;
-                    
+
                     await this.pg.query(`DELETE FROM semantic_index WHERE date_str = $1`, [dateStr]);
-                    
+
                     for (const block of dayData.blocks) {
                         if (!block.data) continue;
-                        const searchText = ['text','h1','h2','h3'].includes(block.type) ? normalizePlainText(block.data.text) : normalizePlainText(JSON.stringify(block.data));
+                        const searchText = ['text', 'h1', 'h2', 'h3'].includes(block.type) ? normalizePlainText(block.data.text) : normalizePlainText(JSON.stringify(block.data));
                         if (!searchText) continue;
                         const vectorData = await VectorEmbedder.embedText(searchText);
                         if (!vectorData) continue;
-                        
+
                         try {
                             await this.pg.query(
                                 `INSERT INTO semantic_index (key, date_str, block_id, block_type, search_text, embedding, timestamp) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
@@ -607,7 +912,7 @@
                             );
                         } catch (e) { }
                     }
-                }, 5000); 
+                }, 5000);
             }
 
             async searchSemantic(queryText, excludeDate, limit = 5) {
@@ -631,7 +936,7 @@
                         req.onupgradeneeded = e => { if (!e.target.result.objectStoreNames.contains('media_blobs')) e.target.result.createObjectStore('media_blobs', { keyPath: 'id' }); };
                         req.onsuccess = e => { this.db = e.target.result; resolve(); };
                         req.onerror = () => { this.isAvailable = false; resolve(); };
-                    } catch(e) { this.isAvailable = false; resolve(); }
+                    } catch (e) { this.isAvailable = false; resolve(); }
                 });
             }
             saveBlob(id, blob, kind) {
@@ -658,7 +963,7 @@
         // ============================================================================
         // 🤖 ON-DEVICE AI COLLABORATOR
         // ============================================================================
-        const AI_MODEL_ID = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC"; 
+        const AI_MODEL_ID = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC";
         let aiEngine = null;
         let isAILoading = false;
         const aiStatusEl = document.getElementById('ai-inline-status');
@@ -696,15 +1001,15 @@
             try {
                 if (!navigator.gpu) throw new Error("WebGPU disabled or unsupported");
                 const { CreateMLCEngine } = await import("https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.82/+esm");
-                
+
                 aiEngine = await CreateMLCEngine(AI_MODEL_ID, {
                     initProgressCallback: (progress) => { aiStatusEl.textContent = `sys.ai.loading [${Math.round(progress.progress * 100)}%]`; }
                 });
-                
+
                 aiStatusEl.className = 'neon-status ai-status'; aiStatusEl.textContent = `sys.ai.online`;
             } catch (err) {
                 console.error("Local AI Boot Error:", err);
-                aiStatusEl.className = 'neon-status ai-status error'; 
+                aiStatusEl.className = 'neon-status ai-status error';
                 let shortError = "sys.ai.offline";
                 if (err.message && err.message.includes("WebGPU")) shortError = "gpu.access.denied";
                 else if (err.message && err.message.includes("fetch")) shortError = "model.download.err";
@@ -712,7 +1017,7 @@
                 aiStatusEl.textContent = shortError; aiEngine = null;
             } finally { isAILoading = false; }
         }
-        
+
         setTimeout(() => initializeAI(), 1500);
 
         // ============================================================================
@@ -729,16 +1034,16 @@
                 const year = viewDate.getFullYear(), month = viewDate.getMonth();
                 title.textContent = viewDate.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
                 grid.innerHTML = '';
-                
+
                 const firstDay = new Date(year, month, 1).getDay();
-                for(let i=0; i<firstDay; i++) grid.appendChild(el('div', { className: 'cal-day muted' }));
+                for (let i = 0; i < firstDay; i++) grid.appendChild(el('div', { className: 'cal-day muted' }));
 
                 const daysInMonth = new Date(year, month + 1, 0).getDate();
-                for(let i=1; i<=daysInMonth; i++) {
+                for (let i = 1; i <= daysInMonth; i++) {
                     const cellDateStr = getLocalYYYYMMDD(new Date(year, month, i));
                     const isSelected = (year === activeDate.getFullYear() && month === activeDate.getMonth() && i === activeDate.getDate());
                     const isMuted = !requireTime && cellDateStr > todayStr;
-                    
+
                     grid.appendChild(el('div', {
                         className: `cal-day ${isSelected ? 'selected' : ''} ${isMuted ? 'muted' : ''}`,
                         textContent: i,
@@ -747,8 +1052,8 @@
                 }
             }
 
-            document.getElementById('ecal-prev').onclick = () => { viewDate.setMonth(viewDate.getMonth()-1); render(); };
-            document.getElementById('ecal-next').onclick = () => { viewDate.setMonth(viewDate.getMonth()+1); render(); };
+            document.getElementById('ecal-prev').onclick = () => { viewDate.setMonth(viewDate.getMonth() - 1); render(); };
+            document.getElementById('ecal-next').onclick = () => { viewDate.setMonth(viewDate.getMonth() + 1); render(); };
             document.getElementById('ecal-close').onclick = () => {
                 modal.classList.remove('active');
                 if (requireTime) {
@@ -760,7 +1065,7 @@
 
             return {
                 open: (initialDate, needsTime, callback) => {
-                    activeDate = initialDate || new Date(); viewDate = new Date(activeDate); 
+                    activeDate = initialDate || new Date(); viewDate = new Date(activeDate);
                     requireTime = needsTime; onConfirm = callback;
                     timeInput.style.display = needsTime ? 'block' : 'none';
                     if (needsTime) timeInput.value = `${String(activeDate.getHours()).padStart(2, '0')}:${String(activeDate.getMinutes()).padStart(2, '0')}`;
@@ -776,29 +1081,106 @@
             constructor(data, isReadOnly, onChange) { this.data = data || {}; this.readOnly = isReadOnly; this.onChange = onChange; }
             renderContainer(contentElements) {
                 const titleInput = el('input', { className: 'panel-title-input', type: 'text', placeholder: 'block title...', value: this.data.title || '', readonly: this.readOnly ? true : null, oninput: (e) => { this.data.title = e.target.value; if (this.onChange) this.onChange(); } });
-                return el('div', {}, titleInput, ...contentElements); 
+                return el('div', {}, titleInput, ...contentElements);
             }
             save() { return this.data; }
         }
 
+        const PROFILE_CATEGORIES = [
+            { id: 'personal_context', label: 'Personal Context', placeholder: 'Basic life situation, age, location, family status...' },
+            { id: 'current_focus', label: 'Current Focus', placeholder: 'What you are prioritizing or dealing with right now...' },
+            { id: 'relationships', label: 'Relationships', placeholder: 'Key people in your life and your dynamics with them...' },
+            { id: 'writing_voice', label: 'Writing Voice', placeholder: 'How the AI should mimic your style (e.g. raw, analytical)...' },
+            { id: 'goals_aspirations', label: 'Goals & Aspirations', placeholder: 'Long-term dreams and ambitions...' },
+            { id: 'values_beliefs', label: 'Core Values & Beliefs', placeholder: 'Your moral compass, philosophies, or faith...' },
+            { id: 'fears_challenges', label: 'Fears & Challenges', placeholder: 'Ongoing struggles, anxieties, or hurdles...' },
+            { id: 'hobbies_interests', label: 'Hobbies & Interests', placeholder: 'What you do for fun and your deep passions...' },
+            { id: 'health_wellness', label: 'Health & Wellness', placeholder: 'Fitness goals, mental health routines, diet...' },
+            { id: 'career_work', label: 'Career & Work', placeholder: 'Professional life, current projects, trajectory...' },
+            { id: 'memories_past', label: 'Key Memories', placeholder: 'Important historical context or defining moments...' },
+            { id: 'daily_routine', label: 'Daily Routine', placeholder: 'How you structure your habits and day...' },
+            { id: 'dislikes', label: 'Dislikes & Pet Peeves', placeholder: 'Things you actively avoid or dislike...' },
+            { id: 'favorites', label: 'Favorites', placeholder: 'Books, movies, quotes, or media that influence you...' }
+        ];
+
         class ProfileTool extends BaseTool {
-            constructor(data, isReadOnly, onChange) { super({ title: 'AI Core Memory', ...data }, isReadOnly, onChange); this.mainContainer = el('div'); }
+            constructor(data, isReadOnly, onChange) {
+                super({ title: 'PERSONA', ...data }, isReadOnly, onChange);
+                this.mainContainer = el('div');
+                this.lastSaved = {};
+                this.saveTimers = {};
+            }
             render() {
                 this.mainContainer.innerHTML = ''; const baseEl = this.renderContainer([]); this.mainContainer.appendChild(baseEl);
-                const listContainer = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }});
+                const listContainer = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '12px' } });
                 baseEl.appendChild(listContainer);
-                
-                pgDB.getKnowledge().then(rows => {
-                    if (!rows || rows.length === 0) {
-                        listContainer.appendChild(el('div', { style: { fontSize: '13px', color: 'var(--muted-text)' }, textContent: 'I am a blank slate. I will learn your preferences securely as we work together.' }));
+
+                pgDB.getProfile().then(profile => {
+                    const activeKeys = Object.keys(profile);
+                    if (activeKeys.length === 0) {
+                        listContainer.appendChild(el('div', { style: { fontSize: '13px', color: 'var(--muted-text)', marginBottom: '8px' }, textContent: 'No persona fields added yet.' }));
                     } else {
-                        rows.forEach(r => {
-                            const delBtn = this.readOnly ? null : el('button', { textContent: '✕', style: { background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontFamily: 'var(--font-mono)' }, onclick: async () => { await pgDB.removeKnowledge(r.id); this.render(); } });
-                            listContainer.appendChild(el('div', { style: { display: 'flex', gap: '12px', alignItems: 'flex-start', paddingBottom: '8px', borderBottom: '1px dashed var(--muted-text)' } }, el('span', { textContent: '•', style: { color: 'var(--neon-purple)', fontWeight: 'bold' }}), el('span', { textContent: r.fact, style: { flex: '1', fontSize: '14px', lineHeight: '1.4', fontFamily: 'var(--font-mono)' }}), delBtn));
+                        PROFILE_CATEGORIES.filter(c => activeKeys.includes(c.id)).forEach(cat => {
+                            if (this.lastSaved[cat.id] === undefined) this.lastSaved[cat.id] = profile[cat.id] || '';
+
+                            const header = el('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' } });
+                            header.appendChild(el('strong', { textContent: cat.label, style: { fontSize: '12px', textTransform: 'uppercase', color: 'var(--neon-purple)', letterSpacing: '0.05em' } }));
+                            if (!this.readOnly) {
+                                header.appendChild(el('button', { textContent: 'remove', style: { background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '11px', textTransform: 'uppercase' }, onclick: async () => { await pgDB.removeProfile(cat.id); if (window.editor) window.editor.cachedProfile = null; this.render(); } }));
+                            }
+
+                            const statusEl = el('div', { style: { fontSize: '11px', color: 'var(--muted-text)', marginTop: '4px', opacity: '0', transition: 'opacity 0.5s', fontStyle: 'italic', minHeight: '14px' } });
+
+                            const textarea = UI.textarea({
+                                className: 'raw-input', placeholder: cat.placeholder, value: profile[cat.id], readonly: this.readOnly ? true : null, oninput: (e) => {
+                                    textarea.style.height = 'auto'; textarea.style.height = textarea.scrollHeight + 'px';
+                                    this.triggerSave(cat.id, e.target.value, statusEl);
+                                }
+                            });
+                            setTimeout(() => { if (textarea) textarea.style.height = textarea.scrollHeight + 'px'; }, 0);
+
+                            const fieldWrapper = el('div', {}, header, textarea, statusEl);
+                            listContainer.appendChild(fieldWrapper);
                         });
+                    }
+
+                    if (!this.readOnly) {
+                        const unusedCats = PROFILE_CATEGORIES.filter(c => !activeKeys.includes(c.id));
+                        if (unusedCats.length > 0) {
+                            const addContainer = el('div', { style: { marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--baritone-bg)' } });
+                            const select = el('select', { style: { width: '100%', padding: '8px', background: 'var(--bg-color)', color: 'var(--text-color)', border: '1px solid var(--baritone-bg)', outline: 'none', fontFamily: 'var(--font-mono)', fontSize: '14px', marginBottom: '8px' } });
+                            select.appendChild(el('option', { value: '', textContent: '-- Add New Field --', disabled: true, selected: true }));
+                            unusedCats.forEach(c => select.appendChild(el('option', { value: c.id, textContent: c.label })));
+
+                            const addBtn = UI.button('Add Field', async () => {
+                                if (!select.value) return;
+                                await pgDB.updateProfile(select.value, '');
+                                if (window.editor) window.editor.cachedProfile = null;
+                                this.render();
+                            });
+                            addBtn.style.width = '100%';
+
+                            addContainer.appendChild(select);
+                            addContainer.appendChild(addBtn);
+                            listContainer.appendChild(addContainer);
+                        }
                     }
                 });
                 return this.mainContainer;
+            }
+
+            triggerSave(key, value, statusEl) {
+                if (this.saveTimers[key]) clearTimeout(this.saveTimers[key]);
+                this.saveTimers[key] = setTimeout(async () => {
+                    const oldVal = this.lastSaved[key] || '';
+                    if (oldVal === value) return;
+                    await pgDB.updateProfile(key, value);
+                    if (window.editor) window.editor.cachedProfile = null;
+                    statusEl.textContent = oldVal ? `changed from: "${oldVal}"` : `saved new value`;
+                    statusEl.style.opacity = 1;
+                    this.lastSaved[key] = value;
+                    setTimeout(() => statusEl.style.opacity = 0, 4000);
+                }, 600);
             }
         }
 
@@ -807,15 +1189,15 @@
             render() {
                 this.input = UI.textarea({ className: 'raw-input compute-code', placeholder: 'type logic or math (e.g. 10 * 4)...', value: this.data.code, readonly: this.readOnly ? true : null, oninput: () => { this.input.style.height = 'auto'; this.input.style.height = this.input.scrollHeight + 'px'; this.data.code = this.input.value; this.scheduleEval(); } });
                 this.output = el('div', { className: 'compute-output', innerHTML: this.data.output });
-                this.scheduleEval = debounce(() => this.evaluateLogic(), 400); setTimeout(() => { if(this.input) this.input.style.height = this.input.scrollHeight + 'px'; }, 0);
+                this.scheduleEval = debounce(() => this.evaluateLogic(), 400); setTimeout(() => { if (this.input) this.input.style.height = this.input.scrollHeight + 'px'; }, 0);
                 return this.renderContainer([this.input, this.output]);
             }
             evaluateLogic() {
-                if (!this.data.code.trim()) { this.output.innerHTML = ''; this.data.output = ''; if(this.onChange) this.onChange(); return; }
+                if (!this.data.code.trim()) { this.output.innerHTML = ''; this.data.output = ''; if (this.onChange) this.onChange(); return; }
                 const find = (query) => { let results = []; const q = query.toLowerCase(); Object.values(pgDB.cache).forEach(day => { if (!day.blocks) return; day.blocks.forEach(b => { if (b.type === 'compute') return; if (JSON.stringify(b.data).toLowerCase().includes(q) && b.data.text) results.push(normalizePlainText(b.data.text)); }); }); return results; };
-                const nums = (query) => { let texts = find(query); let n = []; texts.forEach(t => { let m = t.match(/-?\d+(\.\d+)?/g); if(m) n.push(...m.map(Number)); }); return n; };
-                const sum = (query) => nums(query).reduce((a,b)=>a+b, 0); const avg = (query) => { let n = nums(query); return n.length ? sum(query)/n.length : 0; };
-                
+                const nums = (query) => { let texts = find(query); let n = []; texts.forEach(t => { let m = t.match(/-?\d+(\.\d+)?/g); if (m) n.push(...m.map(Number)); }); return n; };
+                const sum = (query) => nums(query).reduce((a, b) => a + b, 0); const avg = (query) => { let n = nums(query); return n.length ? sum(query) / n.length : 0; };
+
                 try {
                     const code = this.data.code.replace(/sum\(['"](.*?)['"]\)/g, (_, q) => sum(q)).replace(/avg\(['"](.*?)['"]\)/g, (_, q) => avg(q));
                     const result = new Function(`return (${code})`)();
@@ -825,8 +1207,8 @@
                         this.data.output = `<div style="font-size: 11px; color: var(--muted-text); margin-bottom: 4px;">[${result.join(', ')}]</div><svg viewBox="0 -5 100 50" style="width: 100%; height: 60px; overflow: visible;" preserveAspectRatio="none"><polyline fill="none" stroke="var(--neon-purple)" stroke-width="2" points="${points}"></polyline></svg>`;
                     } else { this.data.output = typeof result === 'object' ? escapeHTML(JSON.stringify(result)) : escapeHTML(String(result)); }
                     this.output.innerHTML = this.data.output; this.output.classList.remove('compute-error');
-                } catch(e) { this.data.output = `<span class="compute-error">${escapeHTML(e.message)}</span>`; this.output.innerHTML = this.data.output; }
-                if(this.onChange) this.onChange();
+                } catch (e) { this.data.output = `<span class="compute-error">${escapeHTML(e.message)}</span>`; this.output.innerHTML = this.data.output; }
+                if (this.onChange) this.onChange();
             }
         }
 
@@ -857,10 +1239,10 @@
                             this.recorder.onstop = async () => {
                                 const blob = new Blob(this.chunks, { type: 'audio/webm' }); const mediaId = this.data.mediaId || crypto.randomUUID();
                                 await mediaStore.saveBlob(mediaId, blob, 'audio'); this.data.mediaId = mediaId; this.objectUrl = URL.createObjectURL(blob);
-                                this.audio.src = this.objectUrl; this.updateUI(); if(this.onChange) this.onChange(); stream.getTracks().forEach(t => t.stop());
+                                this.audio.src = this.objectUrl; this.updateUI(); if (this.onChange) this.onChange(); stream.getTracks().forEach(t => t.stop());
                             };
                             this.recorder.start(); this.isRecording = true; this.updateUI();
-                        } catch(e) { alert("Mic access denied"); }
+                        } catch (e) { alert("Mic access denied"); }
                     }
                 }
             }
@@ -870,8 +1252,8 @@
             constructor(data, isReadOnly, onChange) { super({ title: data.title || '', mode: data.mode || null, lat: data.lat || 51.505, lng: data.lng || -0.09, zoom: data.zoom || 13, isLocked: data.isLocked || false, baseImageId: data.baseImageId || null, imgWidth: data.imgWidth || null, imgHeight: data.imgHeight || null, hasInitializedView: data.hasInitializedView || false, lines: data.lines || [], isDrawingActive: data.isDrawingActive || false }, isReadOnly, onChange); this.baseImageUrl = ''; this.currentColor = '#ef4444'; this.lineLayers = []; this.currentPolyline = null; this.currentPoints = []; this.mainContainer = el('div'); }
             render() {
                 this.mainContainer.innerHTML = ''; const baseEl = this.renderContainer([]); this.mainContainer.appendChild(baseEl);
-                if (!this.data.mode) { if (this.readOnly) baseEl.appendChild(el('div', { style: { padding: '24px', textAlign: 'center', color: 'var(--muted-text)', fontSize: '14px' }, textContent: 'Blank Canvas' })); else baseEl.appendChild(this.renderSelector()); } 
-                else { this.controlsRow = this.buildControls(); this.relativeFrame = el('div', { className: 'canvas-relative-frame full-bleed' }); if(this.controlsRow) baseEl.appendChild(this.controlsRow); baseEl.appendChild(this.relativeFrame); this.renderMap(); }
+                if (!this.data.mode) { if (this.readOnly) baseEl.appendChild(el('div', { style: { padding: '24px', textAlign: 'center', color: 'var(--muted-text)', fontSize: '14px' }, textContent: 'Blank Canvas' })); else baseEl.appendChild(this.renderSelector()); }
+                else { this.controlsRow = this.buildControls(); this.relativeFrame = el('div', { className: 'canvas-relative-frame full-bleed' }); if (this.controlsRow) baseEl.appendChild(this.controlsRow); baseEl.appendChild(this.relativeFrame); this.renderMap(); }
                 return this.mainContainer;
             }
             renderSelector() {
@@ -883,23 +1265,23 @@
                         img.onload = async () => {
                             this.data.imgWidth = img.width; this.data.imgHeight = img.height; this.data.mode = 'image'; this.data.isLocked = false; this.data.isDrawingActive = false;
                             const mediaId = this.data.baseImageId || crypto.randomUUID(); await mediaStore.saveBlob(mediaId, file, 'image');
-                            this.data.baseImageId = mediaId; this.baseImageUrl = tempUrl; this.render(); if(this.onChange) this.onChange();
+                            this.data.baseImageId = mediaId; this.baseImageUrl = tempUrl; this.render(); if (this.onChange) this.onChange();
                         };
                         img.src = tempUrl;
                     }
                 };
-                return el('div', { className: 'smart-canvas-selector' }, el('button', { className: 'smart-canvas-option', textContent: 'Map Mode', onclick: () => { this.data.mode = 'map'; this.render(); if(this.onChange) this.onChange(); } }), el('button', { className: 'smart-canvas-option', textContent: 'Photo Overlay', onclick: () => fileInput.click() }), el('button', { className: 'smart-canvas-option', textContent: 'Blank Canvas', onclick: () => { this.data.mode = 'blank'; this.render(); if(this.onChange) this.onChange(); } }), fileInput);
+                return el('div', { className: 'smart-canvas-selector' }, el('button', { className: 'smart-canvas-option', textContent: 'Map Mode', onclick: () => { this.data.mode = 'map'; this.render(); if (this.onChange) this.onChange(); } }), el('button', { className: 'smart-canvas-option', textContent: 'Photo Overlay', onclick: () => fileInput.click() }), el('button', { className: 'smart-canvas-option', textContent: 'Blank Canvas', onclick: () => { this.data.mode = 'blank'; this.render(); if (this.onChange) this.onChange(); } }), fileInput);
             }
             async hydrateBaseImage() { if (this.baseImageUrl) return this.baseImageUrl; if (!this.data.baseImageId) return ''; const blob = await mediaStore.getBlob(this.data.baseImageId); if (blob) { this.baseImageUrl = URL.createObjectURL(blob); } return this.baseImageUrl; }
             buildControls() {
                 if (this.readOnly) return null;
-                this.lockBtn = UI.button(this.data.isLocked ? 'LOCKED' : 'UNLOCK', () => { this.data.isLocked = !this.data.isLocked; this.updateInteractions(); if(this.onChange) this.onChange(); }); if (this.data.isLocked) this.lockBtn.classList.add('active');
+                this.lockBtn = UI.button(this.data.isLocked ? 'LOCKED' : 'UNLOCK', () => { this.data.isLocked = !this.data.isLocked; this.updateInteractions(); if (this.onChange) this.onChange(); }); if (this.data.isLocked) this.lockBtn.classList.add('active');
                 this.colorPicker = el('input', { type: 'color', value: this.currentColor, style: { position: 'absolute', opacity: '0', width: '0', height: '0', pointerEvents: 'none' }, oninput: (e) => this.currentColor = e.target.value });
-                this.drawBtn = UI.button('DRAW', (e) => { e.preventDefault(); e.stopPropagation(); if (this.wasLongPress) { this.wasLongPress = false; return; } this.data.isDrawingActive = !this.data.isDrawingActive; this.updateInteractions(); if(this.onChange) this.onChange(); });
+                this.drawBtn = UI.button('DRAW', (e) => { e.preventDefault(); e.stopPropagation(); if (this.wasLongPress) { this.wasLongPress = false; return; } this.data.isDrawingActive = !this.data.isDrawingActive; this.updateInteractions(); if (this.onChange) this.onChange(); });
                 this.drawBtn.addEventListener('dblclick', (e) => { e.preventDefault(); e.stopPropagation(); this.colorPicker.click(); });
                 const startPress = (e) => { if (e.type === 'touchstart') e.stopPropagation(); this.wasLongPress = false; this.pressTimer = setTimeout(() => { this.wasLongPress = true; this.colorPicker.click(); }, 600); };
-                ['mousedown','touchstart'].forEach(evt => this.drawBtn.addEventListener(evt, startPress, {passive: true})); ['mouseup','mouseleave','touchend','touchcancel'].forEach(evt => this.drawBtn.addEventListener(evt, () => clearTimeout(this.pressTimer)));
-                this.clearBtn = UI.button('CLEAR', () => { this.lineLayers.forEach(layer => { if(this.map) this.map.removeLayer(layer); }); this.lineLayers = []; this.data.lines = []; if(this.onChange) this.onChange(); });
+                ['mousedown', 'touchstart'].forEach(evt => this.drawBtn.addEventListener(evt, startPress, { passive: true }));['mouseup', 'mouseleave', 'touchend', 'touchcancel'].forEach(evt => this.drawBtn.addEventListener(evt, () => clearTimeout(this.pressTimer)));
+                this.clearBtn = UI.button('CLEAR', () => { this.lineLayers.forEach(layer => { if (this.map) this.map.removeLayer(layer); }); this.lineLayers = []; this.data.lines = []; if (this.onChange) this.onChange(); });
                 return UI.row(this.lockBtn, this.drawBtn, this.clearBtn, this.colorPicker);
             }
             renderMap() {
@@ -914,28 +1296,28 @@
                         const imageUrl = this.data.mode === 'image' ? await this.hydrateBaseImage() : '';
                         if (imageUrl) {
                             const bounds = [[0, 0], [this.data.imgHeight || 600, this.data.imgWidth || 800]]; L.imageOverlay(imageUrl, bounds).addTo(this.map);
-                            if (!this.data.hasInitializedView && !this.readOnly) { this.map.fitBounds(bounds); this.data.hasInitializedView = true; if(this.onChange) this.onChange(); } 
-                            else { this.map.setView([this.data.lat || (bounds[1][0]/2), this.data.lng || (bounds[1][1]/2)], this.data.zoom || 0); }
+                            if (!this.data.hasInitializedView && !this.readOnly) { this.map.fitBounds(bounds); this.data.hasInitializedView = true; if (this.onChange) this.onChange(); }
+                            else { this.map.setView([this.data.lat || (bounds[1][0] / 2), this.data.lng || (bounds[1][1] / 2)], this.data.zoom || 0); }
                         } else { this.map.setView([this.data.lat || 0, this.data.lng || 0], this.data.zoom || 0); }
                     }
-                    this.renderExistingLines(); this.initDrawingTracker(); this.updateInteractions(); this.map.invalidateSize(); this.map.on('moveend', () => { if(this.onChange) this.onChange(); });
+                    this.renderExistingLines(); this.initDrawingTracker(); this.updateInteractions(); this.map.invalidateSize(); this.map.on('moveend', () => { if (this.onChange) this.onChange(); });
                 }, 100);
             }
-            renderExistingLines() { if(!this.map) return; this.lineLayers.forEach(layer => this.map.removeLayer(layer)); this.lineLayers = []; this.data.lines.forEach(line => { this.lineLayers.push(L.polyline(line.points, { color: line.color, weight: line.weight, lineCap: 'round', lineJoin: 'round', smoothFactor: 1.5 }).addTo(this.map)); }); }
+            renderExistingLines() { if (!this.map) return; this.lineLayers.forEach(layer => this.map.removeLayer(layer)); this.lineLayers = []; this.data.lines.forEach(line => { this.lineLayers.push(L.polyline(line.points, { color: line.color, weight: line.weight, lineCap: 'round', lineJoin: 'round', smoothFactor: 1.5 }).addTo(this.map)); }); }
             initDrawingTracker() {
                 if (this.readOnly) return; let isPointerDown = false;
                 this.mediaContainer.addEventListener('pointerdown', (e) => {
                     if (!this.data.isDrawingActive || !this.map) return; isPointerDown = true; this.mediaContainer.setPointerCapture(e.pointerId); this.currentPoints = [this.map.mouseEventToLatLng(e)]; this.currentPolyline = L.polyline(this.currentPoints, { color: this.currentColor, weight: 4, lineCap: 'round', lineJoin: 'round', smoothFactor: 1.5 }).addTo(this.map);
                 });
                 this.mediaContainer.addEventListener('pointermove', (e) => { if (!this.data.isDrawingActive || !isPointerDown || !this.currentPolyline || !this.map) return; this.currentPoints.push(this.map.mouseEventToLatLng(e)); this.currentPolyline.setLatLngs(this.currentPoints); });
-                const endDraw = () => { if (!isPointerDown) return; isPointerDown = false; if (!this.currentPolyline || !this.data.isDrawingActive) return; this.data.lines.push({ color: this.currentColor, weight: 4, points: this.currentPoints.map(p => [p.lat, p.lng]) }); this.lineLayers.push(this.currentPolyline); this.currentPolyline = null; this.currentPoints = []; if(this.onChange) this.onChange(); };
+                const endDraw = () => { if (!isPointerDown) return; isPointerDown = false; if (!this.currentPolyline || !this.data.isDrawingActive) return; this.data.lines.push({ color: this.currentColor, weight: 4, points: this.currentPoints.map(p => [p.lat, p.lng]) }); this.lineLayers.push(this.currentPolyline); this.currentPolyline = null; this.currentPoints = []; if (this.onChange) this.onChange(); };
                 this.mediaContainer.addEventListener('pointerup', endDraw); this.mediaContainer.addEventListener('pointercancel', endDraw);
             }
             updateInteractions() {
-                if(!this.map || !this.mediaContainer) return; this.mediaContainer.classList.remove('drawing-mode', 'locked-mode');
-                const toggleMoves = (enable) => { const action = enable ? 'enable' : 'disable'; this.map.dragging[action](); this.map.touchZoom[action](); this.map.doubleClickZoom[action](); this.map.scrollWheelZoom[action](); this.map.boxZoom[action](); this.map.keyboard[action](); if(this.map.tap) this.map.tap[action](); };
-                if(this.readOnly) { toggleMoves(false); this.mediaContainer.classList.add('locked-mode'); if (this.controlsRow) this.controlsRow.style.display = 'none'; return; }
-                if (!this.data.isLocked) { this.data.isDrawingActive = false; toggleMoves(true); if (this.lockBtn) { this.lockBtn.textContent = 'UNLOCK'; this.lockBtn.classList.remove('active'); } if (this.drawBtn) { this.drawBtn.style.display = 'none'; this.drawBtn.classList.remove('active', 'danger'); } if (this.clearBtn) { this.clearBtn.style.display = 'none'; } } 
+                if (!this.map || !this.mediaContainer) return; this.mediaContainer.classList.remove('drawing-mode', 'locked-mode');
+                const toggleMoves = (enable) => { const action = enable ? 'enable' : 'disable'; this.map.dragging[action](); this.map.touchZoom[action](); this.map.doubleClickZoom[action](); this.map.scrollWheelZoom[action](); this.map.boxZoom[action](); this.map.keyboard[action](); if (this.map.tap) this.map.tap[action](); };
+                if (this.readOnly) { toggleMoves(false); this.mediaContainer.classList.add('locked-mode'); if (this.controlsRow) this.controlsRow.style.display = 'none'; return; }
+                if (!this.data.isLocked) { this.data.isDrawingActive = false; toggleMoves(true); if (this.lockBtn) { this.lockBtn.textContent = 'UNLOCK'; this.lockBtn.classList.remove('active'); } if (this.drawBtn) { this.drawBtn.style.display = 'none'; this.drawBtn.classList.remove('active', 'danger'); } if (this.clearBtn) { this.clearBtn.style.display = 'none'; } }
                 else { toggleMoves(false); this.mediaContainer.classList.add('locked-mode'); if (this.lockBtn) { this.lockBtn.textContent = 'LOCKED'; this.lockBtn.classList.add('active'); } if (this.drawBtn) { this.drawBtn.style.display = 'flex'; if (this.data.isDrawingActive) { this.drawBtn.textContent = 'DRAWING'; this.drawBtn.classList.add('active', 'danger'); this.mediaContainer.classList.add('drawing-mode'); } else { this.drawBtn.textContent = 'DRAW'; this.drawBtn.classList.remove('active', 'danger'); } } if (this.clearBtn) { this.clearBtn.style.display = 'flex'; } }
             }
             save() { if (this.map && this.data.mode) { const center = this.map.getCenter(); this.data.lat = center.lat; this.data.lng = center.lng; this.data.zoom = this.map.getZoom(); } return this.data; }
@@ -944,28 +1326,29 @@
         class CalendarTool extends BaseTool {
             constructor(data, isReadOnly, onChange) { super({ id: data.id || crypto.randomUUID(), title: data.title || '', datetime: data.datetime || new Date().toISOString(), notified: data.notified || false }, isReadOnly, onChange); if (!this.data.notified && !this.readOnly && new Date(this.data.datetime) > new Date()) NotificationEngine.schedule(this.data.id, this.data.datetime, this.data.title); }
             render() {
-                this.dateDisp = el('div', { className: 'calendar-date-display', style: { cursor: this.readOnly ? 'default' : 'pointer' }, onclick: this.readOnly ? null : () => { EditorialCalendar.open(new Date(this.data.datetime), true, (nd) => { this.data.datetime = nd.toISOString(); this.data.notified = false; this.updateDateDisplay(); NotificationEngine.schedule(this.data.id, this.data.datetime, this.data.title); if(this.onChange) this.onChange(); }); } });
+                this.dateDisp = el('div', { className: 'calendar-date-display', style: { cursor: this.readOnly ? 'default' : 'pointer' }, onclick: this.readOnly ? null : () => { EditorialCalendar.open(new Date(this.data.datetime), true, (nd) => { this.data.datetime = nd.toISOString(); this.data.notified = false; this.updateDateDisplay(); NotificationEngine.schedule(this.data.id, this.data.datetime, this.data.title); if (this.onChange) this.onChange(); }); } });
                 this.updateDateDisplay();
                 const exportBtn = UI.button('export ics', () => { const start = new Date(this.data.datetime); const formatICS = (d) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'; const icsContent = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'BEGIN:VEVENT', `DTSTART:${formatICS(start)}`, `DTEND:${formatICS(new Date(start.getTime() + 3600000))}`, `SUMMARY:${this.data.title || 'Event'}`, 'END:VEVENT', 'END:VCALENDAR'].join('\n'); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([icsContent], { type: 'text/calendar;charset=utf-8' })); a.download = `${this.data.title ? this.data.title.replace(/\s+/g, '_') : 'event'}.ics`; a.click(); });
                 const actions = [exportBtn]; if (!this.readOnly) { const notifyLabel = (typeof Notification !== 'undefined' && Notification.permission === 'granted') ? 'notifications on' : 'notify me'; actions.push(UI.button(notifyLabel, async (e) => { if (!('Notification' in window)) return alert('Not supported'); if (await Notification.requestPermission() === 'granted') { e.target.textContent = 'notifications on'; NotificationEngine.schedule(this.data.id, this.data.datetime, this.data.title); } })); }
                 return this.renderContainer([this.dateDisp, UI.row(...actions)]);
             }
-            updateDateDisplay() { const d = new Date(this.data.datetime); this.dateDisp.textContent = `${d.toLocaleDateString(undefined, {weekday: 'short', month:'short', day:'numeric'})} @ ${d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'})}`; }
+            updateDateDisplay() { const d = new Date(this.data.datetime); this.dateDisp.textContent = `${d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} @ ${d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`; }
         }
 
         class ScanTool extends BaseTool {
             constructor(data, isReadOnly, onChange) { super({ title: data.title || '', text: data.text || '' }, isReadOnly, onChange); this.mainContainer = el('div'); }
             render() {
                 this.mainContainer.innerHTML = ''; const baseElements = [];
-                if (this.data.text || this.readOnly) { this.output = UI.textarea({ className: 'raw-input scan-output', value: this.data.text, readonly: this.readOnly ? true : null, oninput: e => { this.data.text = e.target.value; this.output.style.height = this.output.scrollHeight + 'px'; if(this.onChange) this.onChange(); } }); baseElements.push(this.output); setTimeout(() => { if(this.output) this.output.style.height = this.output.scrollHeight + 'px'; }, 0); } 
+                if (this.data.text || this.readOnly) { this.output = UI.textarea({ className: 'raw-input scan-output', value: this.data.text, readonly: this.readOnly ? true : null, oninput: e => { this.data.text = e.target.value; this.output.style.height = this.output.scrollHeight + 'px'; if (this.onChange) this.onChange(); } }); baseElements.push(this.output); setTimeout(() => { if (this.output) this.output.style.height = this.output.scrollHeight + 'px'; }, 0); }
                 else { this.fileInput = el('input', { type: 'file', accept: 'image/*', style: { display: 'none' }, onchange: e => this.handleScan(e.target.files[0]) }); this.btn = UI.button('select image', () => this.fileInput.click()); baseElements.push(el('br'), this.btn, this.fileInput); }
                 this.mainContainer.appendChild(this.renderContainer(baseElements)); return this.mainContainer;
             }
             async handleScan(file) {
-                if(!file) return; this.btn.textContent = 'analyzing...'; this.btn.classList.add('active');
-                try { if (typeof Tesseract === 'undefined') { await new Promise(r => { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'; s.onload = r; document.head.appendChild(s); }); }
-                    const worker = await Tesseract.createWorker('eng', 1); const { data: { text } } = await worker.recognize(file); await worker.terminate(); this.data.text = text.trim(); this.render(); if(this.onChange) this.onChange();
-                } catch(e) { this.btn.textContent = 'failed. retry'; this.btn.classList.remove('active'); }
+                if (!file) return; this.btn.textContent = 'analyzing...'; this.btn.classList.add('active');
+                try {
+                    if (typeof Tesseract === 'undefined') { await new Promise(r => { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'; s.onload = r; document.head.appendChild(s); }); }
+                    const worker = await Tesseract.createWorker('eng', 1); const { data: { text } } = await worker.recognize(file); await worker.terminate(); this.data.text = text.trim(); this.render(); if (this.onChange) this.onChange();
+                } catch (e) { this.btn.textContent = 'failed. retry'; this.btn.classList.remove('active'); }
             }
         }
 
@@ -1003,9 +1386,9 @@
                     blocksData.forEach(b => {
                         if (['paragraph', 'text', 'h1', 'h2', 'h3', 'header', 'list', 'checklist'].includes(b.type)) {
                             let textContent = b.data?.text || '';
-                            let typeToUse = ['paragraph', 'list', 'checklist'].includes(b.type) ? 'text' : (b.type === 'header' ? `h${b.data?.level||2}` : b.type);
-                            if (b.type === 'list') textContent = (b.data.items||[]).map(i => `• ${i.content||i.text}`).join('<br>');
-                            if (b.type === 'checklist') textContent = (b.data.items||[]).map(i => `${i.checked ? '[x]' : '[ ]'} ${i.text}`).join('<br>');
+                            let typeToUse = ['paragraph', 'list', 'checklist'].includes(b.type) ? 'text' : (b.type === 'header' ? `h${b.data?.level || 2}` : b.type);
+                            if (b.type === 'list') textContent = (b.data.items || []).map(i => `• ${i.content || i.text}`).join('<br>');
+                            if (b.type === 'checklist') textContent = (b.data.items || []).map(i => `${i.checked ? '[x]' : '[ ]'} ${i.text}`).join('<br>');
                             this.addBasicBlock(typeToUse, textContent, b.author || 'user', b.id, b.timestamp);
                         } else if (TOOLS_MAP[b.type]) {
                             this.addToolBlock(b.type, b.data, b.author || 'user', b.id, b.timestamp);
@@ -1022,16 +1405,14 @@
                         if (['text', 'h1', 'h2', 'h3'].includes(b.type)) data = { text: b.dom.querySelector('.text-content').innerHTML };
                         else if (b.instance && b.instance.save) data = b.instance.save();
                         return { id: b.id, type: b.type, data, author: b.author, timestamp: b.timestamp };
-                    }),
-                    // Maintain existing location in data, or use newly gathered current location
-                    location: (pgDB.cache[window.currentDateStr] && pgDB.cache[window.currentDateStr].location) || currentLocation || null
+                    })
                 };
             }
 
             insertBlockIntoDOMArray(blockObj) {
                 const activeIndex = this.blocks.findIndex(b => b.id === this.activeBlockId);
                 const insertIndex = activeIndex !== -1 ? activeIndex + 1 : this.blocks.length;
-                if (insertIndex >= this.blocks.length) { this.container.appendChild(blockObj.dom); this.blocks.push(blockObj); } 
+                if (insertIndex >= this.blocks.length) { this.container.appendChild(blockObj.dom); this.blocks.push(blockObj); }
                 else { this.container.insertBefore(blockObj.dom, this.blocks[insertIndex].dom); this.blocks.splice(insertIndex, 0, blockObj); }
             }
 
@@ -1047,17 +1428,17 @@
                     oninput: () => { this.handleTextInput(block, newContent); scheduleSave(); },
                     onkeydown: (e) => this.handleTextKeydown(e, block, newContent)
                 });
-                block.dom.replaceChild(newContent, oldContent); block.type = newType; 
+                block.dom.replaceChild(newContent, oldContent); block.type = newType;
                 setCaret(newContent);
             }
 
             addBasicBlock(type = 'text', html = '', author = 'user', id = crypto.randomUUID(), timestamp = Date.now()) {
                 const tag = type === 'h1' ? 'h1' : (type === 'h2' ? 'h2' : (type === 'h3' ? 'h3' : 'div'));
-                const block = { id, type, data: {text: html}, author, timestamp, dom: null };
+                const block = { id, type, data: { text: html }, author, timestamp, dom: null };
                 const content = el(tag, {
                     className: `text-content ${type === 'text' ? '' : type}`,
                     contentEditable: window.currentDateStr === todayStr,
-                    'data-placeholder': author === 'user' ? (type==='text' ? "start writing, or type '/' for commands..." : "Heading...") : "",
+                    'data-placeholder': author === 'user' ? (type === 'text' ? "start writing, or type '/' for commands..." : "Heading...") : "",
                     innerHTML: html,
                     onfocus: () => { this.activeBlockId = id; },
                     oninput: () => { this.handleTextInput(block, content); scheduleSave(); },
@@ -1094,7 +1475,7 @@
                     const prev = this.blocks[idx - 1]; this.container.insertBefore(this.blocks[idx].dom, prev.dom);
                     [this.blocks[idx - 1], this.blocks[idx]] = [this.blocks[idx], this.blocks[idx - 1]]; scheduleSave();
                 } else if (direction === 1 && idx < this.blocks.length - 1) {
-                    const next = this.blocks[idx + 1]; this.container.insertBefore(next.dom, this.blocks[idx].dom); 
+                    const next = this.blocks[idx + 1]; this.container.insertBefore(next.dom, this.blocks[idx].dom);
                     [this.blocks[idx + 1], this.blocks[idx]] = [this.blocks[idx], this.blocks[idx + 1]]; scheduleSave();
                 }
             }
@@ -1108,22 +1489,36 @@
 
             async ambientPredict(block, content) {
                 if (!aiEngine || isAILoading || this.isPredicting || !this.activeBlockId || this.slashMenuActive) return;
-                
+
                 const sel = window.getSelection();
                 if (!sel.rangeCount) return;
                 const currentText = content.textContent.trim();
-                if (currentText.length < 5) return; 
+                if (currentText.length < 5) return;
 
                 const ambientContentSnapshot = content.textContent;
 
                 this.isPredicting = true;
-                aiStatusEl.className = 'neon-status ai-status loading'; 
+                aiStatusEl.className = 'neon-status ai-status loading';
                 aiStatusEl.textContent = 'sys.ai.anticipating';
 
                 try {
                     if (!this.cachedProfile && pgDB.isReady) {
-                        const knowledgeRows = await pgDB.getKnowledge();
-                        this.cachedProfile = knowledgeRows.map(r => `• ${r.fact}`).join('\n');
+                        const profileObj = await pgDB.getProfile();
+                        const activeKeys = Object.keys(profileObj);
+                        if (activeKeys.length > 0) {
+                            this.cachedProfile = PROFILE_CATEGORIES
+                                .filter(c => activeKeys.includes(c.id))
+                                .map(c => `[${c.label}]: ${profileObj[c.id]}`)
+                                .join('\n');
+                        } else {
+                            this.cachedProfile = 'Blank slate.';
+                        }
+                    }
+
+                    let topicalContext = "";
+                    if (pgDB.isReady) {
+                        const hits = await pgDB.searchSemantic(currentText, window.currentDateStr, 3);
+                        if (hits && hits.length > 0) topicalContext = hits.map(h => h.searchText).join('\n\n---\n\n');
                     }
 
                     const editorState = this.save();
@@ -1133,29 +1528,32 @@
 [USER PROFILE]:
 ${this.cachedProfile || 'Blank slate.'}
 
+[RELEVANT PAST NOTES]:
+${topicalContext || '(No relevant past notes)'}
+
 INSTRUCTIONS:
-1. Output ONLY the literal continuation of the user's last sentence. 
-2. NO quotes, NO explanation, NO formatting. Output the raw next 2-8 words.
+1. Output ONLY the literal continuation of the user's last sentence. Use past notes for context if relevant.
+2. NO quotes, NO explanation, NO formatting. Output the raw next few words to finish the thought.
 3. If it starts a new word, start with a space. If finishing a word, do not use a space.`;
 
-                    const response = await aiEngine.chat.completions.create({ 
+                    const response = await aiEngine.chat.completions.create({
                         messages: [
                             { role: 'system', content: systemPrompt },
                             { role: 'user', content: todaysContext }
-                        ], 
-                        temperature: 0.1, max_tokens: 15
+                        ],
+                        temperature: 0.2, max_tokens: 30
                     });
-                    
+
                     let prediction = response.choices[0].message.content || "";
                     prediction = prediction.replace(/^["'`\n]+|["'`\n]+$/g, '').trimEnd();
-                    
+
                     if (prediction && document.activeElement === content && content.textContent === ambientContentSnapshot) {
                         if (!prediction.match(/^[.,!?;]/) && !prediction.startsWith(' ') && !currentText.endsWith(' ')) {
-                             prediction = ' ' + prediction;
+                            prediction = ' ' + prediction;
                         }
                         content.setAttribute('data-ghost', prediction);
                     }
-                } catch(e) {
+                } catch (e) {
                 } finally {
                     this.isPredicting = false;
                     aiStatusEl.className = 'neon-status ai-status'; aiStatusEl.textContent = 'sys.ai.online';
@@ -1168,7 +1566,7 @@ INSTRUCTIONS:
                 this.ambientTimer = setTimeout(() => this.ambientPredict(block, content), 1500);
 
                 const text = content.textContent;
-                
+
                 if (block.type === 'text') {
                     if (text === '# ') { content.innerHTML = ''; this.replaceTextNodeType(block, 'h1'); return; }
                     if (text === '## ') { content.innerHTML = ''; this.replaceTextNodeType(block, 'h2'); return; }
@@ -1182,7 +1580,7 @@ INSTRUCTIONS:
                     preCaretRange.selectNodeContents(content);
                     preCaretRange.setEnd(range.startContainer, range.startOffset);
                     const textBeforeCursor = preCaretRange.toString();
-                    
+
                     const slashMatch = textBeforeCursor.match(/(?:^|\n)\/([a-zA-Z0-9_]*)$/);
                     if (slashMatch) {
                         this.openSlashMenu(block, content, slashMatch[1].toLowerCase(), range);
@@ -1220,15 +1618,13 @@ INSTRUCTIONS:
 
             executeSlashCommand(item) {
                 const { block, content } = this.slashContext;
-                
+
                 content.innerHTML = content.innerHTML.replace(/\/[a-zA-Z0-9_]*$/, '');
                 if (content.innerHTML === '<br>') content.innerHTML = '';
-                
+
                 const isEmpty = content.textContent.trim() === '';
 
-                if (item.id === 'ai_continue') {
-                    this.triggerAI(content.innerText, block.id);
-                } else if (['h1', 'h2', 'h3'].includes(item.id)) {
+                if (['h1', 'h2', 'h3'].includes(item.id)) {
                     this.replaceTextNodeType(block, item.id);
                 } else {
                     this.addToolBlock(item.id, {});
@@ -1242,7 +1638,7 @@ INSTRUCTIONS:
                     e.preventDefault();
                     const ghostText = content.getAttribute('data-ghost');
                     content.removeAttribute('data-ghost');
-                    
+
                     const sel = window.getSelection();
                     if (sel.rangeCount > 0) {
                         const range = sel.getRangeAt(0);
@@ -1264,22 +1660,17 @@ INSTRUCTIONS:
                     if (e.key === 'Escape') { e.preventDefault(); this.closeSlashMenu(); return; }
                 }
 
-                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                    e.preventDefault();
-                    this.triggerAI(content.textContent.trim(), block.id); return;
-                }
-
                 if (e.key === 'Enter' && !e.shiftKey && !this.slashMenuActive) {
                     e.preventDefault();
                     const sel = window.getSelection();
                     if (sel.rangeCount > 0) {
                         const range = sel.getRangeAt(0);
                         const postCaretRange = range.cloneRange(); postCaretRange.selectNodeContents(content); postCaretRange.setStart(range.endContainer, range.endOffset);
-                        const tempDiv = document.createElement('div'); tempDiv.appendChild(postCaretRange.extractContents()); 
+                        const tempDiv = document.createElement('div'); tempDiv.appendChild(postCaretRange.extractContents());
                         let postHtml = tempDiv.innerHTML; if (postHtml === '<br>') postHtml = '';
                         if (content.innerHTML.endsWith('<br>')) content.innerHTML = content.innerHTML.slice(0, -4);
-                        
-                        this.activeBlockId = block.id; 
+
+                        this.activeBlockId = block.id;
                         const newBlock = this.addBasicBlock('text', postHtml, 'user');
                         setTimeout(() => setCaret(newBlock.dom.querySelector('.text-content'), 0), 10);
                         scheduleSave();
@@ -1295,11 +1686,11 @@ INSTRUCTIONS:
                             e.preventDefault(); const idx = this.blocks.findIndex(b => b.id === block.id);
                             if (idx > 0) {
                                 const prevBlock = this.blocks[idx - 1]; const currentHtml = content.innerHTML.replace(/<br>$/, ''); const isEmpty = content.textContent.trim() === '';
-                                if (!['text', 'h1', 'h2', 'h3'].includes(prevBlock.type)) { this.deleteBlock(prevBlock.id); } 
+                                if (!['text', 'h1', 'h2', 'h3'].includes(prevBlock.type)) { this.deleteBlock(prevBlock.id); }
                                 else {
                                     const prevContentNode = prevBlock.dom.querySelector('.text-content');
                                     if (!isEmpty) {
-                                        const originalChildCount = prevContentNode.childNodes.length; 
+                                        const originalChildCount = prevContentNode.childNodes.length;
                                         prevContentNode.innerHTML += currentHtml; this.deleteBlock(block.id);
                                         setTimeout(() => setCaret(prevContentNode, originalChildCount), 10);
                                     } else { this.deleteBlock(block.id); setCaret(prevContentNode); }
@@ -1307,115 +1698,6 @@ INSTRUCTIONS:
                             }
                         }
                     }
-                }
-            }
-
-            async triggerAI(promptText, sourceBlockId) {
-                if (!aiEngine) return alert("AI offline.");
-                this.activeBlockId = sourceBlockId;
-                
-                const aiBlock = this.addBasicBlock('text', "synthesizing context...", "ai");
-                const aiContentNode = aiBlock.dom.querySelector('.text-content');
-                aiContentNode.contentEditable = false;
-                
-                aiStatusEl.className = 'neon-status ai-status loading'; aiStatusEl.textContent = 'sys.ai.generating';
-
-                try {
-                    aiContentNode.textContent = "reading user profile...";
-                    
-                    const knowledgeRows = await pgDB.getKnowledge();
-                    const profileContext = knowledgeRows.length > 0 
-                        ? knowledgeRows.map(r => `• ${r.fact}`).join('\n') 
-                        : "(No permanent traits learned yet. You are a blank slate.)";
-
-                    let topicalContext = "";
-                    if (pgDB.isReady) {
-                        const hits = await pgDB.searchSemantic(promptText || "general context", window.currentDateStr, 5);
-                        if (hits && hits.length > 0) topicalContext = hits.map(h => h.searchText).join('\n\n---\n\n');
-                    }
-
-                    const editorState = this.save();
-                    let todaysContext = editorState.blocks.map(b => {
-                        if (['text','h1','h2','h3'].includes(b.type)) return b.data?.text ? normalizePlainText(b.data.text) : '';
-                        return `[${b.type.toUpperCase()}]`;
-                    }).join('\n');
-
-                    const systemPrompt = `You are an intelligent, deeply helpful companion seamlessly integrated into the user's personal notebook.
-DO NOT act like a standard chatbot. DO NOT say "How can I help you".
-
-[CORE USER PROFILE (Your enduring knowledge of the user)]:
-"""
-${profileContext}
-"""
-
-[RELEVANT PAST NOTES (For factual lookup only)]:
-"""
-${topicalContext || '(No relevant past notes found)'}
-"""
-
-[TODAY'S NOTE]:
-"""
-${todaysContext}
-"""
-
-CRITICAL INSTRUCTIONS:
-1. Be a stable, grounded companion. Match the user's permanent writing style/formatting preferences if listed in the Core User Profile above.
-2. DO NOT echo, mirror, or amplify temporary emotional distress, anger, or depressive states found in the notes. Remain objective, kind, and structurally helpful.
-3. If the user explicitly reveals a NEW enduring fact, preference, or trait about themselves in their prompt, you MUST call 'learn_about_user' to save it to your core memory.`;
-
-                    let messages = [
-                        { role: 'system', content: systemPrompt },
-                        { role: 'user', content: promptText || "Continue this thought..." }
-                    ];
-
-                    const response = await aiEngine.chat.completions.create({ messages, tools: AI_TOOLS, temperature: 0.3 });
-                    const msg = response.choices[0].message;
-
-                    if (msg.tool_calls && msg.tool_calls.length > 0) {
-                        aiContentNode.textContent = "executing logic...";
-                        messages.push({ role: "assistant", content: msg.content || "", tool_calls: msg.tool_calls }); 
-                        
-                        for (const toolCall of msg.tool_calls) {
-                            let toolResultStr = "Success.";
-                            try {
-                                const args = JSON.parse(toolCall.function.arguments || "{}");
-                                
-                                if (toolCall.function.name === 'learn_about_user') {
-                                    await pgDB.addKnowledge(args.fact);
-                                    this.cachedProfile = null; 
-                                    toolResultStr = `Successfully saved fact to core memory: "${args.fact}"`;
-                                    
-                                } else if (toolCall.function.name === 'create_compute_block') {
-                                    this.addToolBlock('compute', { code: args.code, title: args.title || 'Calculation' }, 'ai');
-                                    toolResultStr = `Compute block created.`;
-                                    
-                                } else if (toolCall.function.name === 'create_calendar_event') {
-                                    this.addToolBlock('calendar', { title: args.title, datetime: args.datetime }, 'ai');
-                                    toolResultStr = `Event scheduled for ${args.datetime}.`;
-                                }
-                            } catch(err) { toolResultStr = `Execution failed: ${err.message}`; }
-                            messages.push({ role: "tool", tool_call_id: toolCall.id, content: toolResultStr });
-                        }
-
-                        aiContentNode.textContent = "writing...";
-                        const finalStream = await aiEngine.chat.completions.create({ messages, stream: true, temperature: 0.4 });
-                        let fullHtml = '';
-                        for await (const chunk of finalStream) { 
-                            fullHtml += escapeHTML(chunk.choices[0]?.delta?.content || '').replace(/\n/g, '<br>'); 
-                            aiContentNode.innerHTML = fullHtml; 
-                        }
-                    } else {
-                        aiContentNode.innerHTML = escapeHTML(msg.content || '').replace(/\n/g, '<br>');
-                    }
-                    
-                    aiContentNode.contentEditable = true; 
-                    this.activeBlockId = aiBlock.id; const textBlock = this.addBasicBlock('text', '', 'user');
-                    setTimeout(() => setCaret(textBlock.dom.querySelector('.text-content')), 50); scheduleSave();
-                } catch (e) { 
-                    aiContentNode.textContent = "error. connection lost."; 
-                    console.error("AI Generation Error", e);
-                } finally { 
-                    aiStatusEl.className = 'neon-status ai-status'; aiStatusEl.textContent = 'sys.ai.online'; 
                 }
             }
         }
@@ -1444,33 +1726,24 @@ CRITICAL INSTRUCTIONS:
             window.currentDateStr = dateStr; renderDateHeader();
             const dayData = pgDB.cache[dateStr] || { blocks: [] };
             editor.load(dayData.blocks);
-            
-            // Adjust the header map location based on loaded note
-            if (headerMapInstance) {
-                if (dayData.location && dayData.location.lat) {
-                    headerMapInstance.setView([dayData.location.lat, dayData.location.lng], 13);
-                } else if (dateStr === todayStr && currentLocation) {
-                    headerMapInstance.setView([currentLocation.lat, currentLocation.lng], 13);
-                } else {
-                    headerMapInstance.setView([20, 0], 2);
-                }
-            }
+
+
         }
 
         document.getElementById('date-header').onclick = () => {
             const [y, m, d] = window.currentDateStr.split('-');
-            EditorialCalendar.open(new Date(y, m-1, d), false, (selectedDate) => {
+            EditorialCalendar.open(new Date(y, m - 1, d), false, (selectedDate) => {
                 const selectedStr = getLocalYYYYMMDD(selectedDate);
                 if (window.currentDateStr !== selectedStr) { scheduleSave(true); loadDay(selectedStr); }
             });
         };
 
         // Boot Pipeline
-        initHeaderMap();
-        Promise.all([pgDB.init(), mediaStore.init()]).then(() => { 
+        Promise.all([pgDB.init(), mediaStore.init()]).then(() => {
             loadDay(todayStr);
         });
 
     </script>
 </body>
+
 </html>
