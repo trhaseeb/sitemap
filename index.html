@@ -24,7 +24,7 @@
         /* --- CORE THEME & EXPRESSIVE TYPOGRAPHY --- */
         :root {
             --bg-color: #ffffff;
-            --bg-color-transparent: rgba(255, 255, 255, 0.55);
+            --bg-color-transparent: rgba(255, 255, 255, 0.75); /* Lowered opacity for better translucency */
             --text-color: #000000;
             --muted-text: #888888;
             --neon-purple: #a855f7;
@@ -39,7 +39,7 @@
         @media (prefers-color-scheme: dark) {
             :root {
                 --bg-color: #0a0a0a;
-                --bg-color-transparent: rgba(10, 10, 10, 0.65);
+                --bg-color-transparent: rgba(10, 10, 10, 0.80); /* Lowered opacity for better translucency */
                 --text-color: #f0f0f0;
                 --muted-text: #666666;
                 --baritone-bg: #151515;
@@ -66,11 +66,11 @@
         #ui-layer { 
             position: relative; z-index: 1; min-height: 100vh; width: 100vw;
             background-color: var(--bg-color-transparent); 
-            backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); 
-            transition: opacity 0.4s ease, filter 0.4s ease; 
+            /* Removed backdrop-filter to kill the glossy glass effect */
+            transition: opacity 0.4s ease; 
         }
 
-        body.map-mode #ui-layer { opacity: 0; pointer-events: none; filter: blur(10px); }
+        body.map-mode #ui-layer { opacity: 0; pointer-events: none; }
 
         /* Leaflet Aesthetic Overrides */
         .leaflet-popup-content-wrapper {
@@ -251,9 +251,9 @@
     <!-- BACKGROUND MAP (Geolocated) -->
     <div id="bg-map"></div>
 
-    <!-- UI LAYER (Frosted Glass over Map) -->
+    <!-- UI LAYER (Flat matte transparency over map) -->
     <div id="ui-layer">
-        <!-- THE HEADER -->
+        <!-- THE HEADER (Solid background) -->
         <div id="header-container">
             <div class="header-max-width">
                 <div id="date-header">today</div>
