@@ -455,31 +455,6 @@
             color: #fff;
         }
 
-        .compute-code {
-            font-family: var(--font-mono);
-            font-size: 16px;
-            font-weight: 500;
-            resize: none;
-            min-height: 22px;
-            line-height: 1.4;
-            border-bottom: 1px dashed var(--muted-text);
-            padding-bottom: 8px;
-            margin-bottom: 8px;
-        }
-
-        .compute-output {
-            font-family: var(--font-mono);
-            font-size: 22px;
-            font-weight: 700;
-            color: var(--neon-purple);
-            word-break: break-word;
-        }
-
-        .compute-error {
-            color: #ef4444;
-            font-size: 14px;
-        }
-
         .voice-status-text {
             font-family: var(--font-mono);
             font-size: 11px;
@@ -580,6 +555,135 @@
         }
 
 
+        /* --- REFERENCE MENTIONS --- */
+        .ref-mention {
+            color: #3b82f6;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            border-bottom: 2px solid transparent;
+            transition: border-color 0.2s, opacity 0.2s;
+            padding: 0 1px;
+        }
+
+        .ref-mention:hover {
+            border-bottom-color: #3b82f6;
+            opacity: 0.8;
+        }
+
+        #ref-menu {
+            position: absolute;
+            background: var(--bg-color);
+            border: 2px solid var(--text-color);
+            box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            width: 280px;
+            border-radius: 4px;
+            overflow: hidden;
+            padding: 8px 0;
+            transition: opacity 0.1s;
+        }
+
+        #ref-menu.active {
+            display: flex;
+        }
+
+        .ref-item {
+            padding: 10px 16px;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            cursor: pointer;
+            color: var(--text-color);
+            background: transparent;
+            border: none;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ref-item .sub {
+            color: var(--muted-text);
+            font-size: 10px;
+            font-weight: 500;
+        }
+
+        .ref-item.selected,
+        .ref-item:hover {
+            background: var(--text-color);
+            color: var(--bg-color);
+        }
+
+        .ref-item.selected .sub,
+        .ref-item:hover .sub {
+            color: var(--bg-color);
+            opacity: 0.7;
+        }
+
+        .ref-item.create-new {
+            color: #3b82f6;
+            border-top: 1px solid var(--baritone-bg);
+        }
+
+        .ref-item.create-new.selected,
+        .ref-item.create-new:hover {
+            background: #3b82f6;
+            color: #fff;
+        }
+
+        /* --- BACKLINKS SECTION --- */
+        .backlinks-section {
+            margin-bottom: 24px;
+            padding: 16px 20px;
+            background: var(--baritone-bg);
+            border-radius: 2px;
+        }
+
+        .backlinks-header {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--muted-text);
+            margin-bottom: 12px;
+            user-select: none;
+        }
+
+        .backlink-item {
+            font-family: var(--font-mono);
+            font-size: 13px;
+            font-weight: 600;
+            color: #3b82f6;
+            cursor: pointer;
+            padding: 6px 0;
+            border: none;
+            background: none;
+            text-align: left;
+            display: flex;
+            gap: 8px;
+            align-items: baseline;
+            transition: opacity 0.2s;
+            width: 100%;
+        }
+
+        .backlink-item:hover {
+            opacity: 0.7;
+        }
+
+        .backlink-item .backlink-preview {
+            color: var(--muted-text);
+            font-weight: 400;
+            font-size: 12px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+        }
 
         /* --- EDITORIAL CALENDAR OVERLAY --- */
         .editorial-cal-modal {
@@ -704,6 +808,7 @@
     <div class="app-container">
         <div id="lean-editor">
             <div id="slash-menu"></div>
+            <div id="ref-menu"></div>
         </div>
     </div>
 
@@ -726,18 +831,16 @@
         const CONFIG = {
             PWA_LOGO_URL: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzAwMDAwMCI+PHBhdGggZD0iTTE0IDJINmEyIDIgMCAwIDAtMiAydjE2YTIgMiAwIDAgMCAyIDJoMTJhMiAyIDAgMCAwIDItMlY4bC02LTZ6Ii8+PC9zdmc+",
             EMBEDDING_MODEL_ID: "Xenova/all-MiniLM-L6-v2",
+            DEV_ALLOW_PAST_EDITING: true // Toggle this to false later to lock the past
         };
 
         const SLASH_COMMANDS = [
             { id: 'profile', label: 'Persona', sub: 'My Persona' },
-            { id: 'h1', label: 'Heading 1', sub: 'Big Title' },
-            { id: 'h2', label: 'Heading 2', sub: 'Medium Title' },
-            { id: 'h3', label: 'Heading 3', sub: 'Small Title' },
-            { id: 'compute', label: 'Compute', sub: 'Math & Logic' },
             { id: 'smartCanvas', label: 'Canvas', sub: 'Draw & Map' },
             { id: 'voice', label: 'Voice', sub: 'Audio Memo' },
             { id: 'scan', label: 'Scan', sub: 'Image to Text' },
-            { id: 'calendar', label: 'Event', sub: 'Schedule' }
+            { id: 'calendar', label: 'Event', sub: 'Schedule' },
+            { id: 'recall', label: 'Recall', sub: 'Search Past Notes' }
         ];
 
         function el(tag, attributes = {}, ...children) {
@@ -771,7 +874,7 @@
 
         function debounce(func, wait) {
             let timeout;
-            return function (...args) { clearTimeout(timeout); timeout = setTimeout(() => func(...args), wait); };
+            return function (...args) { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), wait); };
         }
 
         const UI = {
@@ -809,6 +912,9 @@
                 if (!this.promise) {
                     this.promise = import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0-alpha.19/+esm').then(async ({ pipeline, env }) => {
                         env.allowRemoteModels = true; env.useBrowserCache = true;
+                        if (env.backends && env.backends.onnx) {
+                            env.backends.onnx.logLevel = 'fatal';
+                        }
                         let pipe;
                         try { pipe = await pipeline('feature-extraction', CONFIG.EMBEDDING_MODEL_ID, { device: 'webgpu' }); }
                         catch (e) { pipe = await pipeline('feature-extraction', CONFIG.EMBEDDING_MODEL_ID, { dtype: 'q8' }); }
@@ -849,6 +955,7 @@
                         CREATE TABLE IF NOT EXISTS daily_notes (date_str TEXT PRIMARY KEY, data JSONB);
                         CREATE TABLE IF NOT EXISTS semantic_index (key TEXT PRIMARY KEY, date_str TEXT, block_id TEXT, block_type TEXT, search_text TEXT, embedding vector(384), timestamp BIGINT);
                         CREATE TABLE IF NOT EXISTS profile_settings (key TEXT PRIMARY KEY, value TEXT);
+                        CREATE TABLE IF NOT EXISTS references_list (slug TEXT PRIMARY KEY, display_name TEXT NOT NULL, created_at BIGINT);
                     `);
                     this.isReady = true;
                     document.getElementById('db-status').textContent = 'pg_vector.ready';
@@ -882,9 +989,47 @@
             }
             async saveNote(dateStr, data) {
                 this.cache[dateStr] = data;
+                localStorage.setItem(`infinotes_backup_${dateStr}`, JSON.stringify(data));
                 if (!this.isReady) return;
-                await this.pg.query(`INSERT INTO daily_notes (date_str, data) VALUES ($1, $2) ON CONFLICT (date_str) DO UPDATE SET data = EXCLUDED.data`, [dateStr, JSON.stringify(data)]);
-                this.pendingDays.add(dateStr);
+                try {
+                    await this.pg.query(`INSERT INTO daily_notes (date_str, data) VALUES ($1, $2) ON CONFLICT (date_str) DO UPDATE SET data = EXCLUDED.data`, [dateStr, JSON.stringify(data)]);
+                    this.pendingDays.add(dateStr);
+                } catch (e) {
+                    console.error("Save Note Error:", e);
+                }
+            }
+
+            async getReferences() {
+                if (!this.isReady) return [];
+                const res = await this.pg.query(`SELECT slug, display_name, created_at FROM references_list ORDER BY created_at DESC`);
+                return res.rows;
+            }
+
+            async createReference(slug, displayName) {
+                if (!this.isReady) return;
+                await this.pg.query(
+                    `INSERT INTO references_list (slug, display_name, created_at) VALUES ($1, $2, $3) ON CONFLICT (slug) DO NOTHING`,
+                    [slug, displayName, Date.now()]
+                );
+            }
+
+            findBacklinks(slug) {
+                const backlinks = [];
+                const searchAttr = `data-ref="${slug}"`;
+                for (const [key, dayData] of Object.entries(this.cache)) {
+                    if (key.startsWith('ref::')) continue;
+                    if (!dayData || !dayData.blocks) continue;
+                    for (const block of dayData.blocks) {
+                        if (!block.data || !block.data.text) continue;
+                        if (block.data.text.includes(searchAttr)) {
+                            const preview = normalizePlainText(block.data.text).replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").substring(0, 80);
+                            backlinks.push({ dateStr: key, blockId: block.id, preview });
+                            break;
+                        }
+                    }
+                }
+                backlinks.sort((a, b) => b.dateStr.localeCompare(a.dateStr));
+                return backlinks;
             }
 
             startBackgroundIndexer() {
@@ -896,21 +1041,23 @@
                     const dayData = this.cache[dateStr];
                     if (!dayData || !dayData.blocks) return;
 
-                    await this.pg.query(`DELETE FROM semantic_index WHERE date_str = $1`, [dateStr]);
+                    try {
+                        await this.pg.query(`DELETE FROM semantic_index WHERE date_str = $1`, [dateStr]);
 
-                    for (const block of dayData.blocks) {
-                        if (!block.data) continue;
-                        const searchText = ['text', 'h1', 'h2', 'h3'].includes(block.type) ? normalizePlainText(block.data.text) : normalizePlainText(JSON.stringify(block.data));
-                        if (!searchText) continue;
-                        const vectorData = await VectorEmbedder.embedText(searchText);
-                        if (!vectorData) continue;
+                        for (const block of dayData.blocks) {
+                            if (!block.data) continue;
+                            const searchText = ['text', 'h1', 'h2', 'h3'].includes(block.type) ? normalizePlainText(block.data.text) : normalizePlainText(JSON.stringify(block.data));
+                            if (!searchText) continue;
+                            const vectorData = await VectorEmbedder.embedText(searchText);
+                            if (!vectorData) continue;
 
-                        try {
                             await this.pg.query(
-                                `INSERT INTO semantic_index (key, date_str, block_id, block_type, search_text, embedding, timestamp) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                                `INSERT INTO semantic_index (key, date_str, block_id, block_type, search_text, embedding, timestamp) VALUES ($1, $2, $3, $4, $5, $6::vector, $7)`,
                                 [`${dateStr}::${block.id}`, dateStr, block.id, block.type, searchText, `[${vectorData.join(',')}]`, block.timestamp || Date.now()]
                             );
-                        } catch (e) { }
+                        }
+                    } catch (e) {
+                        console.warn("Indexer error:", e);
                     }
                 }, 5000);
             }
@@ -920,7 +1067,7 @@
                 const vectorData = await VectorEmbedder.embedText(queryText);
                 if (!vectorData) return [];
                 const res = await this.pg.query(
-                    `SELECT date_str as date, block_id as "blockId", block_type as type, search_text as "searchText", timestamp, 1 - (embedding <=> $1) AS score FROM semantic_index WHERE date_str != $2 ORDER BY embedding <=> $1 ASC LIMIT $3`,
+                    `SELECT date_str as date, block_id as "blockId", block_type as type, search_text as "searchText", timestamp, 1 - (embedding <=> $1::vector) AS score FROM semantic_index WHERE date_str != $2 ORDER BY embedding <=> $1::vector ASC LIMIT $3`,
                     [`[${vectorData.join(',')}]`, excludeDate || '', limit]
                 );
                 return res.rows;
@@ -967,33 +1114,6 @@
         let aiEngine = null;
         let isAILoading = false;
         const aiStatusEl = document.getElementById('ai-inline-status');
-
-        const AI_TOOLS = [
-            {
-                type: "function",
-                function: {
-                    name: "learn_about_user",
-                    description: "Saves a permanent fact, trait, or writing preference about the user to your core memory. Do NOT save temporary moods.",
-                    parameters: { type: "object", properties: { fact: { type: "string" } }, required: ["fact"] }
-                }
-            },
-            {
-                type: "function",
-                function: {
-                    name: "create_compute_block",
-                    description: "Creates a computation block. Used for evaluating math, arrays, or logic execution.",
-                    parameters: { type: "object", properties: { code: { type: "string" }, title: { type: "string" } }, required: ["code"] }
-                }
-            },
-            {
-                type: "function",
-                function: {
-                    name: "create_calendar_event",
-                    description: "Schedules an event or reminder on a specific date and time.",
-                    parameters: { type: "object", properties: { title: { type: "string" }, datetime: { type: "string" } }, required: ["title", "datetime"] }
-                }
-            }
-        ];
 
         async function initializeAI() {
             if (aiEngine || isAILoading) return;
@@ -1084,6 +1204,7 @@
                 return el('div', {}, titleInput, ...contentElements);
             }
             save() { return this.data; }
+            destroy() { /* Override in tools that need strict cleanup to prevent memory leaks */ }
         }
 
         const PROFILE_CATEGORIES = [
@@ -1184,34 +1305,6 @@
             }
         }
 
-        class ComputeTool extends BaseTool {
-            constructor(data, isReadOnly, onChange) { super({ title: data.title || '', code: data.code || '', output: data.output || '' }, isReadOnly, onChange); }
-            render() {
-                this.input = UI.textarea({ className: 'raw-input compute-code', placeholder: 'type logic or math (e.g. 10 * 4)...', value: this.data.code, readonly: this.readOnly ? true : null, oninput: () => { this.input.style.height = 'auto'; this.input.style.height = this.input.scrollHeight + 'px'; this.data.code = this.input.value; this.scheduleEval(); } });
-                this.output = el('div', { className: 'compute-output', innerHTML: this.data.output });
-                this.scheduleEval = debounce(() => this.evaluateLogic(), 400); setTimeout(() => { if (this.input) this.input.style.height = this.input.scrollHeight + 'px'; }, 0);
-                return this.renderContainer([this.input, this.output]);
-            }
-            evaluateLogic() {
-                if (!this.data.code.trim()) { this.output.innerHTML = ''; this.data.output = ''; if (this.onChange) this.onChange(); return; }
-                const find = (query) => { let results = []; const q = query.toLowerCase(); Object.values(pgDB.cache).forEach(day => { if (!day.blocks) return; day.blocks.forEach(b => { if (b.type === 'compute') return; if (JSON.stringify(b.data).toLowerCase().includes(q) && b.data.text) results.push(normalizePlainText(b.data.text)); }); }); return results; };
-                const nums = (query) => { let texts = find(query); let n = []; texts.forEach(t => { let m = t.match(/-?\d+(\.\d+)?/g); if (m) n.push(...m.map(Number)); }); return n; };
-                const sum = (query) => nums(query).reduce((a, b) => a + b, 0); const avg = (query) => { let n = nums(query); return n.length ? sum(query) / n.length : 0; };
-
-                try {
-                    const code = this.data.code.replace(/sum\(['"](.*?)['"]\)/g, (_, q) => sum(q)).replace(/avg\(['"](.*?)['"]\)/g, (_, q) => avg(q));
-                    const result = new Function(`return (${code})`)();
-                    if (Array.isArray(result) && result.length >= 2 && result.every(n => typeof n === 'number')) {
-                        const min = Math.min(...result); const max = Math.max(...result); const range = (max - min) || 1;
-                        const points = result.map((val, i) => `${(i / (result.length - 1)) * 100},${40 - ((val - min) / range) * 40}`).join(' ');
-                        this.data.output = `<div style="font-size: 11px; color: var(--muted-text); margin-bottom: 4px;">[${result.join(', ')}]</div><svg viewBox="0 -5 100 50" style="width: 100%; height: 60px; overflow: visible;" preserveAspectRatio="none"><polyline fill="none" stroke="var(--neon-purple)" stroke-width="2" points="${points}"></polyline></svg>`;
-                    } else { this.data.output = typeof result === 'object' ? escapeHTML(JSON.stringify(result)) : escapeHTML(String(result)); }
-                    this.output.innerHTML = this.data.output; this.output.classList.remove('compute-error');
-                } catch (e) { this.data.output = `<span class="compute-error">${escapeHTML(e.message)}</span>`; this.output.innerHTML = this.data.output; }
-                if (this.onChange) this.onChange();
-            }
-        }
-
         class VoiceTool extends BaseTool {
             constructor(data, isReadOnly, onChange) { super({ title: data.title || '', mediaId: data.mediaId || null }, isReadOnly, onChange); this.recorder = null; this.chunks = []; this.isPlaying = false; this.isRecording = false; this.objectUrl = ''; }
             async hydrate() { if (this.objectUrl || !this.data.mediaId) return; const blob = await mediaStore.getBlob(this.data.mediaId); if (blob) { this.objectUrl = URL.createObjectURL(blob); this.audio.src = this.objectUrl; this.updateUI(); } }
@@ -1244,6 +1337,15 @@
                             this.recorder.start(); this.isRecording = true; this.updateUI();
                         } catch (e) { alert("Mic access denied"); }
                     }
+                }
+            }
+            destroy() {
+                if (this.audio) {
+                    this.audio.pause();
+                    this.audio.src = '';
+                }
+                if (this.recorder && this.isRecording) {
+                    this.recorder.stop();
                 }
             }
         }
@@ -1321,6 +1423,12 @@
                 else { toggleMoves(false); this.mediaContainer.classList.add('locked-mode'); if (this.lockBtn) { this.lockBtn.textContent = 'LOCKED'; this.lockBtn.classList.add('active'); } if (this.drawBtn) { this.drawBtn.style.display = 'flex'; if (this.data.isDrawingActive) { this.drawBtn.textContent = 'DRAWING'; this.drawBtn.classList.add('active', 'danger'); this.mediaContainer.classList.add('drawing-mode'); } else { this.drawBtn.textContent = 'DRAW'; this.drawBtn.classList.remove('active', 'danger'); } } if (this.clearBtn) { this.clearBtn.style.display = 'flex'; } }
             }
             save() { if (this.map && this.data.mode) { const center = this.map.getCenter(); this.data.lat = center.lat; this.data.lng = center.lng; this.data.zoom = this.map.getZoom(); } return this.data; }
+            destroy() {
+                if (this.map) {
+                    this.map.remove();
+                    this.map = null;
+                }
+            }
         }
 
         class CalendarTool extends BaseTool {
@@ -1347,16 +1455,113 @@
                 if (!file) return; this.btn.textContent = 'analyzing...'; this.btn.classList.add('active');
                 try {
                     if (typeof Tesseract === 'undefined') { await new Promise(r => { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'; s.onload = r; document.head.appendChild(s); }); }
-                    const worker = await Tesseract.createWorker('eng', 1); const { data: { text } } = await worker.recognize(file); await worker.terminate(); this.data.text = text.trim(); this.render(); if (this.onChange) this.onChange();
+                    const worker = await Tesseract.createWorker('eng'); const { data: { text } } = await worker.recognize(file); await worker.terminate(); this.data.text = text.trim(); this.render(); if (this.onChange) this.onChange();
                 } catch (e) { this.btn.textContent = 'failed. retry'; this.btn.classList.remove('active'); }
             }
         }
 
-        const TOOLS_MAP = { compute: ComputeTool, voice: VoiceTool, smartCanvas: SmartCanvasTool, calendar: CalendarTool, scan: ScanTool, profile: ProfileTool };
+        class RecallTool extends BaseTool {
+            constructor(data, isReadOnly, onChange) {
+                super({ title: data.title || '', searchQuery: data.searchQuery || '', selectedItem: data.selectedItem || null }, isReadOnly, onChange);
+                this.mainContainer = el('div');
+            }
+            render() {
+                this.mainContainer.innerHTML = '';
+                const baseElements = [];
+                
+                if (this.data.selectedItem) {
+                    const item = this.data.selectedItem;
+                    
+                    const textContainer = el('div', {
+                        className: 'text-content',
+                        innerHTML: escapeHTML(item.text),
+                        style: {
+                            borderLeft: '2px solid #eab308',
+                            paddingLeft: '12px',
+                            opacity: '0.85',
+                            pointerEvents: 'none',
+                            color: '#eab308'
+                        }
+                    });
+                    
+                    const d = new Date(item.date + 'T00:00:00');
+                    const dateStr = d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+                    
+                    const dateInfo = el('span', {
+                        className: 'voice-status-text',
+                        textContent: `original: ${dateStr}`,
+                        style: { marginLeft: '8px' }
+                    });
+                    
+                    const viewBtn = UI.button('view original', () => {
+                        if (typeof loadDay === 'function') loadDay(item.date);
+                    });
+                    
+                    baseElements.push(textContainer, UI.row(viewBtn, dateInfo));
+                } else if (!this.readOnly) {
+                    this.input = UI.textarea({
+                        className: 'raw-input',
+                        placeholder: 'search past notes...',
+                        value: this.data.searchQuery,
+                        oninput: (e) => {
+                            this.data.searchQuery = e.target.value;
+                            this.input.style.height = 'auto';
+                            this.input.style.height = this.input.scrollHeight + 'px';
+                            this.scheduleSearch();
+                        }
+                    });
+                    this.resultsContainer = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '8px' } });
+                    
+                    this.scheduleSearch = debounce(() => this.performSearch(), 300);
+                    
+                    baseElements.push(this.input, this.resultsContainer);
+                    setTimeout(() => { if (this.input) this.input.style.height = this.input.scrollHeight + 'px'; }, 0);
+                    
+                    if (this.data.searchQuery) this.performSearch();
+                } else {
+                     baseElements.push(el('div', { style: { padding: '24px', textAlign: 'center', color: 'var(--muted-text)', fontSize: '14px' }, textContent: 'Empty Recall' }));
+                }
+
+                this.mainContainer.appendChild(this.renderContainer(baseElements));
+                return this.mainContainer;
+            }
+            
+            async performSearch() {
+                if (!this.data.searchQuery.trim() || !pgDB.isReady) {
+                    this.resultsContainer.innerHTML = '';
+                    return;
+                }
+                const results = await pgDB.searchSemantic(this.data.searchQuery, window.currentDateStr, 5);
+                this.resultsContainer.innerHTML = '';
+                
+                if (results.length === 0) {
+                    this.resultsContainer.appendChild(el('div', { className: 'voice-status-text', textContent: 'no matches found.' }));
+                    return;
+                }
+                
+                results.forEach(res => {
+                    const btn = el('button', {
+                        className: 'slash-item',
+                        style: { width: '100%', marginBottom: '4px', border: '1px solid var(--baritone-bg)' },
+                        onclick: () => {
+                            this.data.selectedItem = { date: res.date, blockId: res.blockId, text: res.searchText };
+                            this.render();
+                            if (this.onChange) this.onChange();
+                        }
+                    }, el('span', { textContent: res.searchText.substring(0, 60) + (res.searchText.length > 60 ? '...' : '') }), 
+                       el('span', { className: 'sub', textContent: res.date }));
+                    this.resultsContainer.appendChild(btn);
+                });
+            }
+        }
+
+        const TOOLS_MAP = { voice: VoiceTool, smartCanvas: SmartCanvasTool, calendar: CalendarTool, scan: ScanTool, profile: ProfileTool, recall: RecallTool };
 
         // ============================================================================
         // 🖋 THE LEAN STREAM EDITOR 
         // ============================================================================
+        const isEditable = () => CONFIG.DEV_ALLOW_PAST_EDITING || window.currentDateStr === todayStr || window.isRefPage;
+
         class LeanStreamEditor {
             constructor(containerId) {
                 this.container = document.getElementById(containerId);
@@ -1367,17 +1572,44 @@
                 this.slashMenuCurrentFilter = ''; this.slashMenuCurrentItems = [];
                 this.slashContext = null;
 
+                this.refMenuEl = document.getElementById('ref-menu');
+                this.refMenuActive = false; this.refMenuSelectedIndex = 0;
+                this.refMenuCurrentFilter = ''; this.refMenuCurrentItems = [];
+                this.refContext = null;
+                this.cachedRefs = null;
+
                 this.ambientTimer = null;
                 this.isPredicting = false;
                 this.cachedProfile = null;
 
                 document.addEventListener('mousedown', (e) => {
                     if (this.slashMenuActive && !this.slashMenuEl.contains(e.target)) this.closeSlashMenu();
+                    if (this.refMenuActive && !this.refMenuEl.contains(e.target)) this.closeRefMenu();
+                });
+
+                // Delegate click on ref-mention spans
+                document.addEventListener('click', (e) => {
+                    const mention = e.target.closest('.ref-mention');
+                    if (mention) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const slug = mention.getAttribute('data-ref');
+                        if (slug) loadRefPage(slug);
+                    }
                 });
             }
 
             load(blocksData) {
-                Array.from(this.container.children).forEach(child => { if (child.id !== 'slash-menu') this.container.removeChild(child); });
+                // Ensure memory cleanup of tools before removing from DOM
+                this.blocks.forEach(b => {
+                    if (b.instance && b.instance.destroy) b.instance.destroy();
+                });
+
+                Array.from(this.container.children).forEach(child => { 
+                    if (child.id !== 'slash-menu' && child.id !== 'ref-menu') {
+                        this.container.removeChild(child); 
+                    }
+                });
                 this.blocks = []; this.closeSlashMenu();
 
                 if (!blocksData || blocksData.length === 0) {
@@ -1421,7 +1653,7 @@
                 const oldContent = block.dom.querySelector('.text-content');
                 const newContent = el(tag, {
                     className: `text-content ${newType === 'text' ? '' : newType}`,
-                    contentEditable: window.currentDateStr === todayStr,
+                    contentEditable: isEditable(),
                     'data-placeholder': newType === 'text' ? "start writing, or type '/' for commands..." : "Heading...",
                     innerHTML: oldContent.innerHTML,
                     onfocus: () => { this.activeBlockId = block.id; },
@@ -1437,7 +1669,7 @@
                 const block = { id, type, data: { text: html }, author, timestamp, dom: null };
                 const content = el(tag, {
                     className: `text-content ${type === 'text' ? '' : type}`,
-                    contentEditable: window.currentDateStr === todayStr,
+                    contentEditable: isEditable(),
                     'data-placeholder': author === 'user' ? (type === 'text' ? "start writing, or type '/' for commands..." : "Heading...") : "",
                     innerHTML: html,
                     onfocus: () => { this.activeBlockId = id; },
@@ -1451,10 +1683,10 @@
             addToolBlock(type, data, author = 'user', id = crypto.randomUUID(), timestamp = Date.now()) {
                 const ToolClass = TOOLS_MAP[type];
                 if (!ToolClass) return null;
-                const instance = new ToolClass(data, window.currentDateStr !== todayStr, () => scheduleSave());
+                const instance = new ToolClass(data, !isEditable(), () => scheduleSave());
                 const block = { id, type, data, author, timestamp, instance, dom: null };
                 const controls = el('div', { className: 'panel-controls' });
-                if (window.currentDateStr === todayStr) {
+                if (isEditable()) {
                     controls.append(
                         el('button', { className: 'panel-ctrl-btn', textContent: '↑', onclick: () => this.moveBlock(id, -1) }),
                         el('button', { className: 'panel-ctrl-btn', textContent: '↓', onclick: () => this.moveBlock(id, 1) }),
@@ -1465,7 +1697,7 @@
                     el('div', { className: 'panel-header' }, el('span', { textContent: `[ ${type} ]` }), controls), instance.render()
                 );
                 this.insertBlockIntoDOMArray(block);
-                if (window.currentDateStr === todayStr) { this.activeBlockId = id; const textBlock = this.addBasicBlock('text', '', 'user'); setTimeout(() => setCaret(textBlock.dom.querySelector('.text-content')), 50); }
+                if (isEditable()) { this.activeBlockId = id; const textBlock = this.addBasicBlock('text', '', 'user'); setTimeout(() => setCaret(textBlock.dom.querySelector('.text-content')), 50); }
                 scheduleSave(); return block;
             }
 
@@ -1482,7 +1714,13 @@
 
             deleteBlock(id) {
                 const idx = this.blocks.findIndex(b => b.id === id); if (idx === -1) return;
-                this.container.removeChild(this.blocks[idx].dom); this.blocks.splice(idx, 1);
+                const block = this.blocks[idx];
+                
+                // Clean up map/audio resources before removing element
+                if (block.instance && block.instance.destroy) block.instance.destroy();
+                
+                this.container.removeChild(block.dom); 
+                this.blocks.splice(idx, 1);
                 if (this.blocks.length === 0) { this.addBasicBlock('text', '', 'user'); }
                 scheduleSave();
             }
@@ -1565,7 +1803,7 @@ INSTRUCTIONS:
                 clearTimeout(this.ambientTimer);
                 this.ambientTimer = setTimeout(() => this.ambientPredict(block, content), 1500);
 
-                const text = content.textContent;
+                const text = content.textContent.replace(/\u00A0/g, ' ');
 
                 if (block.type === 'text') {
                     if (text === '# ') { content.innerHTML = ''; this.replaceTextNodeType(block, 'h1'); return; }
@@ -1587,12 +1825,21 @@ INSTRUCTIONS:
                     } else {
                         this.closeSlashMenu();
                     }
+
+                    const refMatch = textBeforeCursor.match(/(?:^|\s|\n)@([a-zA-Z0-9_]*)$/);
+                    if (refMatch && !this.slashMenuActive) {
+                        this.openRefMenu(block, content, refMatch[1], range);
+                    } else {
+                        this.closeRefMenu();
+                    }
                 }
             }
 
             openSlashMenu(block, content, filterText, currentRange) {
                 this.slashMenuActive = true; this.slashContext = { block, content };
-                const rect = currentRange.getBoundingClientRect(); const containerRect = this.container.getBoundingClientRect();
+                let rect = currentRange.getBoundingClientRect();
+                if (rect.width === 0 && rect.height === 0) rect = content.getBoundingClientRect();
+                const containerRect = this.container.getBoundingClientRect();
                 this.slashMenuEl.style.top = `${rect.bottom - containerRect.top + this.container.scrollTop + 8}px`;
                 this.slashMenuEl.style.left = `${Math.max(0, rect.left - containerRect.left)}px`;
                 this.renderSlashMenu(filterText);
@@ -1624,13 +1871,166 @@ INSTRUCTIONS:
 
                 const isEmpty = content.textContent.trim() === '';
 
-                if (['h1', 'h2', 'h3'].includes(item.id)) {
-                    this.replaceTextNodeType(block, item.id);
-                } else {
-                    this.addToolBlock(item.id, {});
-                    if (isEmpty) this.deleteBlock(block.id);
-                }
+                this.addToolBlock(item.id, {});
+                if (isEmpty) this.deleteBlock(block.id);
                 this.closeSlashMenu();
+            }
+
+            // --- REFERENCE MENU SYSTEM ---
+            openRefMenu(block, content, filterText, currentRange) {
+                this.refMenuActive = true; this.refContext = { block, content, range: currentRange };
+                let rect = currentRange.getBoundingClientRect();
+                if (rect.width === 0 && rect.height === 0) rect = content.getBoundingClientRect();
+                const containerRect = this.container.getBoundingClientRect();
+                this.refMenuEl.style.top = `${rect.bottom - containerRect.top + this.container.scrollTop + 8}px`;
+                this.refMenuEl.style.left = `${Math.max(0, rect.left - containerRect.left)}px`;
+                this.renderRefMenu(filterText);
+            }
+
+            closeRefMenu() {
+                this.refMenuActive = false;
+                this.refMenuEl.classList.remove('active');
+                this.refContext = null;
+                this._refRenderGen = (this._refRenderGen || 0) + 1;
+            }
+
+            async renderRefMenu(filterText) {
+                const gen = (this._refRenderGen = (this._refRenderGen || 0) + 1);
+                this.refMenuCurrentFilter = filterText;
+                const filterLower = filterText.toLowerCase().trim();
+
+                // Fetch refs from DB (cache across the typing session)
+                if (!this.cachedRefs) {
+                    const refs = await pgDB.getReferences();
+                    const activeRefs = [];
+                    for (const ref of refs) {
+                        const backlinks = pgDB.findBacklinks(ref.slug);
+                        const refData = pgDB.cache[`ref::${ref.slug}`];
+                        const hasContent = refData && refData.blocks && refData.blocks.length > 0 && !(refData.blocks.length === 1 && !refData.blocks[0].data.text);
+                        if (backlinks.length > 0 || hasContent) {
+                            activeRefs.push(ref);
+                        } else {
+                            await pgDB.pg.query(`DELETE FROM references_list WHERE slug = $1`, [ref.slug]);
+                        }
+                    }
+                    this.cachedRefs = activeRefs;
+                }
+
+                // If the menu was closed while we were awaiting, bail out
+                if (gen !== this._refRenderGen || !this.refMenuActive) return;
+
+                this.refMenuEl.innerHTML = '';
+
+                const filtered = filterLower
+                    ? this.cachedRefs.filter(r => r.display_name.toLowerCase().includes(filterLower) || r.slug.includes(filterLower))
+                    : this.cachedRefs;
+
+                this.refMenuCurrentItems = filtered.map(r => ({ slug: r.slug, name: r.display_name, isNew: false }));
+
+                // Add "create new" option if filter text doesn't exactly match an existing ref
+                if (filterLower && !this.cachedRefs.some(r => r.display_name.toLowerCase() === filterLower)) {
+                    this.refMenuCurrentItems.push({ slug: null, name: filterText.trim(), isNew: true });
+                }
+
+                if (this.refMenuCurrentItems.length === 0) {
+                    if (filterLower) {
+                        this.refMenuCurrentItems.push({ slug: null, name: filterText.trim(), isNew: true });
+                    } else {
+                        // No refs exist yet — show hint
+                        this.refMenuEl.appendChild(el('div', {
+                            style: { padding: '10px 16px', fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--muted-text)', textTransform: 'uppercase', letterSpacing: '0.05em' },
+                            textContent: 'type a name to create a reference'
+                        }));
+                        this.refMenuEl.classList.add('active');
+                        return;
+                    }
+                }
+
+                if (this.refMenuSelectedIndex >= this.refMenuCurrentItems.length) this.refMenuSelectedIndex = 0;
+
+                this.refMenuCurrentItems.forEach((item, index) => {
+                    const btn = el('button', {
+                        className: `ref-item ${item.isNew ? 'create-new' : ''} ${index === this.refMenuSelectedIndex ? 'selected' : ''}`,
+                        onmousedown: (e) => { e.preventDefault(); this.executeRefCommand(item); }
+                    },
+                        el('span', { textContent: item.isNew ? `+ ${item.name.toUpperCase()}` : item.name.toUpperCase() }),
+                        el('span', { className: 'sub', textContent: item.isNew ? 'create new' : 'reference' })
+                    );
+                    this.refMenuEl.appendChild(btn);
+                });
+                this.refMenuEl.classList.add('active');
+            }
+
+            async executeRefCommand(item) {
+                if (!this.refContext) return;
+                const { block, content } = this.refContext;
+
+                let slug = item.slug;
+                let displayName = item.name;
+
+                if (item.isNew) {
+                    slug = displayName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+                    if (!slug) slug = 'ref-' + Date.now();
+                    await pgDB.createReference(slug, displayName);
+                    this.cachedRefs = null;
+                }
+
+                // Remove the @filterText from the content
+                const sel = window.getSelection();
+                if (sel.rangeCount > 0) {
+                    const range = sel.getRangeAt(0);
+                    // Walk back from cursor to find the @ character
+                    const fullText = content.textContent;
+                    const preCaretRange = range.cloneRange();
+                    preCaretRange.selectNodeContents(content);
+                    preCaretRange.setEnd(range.startContainer, range.startOffset);
+                    const textBefore = preCaretRange.toString();
+                    const atIdx = textBefore.lastIndexOf('@');
+
+                    if (atIdx >= 0) {
+                        // Create a range spanning from @ to cursor
+                        const walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT, null, false);
+                        let charCount = 0;
+                        let startNode = null, startOffset = 0;
+
+                        while (walker.nextNode()) {
+                            const nodeLen = walker.currentNode.textContent.length;
+                            if (!startNode && charCount + nodeLen > atIdx) {
+                                startNode = walker.currentNode;
+                                startOffset = atIdx - charCount;
+                            }
+                            charCount += nodeLen;
+                        }
+
+                        if (startNode) {
+                            const deleteRange = document.createRange();
+                            deleteRange.setStart(startNode, startOffset);
+                            deleteRange.setEnd(range.startContainer, range.startOffset);
+                            deleteRange.deleteContents();
+
+                            // Insert the mention span
+                            const mention = el('span', {
+                                className: 'ref-mention',
+                                'data-ref': slug,
+                                contentEditable: 'false',
+                                textContent: `@${displayName.toUpperCase()}`
+                            });
+                            const spaceAfter = document.createTextNode('\u00A0');
+                            deleteRange.insertNode(spaceAfter);
+                            deleteRange.insertNode(mention);
+
+                            // Move cursor after the space
+                            const newRange = document.createRange();
+                            newRange.setStartAfter(spaceAfter);
+                            newRange.collapse(true);
+                            sel.removeAllRanges();
+                            sel.addRange(newRange);
+                        }
+                    }
+                }
+
+                this.closeRefMenu();
+                scheduleSave();
             }
 
             handleTextKeydown(e, block, content) {
@@ -1658,6 +2058,13 @@ INSTRUCTIONS:
                     if (e.key === 'ArrowUp') { e.preventDefault(); this.slashMenuSelectedIndex = (this.slashMenuSelectedIndex - 1 + this.slashMenuCurrentItems.length) % this.slashMenuCurrentItems.length; this.renderSlashMenu(this.slashMenuCurrentFilter); return; }
                     if (e.key === 'Enter') { e.preventDefault(); this.executeSlashCommand(this.slashMenuCurrentItems[this.slashMenuSelectedIndex]); return; }
                     if (e.key === 'Escape') { e.preventDefault(); this.closeSlashMenu(); return; }
+                }
+
+                if (this.refMenuActive) {
+                    if (e.key === 'ArrowDown') { e.preventDefault(); this.refMenuSelectedIndex = (this.refMenuSelectedIndex + 1) % this.refMenuCurrentItems.length; this.renderRefMenu(this.refMenuCurrentFilter); return; }
+                    if (e.key === 'ArrowUp') { e.preventDefault(); this.refMenuSelectedIndex = (this.refMenuSelectedIndex - 1 + this.refMenuCurrentItems.length) % this.refMenuCurrentItems.length; this.renderRefMenu(this.refMenuCurrentFilter); return; }
+                    if (e.key === 'Enter') { e.preventDefault(); this.executeRefCommand(this.refMenuCurrentItems[this.refMenuSelectedIndex]); return; }
+                    if (e.key === 'Escape') { e.preventDefault(); this.closeRefMenu(); return; }
                 }
 
                 if (e.key === 'Enter' && !e.shiftKey && !this.slashMenuActive) {
@@ -1703,34 +2110,124 @@ INSTRUCTIONS:
         }
 
         const editor = new LeanStreamEditor('lean-editor');
+        window.editor = editor;
 
         // ============================================================================
         // APP LIFECYCLE & STORAGE SYNC
         // ============================================================================
         const saveIndicator = document.getElementById('save-indicator');
+        window.isRefPage = false;
+        window.currentRefSlug = null;
 
         const scheduleSave = debounce((immediate = false) => {
-            if (window.currentDateStr !== todayStr || !pgDB.isReady) return;
+            // Allow saving on today's page OR any reference page OR if DEV mode is on
+            const canSave = (CONFIG.DEV_ALLOW_PAST_EDITING || window.currentDateStr === todayStr || window.isRefPage);
+            if (!canSave) return;
             const data = editor.save();
             pgDB.saveNote(window.currentDateStr, data).then(() => {
                 saveIndicator.classList.add('visible');
                 setTimeout(() => saveIndicator.classList.remove('visible'), 1500);
+            }).catch(e => {
+                console.error("Schedule Save Error:", e);
             });
         }, 800);
 
         function renderDateHeader() {
-            document.getElementById('date-header').textContent = new Date(window.currentDateStr + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).toLowerCase();
+            const headerEl = document.getElementById('date-header');
+            if (window.isRefPage && window.currentRefSlug) {
+                // Find display name from cache
+                pgDB.getReferences().then(refs => {
+                    const ref = refs.find(r => r.slug === window.currentRefSlug);
+                    headerEl.textContent = `@${ref ? ref.display_name.toUpperCase() : window.currentRefSlug.toUpperCase()}`;
+                });
+            } else {
+                headerEl.textContent = new Date(window.currentDateStr + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).toLowerCase();
+            }
         }
 
         async function loadDay(dateStr) {
-            window.currentDateStr = dateStr; renderDateHeader();
-            const dayData = pgDB.cache[dateStr] || { blocks: [] };
+            // Save current page before navigating
+            if (pgDB.isReady && isEditable()) {
+                const currentData = editor.save();
+                await pgDB.saveNote(window.currentDateStr, currentData);
+            }
+
+            window.isRefPage = false;
+            window.currentRefSlug = null;
+            window.currentDateStr = dateStr;
+            renderDateHeader();
+            removeBacklinksSection();
+            
+            let dayData = pgDB.cache[dateStr];
+            if (!dayData || !dayData.blocks || dayData.blocks.length === 0) {
+                const backup = localStorage.getItem(`infinotes_backup_${dateStr}`);
+                if (backup) {
+                    try {
+                        dayData = JSON.parse(backup);
+                        pgDB.cache[dateStr] = dayData;
+                    } catch(e) {}
+                }
+            }
+            if (!dayData) dayData = { blocks: [] };
+            
             editor.load(dayData.blocks);
+        }
 
+        async function loadRefPage(slug) {
+            // Save current page first
+            if (pgDB.isReady) {
+                const currentData = editor.save();
+                await pgDB.saveNote(window.currentDateStr, currentData);
+            }
 
+            window.isRefPage = true;
+            window.currentRefSlug = slug;
+            window.currentDateStr = `ref::${slug}`;
+            renderDateHeader();
+
+            const refData = pgDB.cache[`ref::${slug}`] || { blocks: [] };
+            editor.load(refData.blocks);
+
+            renderBacklinksSection(slug);
+        }
+
+        function renderBacklinksSection(slug) {
+            removeBacklinksSection();
+            const backlinks = pgDB.findBacklinks(slug);
+            if (backlinks.length === 0) return;
+
+            const section = el('div', { className: 'backlinks-section', id: 'backlinks-container' },
+                el('div', { className: 'backlinks-header' }, `[ ${backlinks.length} reference${backlinks.length !== 1 ? 's' : ''} ]`)
+            );
+
+            backlinks.forEach(bl => {
+                const d = new Date(bl.dateStr + 'T00:00:00');
+                const dateLabel = d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
+                section.appendChild(el('button', {
+                    className: 'backlink-item',
+                    onclick: () => loadDay(bl.dateStr)
+                },
+                    el('span', { textContent: dateLabel }),
+                    el('span', { className: 'backlink-preview', textContent: bl.preview })
+                ));
+            });
+
+            // Insert before the editor
+            const appContainer = document.querySelector('.app-container');
+            appContainer.insertBefore(section, appContainer.firstChild);
+        }
+
+        function removeBacklinksSection() {
+            const existing = document.getElementById('backlinks-container');
+            if (existing) existing.remove();
         }
 
         document.getElementById('date-header').onclick = () => {
+            if (window.isRefPage) {
+                // Return to today
+                loadDay(todayStr);
+                return;
+            }
             const [y, m, d] = window.currentDateStr.split('-');
             EditorialCalendar.open(new Date(y, m - 1, d), false, (selectedDate) => {
                 const selectedStr = getLocalYYYYMMDD(selectedDate);
