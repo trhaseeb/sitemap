@@ -24,11 +24,12 @@
         /* --- CORE THEME & EXPRESSIVE TYPOGRAPHY --- */
         :root {
             --bg-color: #ffffff;
-            --bg-color-transparent: rgba(255, 255, 255, 0.85);
+            --bg-color-transparent: rgba(255, 255, 255, 0.55);
             --text-color: #000000;
             --muted-text: #888888;
             --neon-purple: #a855f7;
             --neon-green: #10b981;
+            --neon-blue: #3b82f6;
             --baritone-bg: #f2f2f2;
             --baritone-text: #333333;
             --font-main: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Inter", sans-serif;
@@ -38,7 +39,7 @@
         @media (prefers-color-scheme: dark) {
             :root {
                 --bg-color: #0a0a0a;
-                --bg-color-transparent: rgba(10, 10, 10, 0.85);
+                --bg-color-transparent: rgba(10, 10, 10, 0.65);
                 --text-color: #f0f0f0;
                 --muted-text: #666666;
                 --baritone-bg: #151515;
@@ -48,22 +49,56 @@
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
+        html { background-color: transparent; }
+        
         body {
-            background-color: var(--bg-color); color: var(--text-color);
+            background-color: transparent; color: var(--text-color);
             font-family: var(--font-main); margin: 0; padding: 0; width: 100vw;
             overflow-x: hidden; overscroll-behavior-y: none;
         }
 
-        .app-container {
-            max-width: 680px; width: 100%; margin: 0 auto;
-            padding: 0 24px 60vh 24px; position: relative;
+        /* --- BACKGROUND MAP & UI LAYER --- */
+        #bg-map { 
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
+            z-index: -1; background-color: var(--bg-color) !important; 
         }
+        
+        #ui-layer { 
+            position: relative; z-index: 1; min-height: 100vh; width: 100vw;
+            background-color: var(--bg-color-transparent); 
+            backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); 
+            transition: opacity 0.4s ease, filter 0.4s ease; 
+        }
+
+        body.map-mode #ui-layer { opacity: 0; pointer-events: none; filter: blur(10px); }
+
+        /* Leaflet Aesthetic Overrides */
+        .leaflet-popup-content-wrapper {
+            background: var(--bg-color) !important; color: var(--text-color) !important;
+            border: 2px solid var(--text-color) !important; border-radius: 2px !important;
+            box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.15) !important; padding: 0 !important;
+        }
+        .leaflet-popup-tip {
+            background: var(--bg-color) !important;
+            border-bottom: 2px solid var(--text-color) !important;
+            border-right: 2px solid var(--text-color) !important;
+            width: 14px !important; height: 14px !important;
+            box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.15) !important;
+            margin-top: -8px !important;
+        }
+        .leaflet-popup-content { margin: 16px !important; font-family: var(--font-main) !important; font-size: 14px !important; line-height: 1.5 !important; max-height: 300px; overflow-y: auto; }
+        .custom-geo-marker { display: flex; align-items: center; justify-content: center; }
+        .map-neon-pin { width: 14px; height: 14px; background: var(--neon-purple); border-radius: 50%; border: 2px solid var(--bg-color); box-shadow: 0 0 12px var(--neon-purple); }
+
+        /* --- THE APP CONTENT --- */
+        .app-container { max-width: 680px; width: 100%; margin: 0 auto; padding: 0 24px 60vh 24px; position: relative; }
 
         /* --- THE HEADER --- */
         #header-container {
             position: relative; width: 100%; min-height: 24vh;
             display: flex; flex-direction: column; justify-content: flex-end;
             padding: 6vh 24px 24px 24px; z-index: 100;
+            background-color: var(--bg-color); /* Solid background so header is opaque */
         }
 
         .header-max-width { max-width: 632px; margin: 0 auto; width: 100%; position: relative; z-index: 2; }
@@ -79,8 +114,15 @@
         .status-row { display: flex; align-items: center; gap: 16px; user-select: none; flex-wrap: wrap; }
         .neon-status { font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: lowercase; }
         
+        .clickable-status { cursor: pointer; transition: opacity 0.2s; }
+        .clickable-status:hover { opacity: 1; filter: brightness(1.2); }
+
+        .geo-status { color: var(--muted-text); opacity: 0.8; }
+        .geo-status.active { color: var(--neon-blue); opacity: 1; text-shadow: 0 0 8px rgba(59, 130, 246, 0.4); }
+        .geo-status.error { color: #ef4444; opacity: 1; }
+
         .ai-status { color: var(--neon-purple); opacity: 0.8; transition: opacity 0.3s ease; }
-        .ai-status.loading { animation: neon-pulse 1.5s infinite ease-in-out; }
+        .ai-status.loading, .geo-status.loading { animation: neon-pulse 1.5s infinite ease-in-out; }
         .ai-status.error { color: #ef4444; opacity: 1; }
 
         .db-status { color: var(--neon-green); opacity: 0.8; transition: all 0.3s ease; }
@@ -88,7 +130,7 @@
         .db-status.error { color: #ef4444; opacity: 1; text-shadow: none; }
 
         @keyframes neon-pulse {
-            0%, 100% { opacity: 0.8; text-shadow: 0 0 8px rgba(168, 85, 247, 0.4); }
+            0%, 100% { opacity: 0.8; text-shadow: 0 0 8px currentColor; }
             50% { opacity: 0.3; text-shadow: none; }
         }
 
@@ -206,20 +248,28 @@
 </head>
 
 <body>
-    <!-- THE HEADER -->
-    <div id="header-container">
-        <div class="header-max-width">
-            <div id="date-header">today</div>
-            <div class="status-row">
-                <span id="ai-inline-status" class="neon-status ai-status loading">sys.ai.booting</span>
-                <span id="db-status" class="neon-status db-status">db.init</span>
+    <!-- BACKGROUND MAP (Geolocated) -->
+    <div id="bg-map"></div>
+
+    <!-- UI LAYER (Frosted Glass over Map) -->
+    <div id="ui-layer">
+        <!-- THE HEADER -->
+        <div id="header-container">
+            <div class="header-max-width">
+                <div id="date-header">today</div>
+                <div class="status-row">
+                    <!-- Subtle neon text for sharing location -->
+                    <span id="geo-status" class="neon-status geo-status clickable-status">loc.share</span>
+                    <span id="ai-inline-status" class="neon-status ai-status loading">sys.ai.booting</span>
+                    <span id="db-status" class="neon-status db-status">db.init</span>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- THE LEAN EDITOR -->
-    <div class="app-container">
-        <div id="lean-editor"></div>
+        <!-- THE LEAN EDITOR -->
+        <div class="app-container">
+            <div id="lean-editor"></div>
+        </div>
     </div>
 
     <!-- Editorial Calendar Overlay -->
@@ -303,6 +353,153 @@
             },
             cancel: function (id) { if (this.timers.has(id)) { clearTimeout(this.timers.get(id)); this.timers.delete(id); } }
         };
+
+        // ============================================================================
+        // 🌍 GEOLOCATION & BACKGROUND MAP TRACKING
+        // ============================================================================
+        window.currentLocation = null;
+        window.geoWatchId = null;
+        let bgMap, mapMarkers = [], isMapMode = false;
+        
+        function initBgMap() {
+            // Start map view zoomed way out
+            bgMap = L.map('bg-map', {
+                zoomControl: false, attributionControl: false,
+                dragging: false, scrollWheelZoom: false, doubleClickZoom: false, touchZoom: false
+            }).setView([20, 0], 2); 
+            window.bgMap = bgMap;
+
+            const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            L.tileLayer(isDark ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(bgMap);
+            
+            // Allow double clicking the map itself to return to normal mode
+            bgMap.on('dblclick', toggleMapMode);
+        }
+
+        function requestLocation() {
+            const geoEl = document.getElementById('geo-status');
+            if (!('geolocation' in navigator)) {
+                geoEl.textContent = 'loc.denied';
+                geoEl.className = 'neon-status geo-status error';
+                return;
+            }
+
+            geoEl.textContent = 'loc.locating';
+            geoEl.className = 'neon-status geo-status loading';
+
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    window.currentLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                    geoEl.textContent = 'loc.active';
+                    geoEl.className = 'neon-status geo-status active';
+                    
+                    if (window.bgMap) {
+                        window.bgMap.setView([pos.coords.latitude, pos.coords.longitude], 14);
+                        if (isMapMode) populateMapMarkers();
+                    }
+
+                    if (!window.geoWatchId) {
+                        window.geoWatchId = navigator.geolocation.watchPosition(p => {
+                            window.currentLocation = { lat: p.coords.latitude, lng: p.coords.longitude };
+                        });
+                    }
+                },
+                (err) => {
+                    geoEl.textContent = 'loc.denied';
+                    geoEl.className = 'neon-status geo-status error';
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        }
+
+        function toggleMapMode(e) {
+            // Do not trigger if user is interacting with text, buttons, inner maps, or scrollbars
+            if (e && e.target && (e.target.closest('.text-content') || e.target.closest('button') || 
+                e.target.closest('.raw-btn') || e.target.closest('.smart-canvas-option') || 
+                e.target.closest('.leaflet-interactive:not(#bg-map *)'))) {
+                return;
+            }
+            
+            isMapMode = !isMapMode;
+            document.body.classList.toggle('map-mode', isMapMode);
+
+            if (isMapMode) {
+                bgMap.dragging.enable(); bgMap.scrollWheelZoom.enable(); bgMap.touchZoom.enable(); 
+                // Keep double click zoom disabled so we can use it to toggle back
+                bgMap.doubleClickZoom.disable();
+                
+                populateMapMarkers(); 
+                setTimeout(() => {
+                    bgMap.invalidateSize();
+                    if (window.currentLocation) {
+                        bgMap.flyTo([window.currentLocation.lat, window.currentLocation.lng], 14, { duration: 0.8 });
+                    }
+                }, 100);
+            } else {
+                bgMap.dragging.disable(); bgMap.scrollWheelZoom.disable(); bgMap.touchZoom.disable();
+                clearMapMarkers();
+            }
+        }
+        
+        document.getElementById('geo-status').addEventListener('click', requestLocation);
+        document.addEventListener('dblclick', toggleMapMode); // Easter-egg global double click
+
+        function populateMapMarkers() {
+            clearMapMarkers();
+            const customMarker = L.divIcon({ 
+                className: 'custom-geo-marker', 
+                html: `<div class="map-neon-pin"></div>`, 
+                iconSize: [14, 14], iconAnchor: [7, 7] 
+            });
+
+            // Group notes by exact coordinates so they stack aesthetically in one tooltip
+            const groupedNotes = {};
+
+            Object.entries(pgDB.cache).forEach(([dateStr, dayData]) => {
+                if (!dayData?.blocks) return;
+                dayData.blocks.forEach(block => {
+                    if (block.geo && block.geo.lat && block.geo.lng) {
+                        const coordKey = `${block.geo.lat},${block.geo.lng}`;
+                        if (!groupedNotes[coordKey]) groupedNotes[coordKey] = [];
+                        
+                        let textPreview = '';
+                        if (['text', 'h1', 'h2', 'h3', 'quote', 'ul', 'ol', 'todo', 'todo-checked'].includes(block.type)) {
+                            textPreview = normalizePlainText(block.data.text).substring(0, 180);
+                            if (normalizePlainText(block.data.text).length > 180) textPreview += '...';
+                        } else textPreview = `[${block.type.toUpperCase()} BLOCK]`;
+                        
+                        if (!textPreview.trim()) textPreview = `[EMPTY NOTE]`;
+
+                        groupedNotes[coordKey].push({ timestamp: block.timestamp, text: textPreview });
+                    }
+                });
+            });
+
+            // Render beautifully formatted HTML popups for each location
+            Object.keys(groupedNotes).forEach(key => {
+                const [lat, lng] = key.split(',').map(Number);
+                const notes = groupedNotes[key].sort((a,b) => b.timestamp - a.timestamp); // newest first
+                
+                let popupsHTML = notes.map((note, index) => `
+                    <div style="margin-bottom: 12px; padding-bottom: ${index === notes.length - 1 ? '0' : '12px'}; border-bottom: ${index === notes.length - 1 ? 'none' : '1px solid var(--baritone-bg)'};">
+                        <div style="font-family: var(--font-mono); font-size: 10px; color: var(--neon-purple); margin-bottom: 6px; text-transform: uppercase;">
+                            ${new Date(note.timestamp).toLocaleString()}
+                        </div>
+                        ${escapeHTML(note.text)}
+                    </div>
+                `).join('');
+
+                const marker = L.marker([lat, lng], { icon: customMarker })
+                    .addTo(bgMap)
+                    .bindPopup(`<div style="font-family: var(--font-main); color: var(--text-color);">${popupsHTML}</div>`);
+                mapMarkers.push(marker);
+            });
+        }
+        
+        function clearMapMarkers() { 
+            mapMarkers.forEach(m => m.remove()); 
+            mapMarkers = []; 
+        }
 
         // ============================================================================
         // 🧠 VECTOR EMBEDDING ENGINE (Transformers.js)
@@ -732,15 +929,17 @@
 
                 (blocksData?.length ? blocksData : [{ type: 'text', data: { text: '' } }]).forEach(b => {
                     if (['text', 'h1', 'h2', 'h3', 'ul', 'ol', 'quote', 'todo', 'todo-checked', 'hr'].includes(b.type)) {
-                        this.addBasicBlock(b.type, b.data?.text || '', b.author || 'user', b.id, b.timestamp);
-                    } else if (TOOLS_MAP[b.type]) this.addToolBlock(b.type, b.data, b.author || 'user', b.id, b.timestamp, b.isVirtual, b.originalNoteKey, true);
+                        this.addBasicBlock(b.type, b.data?.text || '', b.author || 'user', b.id, b.timestamp, null, b.geo);
+                    } else if (TOOLS_MAP[b.type]) {
+                        this.addToolBlock(b.type, b.data, b.author || 'user', b.id, b.timestamp, b.isVirtual, b.originalNoteKey, true, b.geo);
+                    }
                 });
                 if (this.blocks.length === 0 || !['text', 'h1', 'h2', 'h3', 'ul', 'ol', 'quote', 'todo', 'todo-checked', 'hr'].includes(this.blocks[this.blocks.length - 1].type)) this.addBasicBlock('text', '', 'user');
             }
 
             save() {
                 return { blocks: this.blocks.filter(b => !b.isVirtual).map(b => ({
-                    id: b.id, type: b.type, author: b.author, timestamp: b.timestamp,
+                    id: b.id, type: b.type, author: b.author, timestamp: b.timestamp, geo: b.geo,
                     data: TOOLS_MAP[b.type] ? b.instance.save() : { text: b.dom.querySelector('.text-content').innerHTML }
                 }))};
             }
@@ -755,8 +954,9 @@
                 if (clearContent && newType !== 'hr') setCaret(newContent);
             }
 
-            addBasicBlock(type = 'text', html = '', author = 'user', id = crypto.randomUUID(), timestamp = Date.now(), insertAfterId = null) {
-                const block = { id, type, data: { text: html }, author, timestamp, dom: null };
+            addBasicBlock(type = 'text', html = '', author = 'user', id = crypto.randomUUID(), timestamp = Date.now(), insertAfterId = null, geo = null) {
+                const blockGeo = geo || window.currentLocation;
+                const block = { id, type, data: { text: html }, author, timestamp, geo: blockGeo, dom: null };
                 const content = el(['h1', 'h2', 'h3'].includes(type) ? type : type === 'quote' ? 'blockquote' : 'div', { className: `text-content ${type === 'text' ? '' : type}`, contentEditable: isEditable() && type !== 'hr', 'data-placeholder': this.getPlaceholder(type, isEditable() && author === 'user'), innerHTML: html, onfocus: () => this.activeBlockId = id, oninput: () => { this.handleTextInput(block, content); scheduleSave(); }, onkeydown: (e) => this.handleTextKeydown(e, block, content) });
                 
                 block.dom = el('div', { className: `stream-block author-${author.replace(/[^a-z0-9_-]/gi, '-')}`, 'data-id': id }, content);
@@ -765,10 +965,11 @@
                 return block;
             }
 
-            addToolBlock(type, data, author = 'user', id = crypto.randomUUID(), timestamp = Date.now(), isVirtual = false, originalNoteKey = null, fromLoad = false) {
+            addToolBlock(type, data, author = 'user', id = crypto.randomUUID(), timestamp = Date.now(), isVirtual = false, originalNoteKey = null, fromLoad = false, geo = null) {
                 const ToolClass = TOOLS_MAP[type]; if (!ToolClass) return null;
+                const blockGeo = geo || window.currentLocation;
                 const instance = new ToolClass(data, isVirtual || !isEditable(), () => scheduleSave());
-                const block = { id, type, data, author, timestamp, instance, dom: null, isVirtual, originalNoteKey };
+                const block = { id, type, data, author, timestamp, geo: blockGeo, instance, dom: null, isVirtual, originalNoteKey };
                 const controls = el('div', { className: 'panel-controls' });
                 if (isEditable() && !isVirtual) controls.append(UI.button('↑', () => this.moveBlock(id, -1), 'panel-ctrl-btn'), UI.button('↓', () => this.moveBlock(id, 1), 'panel-ctrl-btn'), UI.button('✕', () => this.deleteBlock(id), 'panel-ctrl-btn delete'));
                 
@@ -892,12 +1093,10 @@
 
                         // --- AI COLLAB DETECTION PIPELINE ---
                         const aiMentions = [];
-                        // 1. Cleanly convert plaintext rapid typing to proper tags
                         content.innerHTML = content.innerHTML.replace(/@([a-zA-Z0-9_-]+)\.collab/gi, (match, p1) => {
                             const slug = p1.toLowerCase(); pgDB.createPersona(slug, p1.toUpperCase()); this.cachedPersonas = null; aiMentions.push({ slug, name: p1.toUpperCase() });
                             return `<span class="persona-mention" data-slug="${slug}">@${p1.toUpperCase()}</span>`;
                         });
-                        // 2. Identify existing tags adjacent to .collab text
                         Array.from(content.querySelectorAll('.persona-mention')).forEach(m => {
                             let next = m.nextSibling;
                             if (next && next.nodeType === Node.TEXT_NODE && /^\s*\.collab/i.test(next.textContent)) {
@@ -1045,6 +1244,8 @@
             EditorialCalendar.open(new Date(y, m - 1, d), false, null, (sd) => { const sStr = getLocalYYYYMMDD(sd); if (window.currentDateStr !== sStr) { scheduleSave(); loadDay(sStr); } });
         };
 
+        // Initialize App
+        initBgMap();
         Promise.all([pgDB.init(), mediaStore.init()]).then(() => loadDay(todayStr));
     </script>
 </body>
