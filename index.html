@@ -262,7 +262,9 @@
         }
 
         .text-content.ul,
-        .text-content.ol {
+        .text-content.ol,
+        .text-content.todo,
+        .text-content.todo-checked {
             padding-left: 32px;
             margin-top: 4px;
             margin-bottom: 4px;
@@ -291,6 +293,49 @@
             font-size: 0.9em;
             pointer-events: none;
         }
+
+        /* CHECKBOXES (TODO) STYLING */
+        .stream-block:has(.todo)::after,
+        .stream-block:has(.todo-checked)::after {
+            position: absolute;
+            left: 4px;
+            top: 8px;
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            cursor: pointer;
+            pointer-events: none; /* Pointer events handled by the parent stream block listener */
+        }
+        .stream-block:has(.todo)::after {
+            content: '';
+            border: 2px solid var(--muted-text);
+        }
+        .stream-block:has(.todo-checked)::after {
+            content: '✔';
+            background: var(--text-color);
+            color: var(--bg-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 900;
+        }
+        .stream-block:has(.todo-checked) .text-content {
+            text-decoration: line-through;
+            color: var(--muted-text);
+            opacity: 0.8;
+        }
+
+        /* HORIZONTAL DIVIDER STYLING */
+        .text-content.hr {
+            border-bottom: 2px solid var(--baritone-bg);
+            margin: 24px 0;
+            padding: 0;
+            min-height: 0;
+            height: 0;
+            font-size: 0;
+        }
+        .text-content.hr:empty:before { display: none; }
 
         .stream-block.author-ai .text-content {
             font-weight: 400;
@@ -1425,7 +1470,29 @@
 
                 document.addEventListener('click', (e) => {
                     const mention = e.target.closest('.ref-mention');
-                    if (mention) { e.preventDefault(); e.stopPropagation(); const slug = mention.getAttribute('data-ref'); if (slug) loadRefPage(slug); }
+                    if (mention) { e.preventDefault(); e.stopPropagation(); const slug = mention.getAttribute('data-ref'); if (slug) loadRefPage(slug); return; }
+
+                    // Global Checkbox Toggle Logic
+                    const block = e.target.closest('.stream-block');
+                    if (block && isEditable()) {
+                        const content = block.querySelector('.todo, .todo-checked');
+                        if (content) {
+                            const rect = block.getBoundingClientRect();
+                            if (e.clientX - rect.left < 30) {
+                                const isChecked = content.classList.contains('todo-checked');
+                                content.classList.remove(isChecked ? 'todo-checked' : 'todo');
+                                content.classList.add(isChecked ? 'todo' : 'todo-checked');
+                                
+                                const editorBlock = this.blocks.find(b => b.id === block.getAttribute('data-id'));
+                                if (editorBlock) {
+                                    editorBlock.type = isChecked ? 'todo' : 'todo-checked';
+                                    scheduleSave();
+                                }
+                                e.preventDefault();
+                                e.stopPropagation();
+                            }
+                        }
+                    }
                 });
             }
 
@@ -1439,25 +1506,28 @@
                 if (!blocksData || blocksData.length === 0) this.addBasicBlock('text', '', 'user');
                 else {
                     blocksData.forEach(b => {
-                        if (['paragraph', 'text', 'h1', 'h2', 'h3', 'header', 'list', 'checklist', 'ul', 'ol', 'quote'].includes(b.type)) {
+                        if (['paragraph', 'text', 'h1', 'h2', 'h3', 'header', 'list', 'checklist', 'ul', 'ol', 'quote', 'todo', 'todo-checked', 'hr'].includes(b.type)) {
                             let textContent = b.data?.text || '';
-                            let typeToUse = ['paragraph', 'list', 'checklist'].includes(b.type) ? 'text' : (b.type === 'header' ? `h${b.data?.level || 2}` : b.type);
-                            if (b.type === 'list') textContent = (b.data.items || []).map(i => `• ${i.content || i.text}`).join('<br>');
-                            if (b.type === 'checklist') textContent = (b.data.items || []).map(i => `${i.checked ? '[x]' : '[ ]'} ${i.text}`).join('<br>');
+                            let typeToUse = b.type;
+                            if (['paragraph'].includes(b.type)) typeToUse = 'text'; // Legacy mappings
+                            if (b.type === 'header') typeToUse = `h${b.data?.level || 2}`;
+                            if (b.type === 'list') { typeToUse = 'ul'; textContent = (b.data.items || []).map(i => `${i.content || i.text}`).join('<br>'); }
+                            if (b.type === 'checklist') { typeToUse = 'todo'; textContent = (b.data.items || []).map(i => `${i.checked ? '[x]' : '[ ]'} ${i.text}`).join('<br>'); }
+                            
                             this.addBasicBlock(typeToUse, textContent, b.author || 'user', b.id, b.timestamp, b.isSidebar);
                         } else if (TOOLS_MAP[b.type]) {
                             this.addToolBlock(b.type, b.data, b.author || 'user', b.id, b.timestamp, b.isVirtual, b.originalNoteKey, true);
                         }
                     });
                 }
-                if (this.blocks.length === 0 || !['text', 'h1', 'h2', 'h3', 'ul', 'ol', 'quote'].includes(this.blocks[this.blocks.length - 1].type)) this.addBasicBlock('text', '', 'user');
+                if (this.blocks.length === 0 || !['text', 'h1', 'h2', 'h3', 'ul', 'ol', 'quote', 'todo', 'todo-checked', 'hr'].includes(this.blocks[this.blocks.length - 1].type)) this.addBasicBlock('text', '', 'user');
             }
 
             save() {
                 return {
                     blocks: this.blocks.filter(b => !b.isVirtual).map(b => {
                         let data = b.data;
-                        if (['text', 'h1', 'h2', 'h3'].includes(b.type)) data = { text: b.dom.querySelector('.text-content').innerHTML };
+                        if (['text', 'h1', 'h2', 'h3', 'ul', 'ol', 'quote', 'todo', 'todo-checked', 'hr'].includes(b.type)) data = { text: b.dom.querySelector('.text-content').innerHTML };
                         else if (b.instance && b.instance.save) data = b.instance.save();
                         return { id: b.id, type: b.type, data, author: b.author, timestamp: b.timestamp, isSidebar: !!b.isSidebar };
                     })
@@ -1473,29 +1543,44 @@
                 else { this.container.insertBefore(blockObj.dom, this.blocks[insertIndex].dom); this.blocks.splice(insertIndex, 0, blockObj); }
             }
 
-            replaceTextNodeType(block, newType) {
-                const tag = newType === 'h1' ? 'h1' : newType === 'h2' ? 'h2' : newType === 'h3' ? 'h3' : newType === 'quote' ? 'blockquote' : 'div';
+            replaceTextNodeType(block, newType, clearContent = false) {
+                const tag = ['h1', 'h2', 'h3'].includes(newType) ? newType : newType === 'quote' ? 'blockquote' : 'div';
                 const oldContent = block.dom.querySelector('.text-content');
+                
                 let placeholder = "start writing, or type '/' for commands...";
-                if (['h1', 'h2', 'h3'].includes(newType)) placeholder = "Heading...";
-                if (['ul', 'ol'].includes(newType)) placeholder = "List item...";
-                if (newType === 'quote') placeholder = "Quote...";
+                if (newType === 'hr') placeholder = "";
+                else if (['h1', 'h2', 'h3'].includes(newType)) placeholder = "Heading...";
+                else if (['ul', 'ol'].includes(newType)) placeholder = "List item...";
+                else if (['todo', 'todo-checked'].includes(newType)) placeholder = "To-do...";
+                else if (newType === 'quote') placeholder = "Quote...";
 
-                const newContent = el(tag, { className: `text-content ${newType === 'text' ? '' : newType}`, contentEditable: isEditable(), 'data-placeholder': placeholder, innerHTML: oldContent.innerHTML, onfocus: () => { this.activeBlockId = block.id; }, oninput: () => { this.handleTextInput(block, newContent); scheduleSave(); }, onkeydown: (e) => this.handleTextKeydown(e, block, newContent) });
-                block.dom.replaceChild(newContent, oldContent); block.type = newType; setCaret(newContent);
+                const newContent = el(tag, { 
+                    className: `text-content ${newType === 'text' ? '' : newType}`, 
+                    contentEditable: newType !== 'hr' && isEditable(), 
+                    'data-placeholder': placeholder, 
+                    innerHTML: clearContent ? '' : oldContent.innerHTML, 
+                    onfocus: () => { this.activeBlockId = block.id; }, 
+                    oninput: () => { this.handleTextInput(block, newContent); scheduleSave(); }, 
+                    onkeydown: (e) => this.handleTextKeydown(e, block, newContent) 
+                });
+                block.dom.replaceChild(newContent, oldContent); 
+                block.type = newType; 
+                if (clearContent && newType !== 'hr') setCaret(newContent);
             }
 
             addBasicBlock(type = 'text', html = '', author = 'user', id = crypto.randomUUID(), timestamp = Date.now(), isSidebar = false) {
                 const tag = type === 'h1' ? 'h1' : type === 'h2' ? 'h2' : type === 'h3' ? 'h3' : type === 'quote' ? 'blockquote' : 'div';
                 const block = { id, type, data: { text: html }, author, timestamp, dom: null, isSidebar };
                 
-                let placeholder = author === 'user' ? "start writing, or type '/' for commands..." : "";
-                if (isSidebar && author === 'user') placeholder = "[sidebar chat] type message... (Esc to exit)";
+                let placeholder = author === 'user' && type !== 'hr' ? "start writing, or type '/' for commands..." : "";
+                if (type === 'hr') placeholder = "";
+                else if (isSidebar && author === 'user') placeholder = "[sidebar chat] type message... (Esc to exit)";
                 else if (['h1', 'h2', 'h3'].includes(type) && author === 'user') placeholder = "Heading...";
                 else if (['ul', 'ol'].includes(type) && author === 'user') placeholder = "List item...";
+                else if (['todo', 'todo-checked'].includes(type) && author === 'user') placeholder = "To-do...";
                 else if (type === 'quote' && author === 'user') placeholder = "Quote...";
 
-                const isReadonly = (author === 'ai' || !isEditable());
+                const isReadonly = (author === 'ai' || !isEditable() || type === 'hr');
 
                 const content = el(tag, { className: `text-content ${type === 'text' ? '' : type}`, contentEditable: !isReadonly, 'data-placeholder': placeholder, innerHTML: html, onfocus: () => { this.activeBlockId = id; }, oninput: () => { this.handleTextInput(block, content); scheduleSave(); }, onkeydown: (e) => this.handleTextKeydown(e, block, content) });
                 block.dom = el('div', { className: `stream-block author-${author} ${isSidebar ? 'sidebar' : ''}`, 'data-id': id }, content);
@@ -1645,9 +1730,8 @@ CRITICAL INSTRUCTIONS:
                     const editorState = this.save();
                     const messages = [{ role: 'system', content: systemPrompt }];
                     
-                    // Natively construct the chat history for the instruction model
                     editorState.blocks.forEach(b => {
-                        if (b.id === aiBlock.id) return; // skip the loading block
+                        if (b.id === aiBlock.id) return; 
                         const txt = b.data?.text ? normalizePlainText(b.data.text) : '';
                         if (!txt) return;
                         
@@ -1690,12 +1774,26 @@ CRITICAL INSTRUCTIONS:
 
                 const text = content.textContent.replace(/\u00A0/g, ' ');
                 if (block.type === 'text') {
-                    if (text === '# ') return this.replaceTextNodeType(block, 'h1');
-                    if (text === '## ') return this.replaceTextNodeType(block, 'h2');
-                    if (text === '### ') return this.replaceTextNodeType(block, 'h3');
-                    if (text === '- ' || text === '* ') return this.replaceTextNodeType(block, 'ul');
-                    if (text === '1. ') return this.replaceTextNodeType(block, 'ol');
-                    if (text === '> ') return this.replaceTextNodeType(block, 'quote');
+                    let newType = null;
+                    if (text === '# ') newType = 'h1';
+                    else if (text === '## ') newType = 'h2';
+                    else if (text === '### ') newType = 'h3';
+                    else if (text === '- ' || text === '* ') newType = 'ul';
+                    else if (text === '1. ') newType = 'ol';
+                    else if (text === '> ') newType = 'quote';
+                    else if (text === '[] ' || text === '[ ] ') newType = 'todo';
+                    else if (text === '[x] ' || text === '[X] ') newType = 'todo-checked';
+                    else if (text === '---') newType = 'hr';
+
+                    if (newType) {
+                        this.replaceTextNodeType(block, newType, true);
+                        if (newType === 'hr') {
+                            const newBlock = this.addBasicBlock('text', '', 'user');
+                            setTimeout(() => setCaret(newBlock.dom.querySelector('.text-content')), 10);
+                        }
+                        scheduleSave();
+                        return;
+                    }
                 }
 
                 const sel = window.getSelection();
@@ -1833,14 +1931,23 @@ CRITICAL INSTRUCTIONS:
                     }
 
                     e.preventDefault();
-                    if (['ul', 'ol', 'quote'].includes(block.type) && content.textContent.trim() === '') { this.replaceTextNodeType(block, 'text'); scheduleSave(); return; }
+                    if (['ul', 'ol', 'quote', 'todo', 'todo-checked'].includes(block.type) && content.textContent.trim() === '') { 
+                        this.replaceTextNodeType(block, 'text'); 
+                        scheduleSave(); 
+                        return; 
+                    }
                     const sel = window.getSelection();
                     if (sel.rangeCount > 0) {
                         const range = sel.getRangeAt(0); const postCaretRange = range.cloneRange(); postCaretRange.selectNodeContents(content); postCaretRange.setStart(range.endContainer, range.endOffset);
                         const tempDiv = document.createElement('div'); tempDiv.appendChild(postCaretRange.extractContents());
                         let postHtml = tempDiv.innerHTML === '<br>' ? '' : tempDiv.innerHTML;
                         if (content.innerHTML.endsWith('<br>')) content.innerHTML = content.innerHTML.slice(0, -4);
-                        this.activeBlockId = block.id; const nextType = ['ul', 'ol', 'quote'].includes(block.type) ? block.type : 'text';
+                        this.activeBlockId = block.id; 
+                        
+                        let nextType = 'text';
+                        if (['ul', 'ol', 'quote'].includes(block.type)) nextType = block.type;
+                        if (['todo', 'todo-checked'].includes(block.type)) nextType = 'todo'; // Checked items create unchecked next lines
+                        
                         const newBlock = this.addBasicBlock(nextType, postHtml, 'user');
                         setTimeout(() => setCaret(newBlock.dom.querySelector('.text-content'), 0), 10); scheduleSave();
                     }
@@ -1865,7 +1972,16 @@ CRITICAL INSTRUCTIONS:
 
                             const idx = this.getBlockIndex(block.id);
                             if (idx > 0) {
-                                const prevBlock = this.blocks[idx - 1]; const currentHtml = content.innerHTML.replace(/<br>$/, ''); const isEmpty = content.textContent.trim() === '';
+                                const prevBlock = this.blocks[idx - 1]; 
+                                
+                                // Deleting a divider block
+                                if (prevBlock.type === 'hr') {
+                                    this.deleteBlock(prevBlock.id);
+                                    scheduleSave();
+                                    return;
+                                }
+
+                                const currentHtml = content.innerHTML.replace(/<br>$/, ''); const isEmpty = content.textContent.trim() === '';
                                 if (!['text', 'h1', 'h2', 'h3'].includes(prevBlock.type)) this.deleteBlock(prevBlock.id);
                                 else {
                                     const prevContentNode = prevBlock.dom.querySelector('.text-content');
