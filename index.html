@@ -209,15 +209,6 @@
             pointer-events: none;
         }
 
-        .text-content[data-ghost]::after {
-            content: attr(data-ghost) "   [↵ chat]";
-            color: var(--neon-purple);
-            opacity: 0.6;
-            pointer-events: none;
-            user-select: none;
-            display: inline;
-        }
-
         .text-content.h1 {
             font-size: clamp(36px, 8vw, 48px);
             font-weight: 900;
@@ -304,7 +295,7 @@
             height: 16px;
             border-radius: 3px;
             cursor: pointer;
-            pointer-events: none; /* Pointer events handled by the parent stream block listener */
+            pointer-events: none;
         }
         .stream-block:has(.todo)::after {
             content: '';
@@ -337,12 +328,12 @@
         }
         .text-content.hr:empty:before { display: none; }
 
-        .stream-block.author-ai .text-content {
+        /* AI RESPONSE BLOCKS STYLING */
+        .stream-block[class*="-ai"] .text-content {
             font-weight: 400;
             color: var(--neon-purple);
         }
-
-        .stream-block.author-ai::before {
+        .stream-block[class*="-ai"]::before {
             content: '';
             position: absolute;
             left: -16px;
@@ -351,30 +342,6 @@
             width: 3px;
             background: var(--neon-purple);
             opacity: 0.5;
-        }
-
-        /* --- SIDEBAR MODE STYLING --- */
-        .stream-block.sidebar {
-            margin-left: 24px;
-            padding-left: 16px;
-            border-left: 2px dashed var(--muted-text);
-            margin-top: 8px;
-            margin-bottom: 8px;
-        }
-        
-        /* Make sidebar text slightly smaller */
-        .stream-block.sidebar .text-content {
-            font-size: clamp(15px, 3.8vw, 18px);
-            line-height: 1.4;
-        }
-
-        .stream-block.sidebar.author-ai {
-            border-left-color: var(--neon-purple);
-            border-left-style: solid;
-        }
-
-        .stream-block.sidebar.author-ai::before {
-            display: none; /* Hide default AI marker in favor of sidebar border */
         }
 
         /* --- MENUS --- */
@@ -602,12 +569,15 @@
         .leaflet-container.drawing-mode, .leaflet-container.drawing-mode .leaflet-interactive { cursor: crosshair !important; touch-action: none !important; }
         .leaflet-container.locked-mode { cursor: default !important; }
 
-        /* --- REFERENCE MENTIONS --- */
-        .ref-mention {
+        /* --- PERSONA MENTIONS --- */
+        .persona-mention {
             color: #3b82f6; font-weight: 700; cursor: pointer; text-decoration: none; border-bottom: 2px solid transparent;
             transition: border-color 0.2s, opacity 0.2s; padding: 0 1px;
         }
-        .ref-mention:hover { border-bottom-color: #3b82f6; opacity: 0.8; }
+        .persona-mention[data-slug$=".ai"] {
+            color: var(--neon-purple);
+        }
+        .persona-mention:hover { border-bottom-color: currentColor; opacity: 0.8; }
 
         /* --- BACKLINKS SECTION --- */
         .backlinks-section { margin-bottom: 24px; padding: 16px 20px; background: var(--baritone-bg); border-radius: 2px; }
@@ -706,7 +676,6 @@
         };
 
         const SLASH_COMMANDS = [
-            { id: 'profile', label: 'Persona', sub: 'My Identity & AI Settings' },
             { id: 'smartCanvas', label: 'Canvas', sub: 'Draw & Map' },
             { id: 'voice', label: 'Voice', sub: 'Audio Memo' },
             { id: 'scan', label: 'Scan', sub: 'Image to Text' },
@@ -823,9 +792,11 @@
                         CREATE EXTENSION IF NOT EXISTS vector;
                         CREATE TABLE IF NOT EXISTS daily_notes (date_str TEXT PRIMARY KEY, data JSONB);
                         CREATE TABLE IF NOT EXISTS semantic_index (key TEXT PRIMARY KEY, date_str TEXT, block_id TEXT, block_type TEXT, search_text TEXT, embedding vector(384), timestamp BIGINT);
-                        CREATE TABLE IF NOT EXISTS profile_settings (key TEXT PRIMARY KEY, value TEXT);
-                        CREATE TABLE IF NOT EXISTS references_list (slug TEXT PRIMARY KEY, display_name TEXT NOT NULL, created_at BIGINT);
+                        CREATE TABLE IF NOT EXISTS personas_list (slug TEXT PRIMARY KEY, display_name TEXT NOT NULL, created_at BIGINT);
                     `);
+
+                    // Ensure @me persona exists by default
+                    await this.pg.query(`INSERT INTO personas_list (slug, display_name, created_at) VALUES ('me', 'me', $1) ON CONFLICT DO NOTHING`, [Date.now()]);
                     
                     this.isReady = true;
                     dbStatusEl.textContent = 'db.ready';
@@ -842,18 +813,6 @@
                 }
             }
 
-            async getProfile() {
-                if (!this.isReady) return {};
-                const res = await this.pg.query(`SELECT key, value FROM profile_settings`);
-                const profile = {};
-                res.rows.forEach(r => profile[r.key] = r.value);
-                return profile;
-            }
-            async updateProfile(key, value) {
-                if (!this.isReady) return;
-                await this.pg.query(`INSERT INTO profile_settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`, [key, value]);
-            }
-            
             async saveNote(dateStr, data) {
                 this.cache[dateStr] = data;
                 localStorage.setItem(`infinotes_backup_${dateStr}`, JSON.stringify(data));
@@ -868,22 +827,22 @@
                 }
             }
 
-            async getReferences() {
+            async getPersonas() {
                 if (!this.isReady) return [];
-                const res = await this.pg.query(`SELECT slug, display_name, created_at FROM references_list ORDER BY created_at DESC`);
+                const res = await this.pg.query(`SELECT slug, display_name, created_at FROM personas_list ORDER BY created_at DESC`);
                 return res.rows;
             }
 
-            async createReference(slug, displayName) {
+            async createPersona(slug, displayName) {
                 if (!this.isReady) return;
-                await this.pg.query(`INSERT INTO references_list (slug, display_name, created_at) VALUES ($1, $2, $3) ON CONFLICT (slug) DO NOTHING`, [slug, displayName, Date.now()]);
+                await this.pg.query(`INSERT INTO personas_list (slug, display_name, created_at) VALUES ($1, $2, $3) ON CONFLICT (slug) DO NOTHING`, [slug, displayName, Date.now()]);
             }
 
             findBacklinks(slug) {
                 const backlinks = [];
-                const searchAttr = `data-ref="${slug}"`;
+                const searchAttr = `data-slug="${slug}"`;
                 for (const [key, dayData] of Object.entries(this.cache)) {
-                    if (key.startsWith('ref::')) continue;
+                    if (key.startsWith('persona::')) continue;
                     if (!dayData || !dayData.blocks) continue;
                     for (const block of dayData.blocks) {
                         if (!block.data || !block.data.text) continue;
@@ -974,7 +933,7 @@
         const mediaStore = new MediaBlobStore();
 
         // ============================================================================
-        // 🤖 ON-DEVICE AI COLLABORATOR
+        // 🤖 ON-DEVICE AI INITIALIZATION
         // ============================================================================
         const AI_MODEL_ID = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC";
         let aiEngine = null;
@@ -1125,7 +1084,7 @@
         })();
 
         // ============================================================================
-        // ⬛ FLOATING MENU SYSTEM (Consolidated Abstracted Menus)
+        // ⬛ FLOATING MENU SYSTEM
         // ============================================================================
         class FloatingMenu {
             constructor(id, container) {
@@ -1179,65 +1138,6 @@
             }
             save() { return this.data; }
             destroy() {}
-        }
-
-        class ProfileTool extends BaseTool {
-            constructor(data, isReadOnly, onChange) {
-                super({ title: 'PERSONA & IDENTITY', ...data }, isReadOnly, onChange);
-                this.mainContainer = el('div');
-                this.saveTimers = {};
-            }
-            
-            render() {
-                this.mainContainer.innerHTML = ''; 
-                const baseEl = this.renderContainer([]); 
-                this.mainContainer.appendChild(baseEl);
-                
-                const listContainer = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '12px' } });
-                baseEl.appendChild(listContainer);
-
-                pgDB.getProfile().then(profile => {
-                    const fields = [
-                        { id: 'user_name', label: 'My Name', placeholder: 'What should I call you?', isAi: false },
-                        { id: 'user_context', label: 'About Me', placeholder: 'Context about your life, goals, work, and preferences...', isAi: false },
-                        { id: 'collab_name', label: 'Collaborator Name', placeholder: 'Name your AI collaborator...', isAi: true },
-                        { id: 'collab_persona', label: 'Collaborator Persona', placeholder: 'How should the AI behave? (e.g., A sarcastic mentor, a helpful assistant)...', isAi: true }
-                    ];
-
-                    fields.forEach(f => {
-                        const header = el('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' } });
-                        header.appendChild(el('strong', { textContent: f.label, style: { fontSize: '11px', textTransform: 'uppercase', color: f.isAi ? 'var(--neon-purple)' : 'var(--text-color)', letterSpacing: '0.05em' } }));
-                        
-                        const statusEl = el('div', { style: { fontSize: '10px', color: 'var(--muted-text)', marginTop: '4px', opacity: '0', transition: 'opacity 0.5s', fontStyle: 'italic', textAlign: 'right', minHeight: '12px' } });
-                        
-                        const isInput = f.id.includes('name');
-                        const inputEl = isInput 
-                            ? el('input', { className: 'raw-input', placeholder: f.placeholder, value: profile[f.id] || '', readonly: this.readOnly ? true : null, style: { fontSize: '16px', borderBottom: '1px solid var(--baritone-bg)', paddingBottom: '4px' }})
-                            : UI.textarea({ className: 'raw-input', placeholder: f.placeholder, value: profile[f.id] || '', readonly: this.readOnly ? true : null, style: { fontSize: '16px', minHeight: '60px', borderBottom: '1px solid var(--baritone-bg)', paddingBottom: '4px' }});
-
-                        inputEl.oninput = (e) => {
-                            if (!isInput) { inputEl.style.height = 'auto'; inputEl.style.height = inputEl.scrollHeight + 'px'; }
-                            this.triggerSave(f.id, e.target.value, statusEl);
-                        };
-
-                        if (!isInput) setTimeout(() => { if (inputEl) inputEl.style.height = inputEl.scrollHeight + 'px'; }, 0);
-
-                        listContainer.appendChild(el('div', { style: { display: 'flex', flexDirection: 'column' } }, header, inputEl, statusEl));
-                    });
-                });
-                return this.mainContainer;
-            }
-
-            triggerSave(key, value, statusEl) {
-                if (this.saveTimers[key]) clearTimeout(this.saveTimers[key]);
-                this.saveTimers[key] = setTimeout(async () => {
-                    await pgDB.updateProfile(key, value);
-                    if (window.editor) window.editor.cachedProfile = null;
-                    statusEl.textContent = 'saved.';
-                    statusEl.style.opacity = 1;
-                    setTimeout(() => statusEl.style.opacity = 0, 2000);
-                }, 600);
-            }
         }
 
         class VoiceTool extends BaseTool {
@@ -1444,12 +1344,12 @@
             }
         }
 
-        const TOOLS_MAP = { voice: VoiceTool, smartCanvas: SmartCanvasTool, calendar: CalendarTool, scan: ScanTool, profile: ProfileTool, recall: RecallTool };
+        const TOOLS_MAP = { voice: VoiceTool, smartCanvas: SmartCanvasTool, calendar: CalendarTool, scan: ScanTool, recall: RecallTool };
 
         // ============================================================================
         // 🖋 THE LEAN STREAM EDITOR 
         // ============================================================================
-        const isEditable = () => CONFIG.DEV_ALLOW_PAST_EDITING || window.currentDateStr === todayStr || window.isRefPage;
+        const isEditable = () => CONFIG.DEV_ALLOW_PAST_EDITING || window.currentDateStr === todayStr || window.isPersonaPage;
 
         class LeanStreamEditor {
             constructor(containerId) {
@@ -1457,20 +1357,16 @@
                 this.blocks = []; this.activeBlockId = null;
 
                 this.slashMenu = new FloatingMenu('slash-menu-ui', this.container);
-                this.refMenu = new FloatingMenu('ref-menu-ui', this.container);
-
-                this.ambientTimer = null;
-                this.isPredicting = false;
-                this.cachedProfile = null;
+                this.personaMenu = new FloatingMenu('persona-menu-ui', this.container);
 
                 document.addEventListener('mousedown', (e) => {
                     if (this.slashMenu.active && !this.slashMenu.el.contains(e.target)) this.slashMenu.close();
-                    if (this.refMenu.active && !this.refMenu.el.contains(e.target)) this.refMenu.close();
+                    if (this.personaMenu.active && !this.personaMenu.el.contains(e.target)) this.personaMenu.close();
                 });
 
                 document.addEventListener('click', (e) => {
-                    const mention = e.target.closest('.ref-mention');
-                    if (mention) { e.preventDefault(); e.stopPropagation(); const slug = mention.getAttribute('data-ref'); if (slug) loadRefPage(slug); return; }
+                    const mention = e.target.closest('.persona-mention');
+                    if (mention) { e.preventDefault(); e.stopPropagation(); const slug = mention.getAttribute('data-slug'); if (slug) loadPersonaPage(slug); return; }
 
                     // Global Checkbox Toggle Logic
                     const block = e.target.closest('.stream-block');
@@ -1499,9 +1395,7 @@
             load(blocksData) {
                 this.blocks.forEach(b => { if (b.instance && b.instance.destroy) b.instance.destroy(); });
                 Array.from(this.container.children).forEach(child => { if (!child.classList.contains('floating-menu')) this.container.removeChild(child); });
-                this.blocks = []; this.slashMenu.close(); this.refMenu.close();
-                
-                clearTimeout(this.ambientTimer); // Prevent ambient predictor bleed
+                this.blocks = []; this.slashMenu.close(); this.personaMenu.close();
 
                 if (!blocksData || blocksData.length === 0) this.addBasicBlock('text', '', 'user');
                 else {
@@ -1514,7 +1408,7 @@
                             if (b.type === 'list') { typeToUse = 'ul'; textContent = (b.data.items || []).map(i => `${i.content || i.text}`).join('<br>'); }
                             if (b.type === 'checklist') { typeToUse = 'todo'; textContent = (b.data.items || []).map(i => `${i.checked ? '[x]' : '[ ]'} ${i.text}`).join('<br>'); }
                             
-                            this.addBasicBlock(typeToUse, textContent, b.author || 'user', b.id, b.timestamp, b.isSidebar);
+                            this.addBasicBlock(typeToUse, textContent, b.author || 'user', b.id, b.timestamp);
                         } else if (TOOLS_MAP[b.type]) {
                             this.addToolBlock(b.type, b.data, b.author || 'user', b.id, b.timestamp, b.isVirtual, b.originalNoteKey, true);
                         }
@@ -1529,19 +1423,12 @@
                         let data = b.data;
                         if (['text', 'h1', 'h2', 'h3', 'ul', 'ol', 'quote', 'todo', 'todo-checked', 'hr'].includes(b.type)) data = { text: b.dom.querySelector('.text-content').innerHTML };
                         else if (b.instance && b.instance.save) data = b.instance.save();
-                        return { id: b.id, type: b.type, data, author: b.author, timestamp: b.timestamp, isSidebar: !!b.isSidebar };
+                        return { id: b.id, type: b.type, data, author: b.author, timestamp: b.timestamp };
                     })
                 };
             }
 
             getBlockIndex(id) { return this.blocks.findIndex(b => b.id === id); }
-
-            insertBlockIntoDOMArray(blockObj) {
-                const activeIndex = this.getBlockIndex(this.activeBlockId);
-                const insertIndex = activeIndex !== -1 ? activeIndex + 1 : this.blocks.length;
-                if (insertIndex >= this.blocks.length) { this.container.appendChild(blockObj.dom); this.blocks.push(blockObj); }
-                else { this.container.insertBefore(blockObj.dom, this.blocks[insertIndex].dom); this.blocks.splice(insertIndex, 0, blockObj); }
-            }
 
             replaceTextNodeType(block, newType, clearContent = false) {
                 const tag = ['h1', 'h2', 'h3'].includes(newType) ? newType : newType === 'quote' ? 'blockquote' : 'div';
@@ -1568,23 +1455,42 @@
                 if (clearContent && newType !== 'hr') setCaret(newContent);
             }
 
-            addBasicBlock(type = 'text', html = '', author = 'user', id = crypto.randomUUID(), timestamp = Date.now(), isSidebar = false) {
+            addBasicBlock(type = 'text', html = '', author = 'user', id = crypto.randomUUID(), timestamp = Date.now(), insertAfterId = null) {
                 const tag = type === 'h1' ? 'h1' : type === 'h2' ? 'h2' : type === 'h3' ? 'h3' : type === 'quote' ? 'blockquote' : 'div';
-                const block = { id, type, data: { text: html }, author, timestamp, dom: null, isSidebar };
+                const block = { id, type, data: { text: html }, author, timestamp, dom: null };
                 
                 let placeholder = author === 'user' && type !== 'hr' ? "start writing, or type '/' for commands..." : "";
                 if (type === 'hr') placeholder = "";
-                else if (isSidebar && author === 'user') placeholder = "[sidebar chat] type message... (Esc to exit)";
                 else if (['h1', 'h2', 'h3'].includes(type) && author === 'user') placeholder = "Heading...";
                 else if (['ul', 'ol'].includes(type) && author === 'user') placeholder = "List item...";
                 else if (['todo', 'todo-checked'].includes(type) && author === 'user') placeholder = "To-do...";
                 else if (type === 'quote' && author === 'user') placeholder = "Quote...";
 
-                const isReadonly = (author === 'ai' || !isEditable() || type === 'hr');
+                const isReadonly = (!isEditable() || type === 'hr');
 
                 const content = el(tag, { className: `text-content ${type === 'text' ? '' : type}`, contentEditable: !isReadonly, 'data-placeholder': placeholder, innerHTML: html, onfocus: () => { this.activeBlockId = id; }, oninput: () => { this.handleTextInput(block, content); scheduleSave(); }, onkeydown: (e) => this.handleTextKeydown(e, block, content) });
-                block.dom = el('div', { className: `stream-block author-${author} ${isSidebar ? 'sidebar' : ''}`, 'data-id': id }, content);
-                this.insertBlockIntoDOMArray(block); return block;
+                
+                // Use dashed classname for specific AI styling targeting
+                const safeAuthorClass = author.replace('.', '-'); 
+                block.dom = el('div', { className: `stream-block author-${safeAuthorClass}`, 'data-id': id }, content);
+
+                let insertIndex = this.blocks.length;
+                if (insertAfterId) {
+                    const idx = this.getBlockIndex(insertAfterId);
+                    if (idx !== -1) insertIndex = idx + 1;
+                } else {
+                    const activeIndex = this.getBlockIndex(this.activeBlockId);
+                    if (activeIndex !== -1) insertIndex = activeIndex + 1;
+                }
+
+                if (insertIndex >= this.blocks.length) { 
+                    this.container.appendChild(block.dom); 
+                    this.blocks.push(block); 
+                } else { 
+                    this.container.insertBefore(block.dom, this.blocks[insertIndex].dom); 
+                    this.blocks.splice(insertIndex, 0, block); 
+                }
+                return block;
             }
 
             addToolBlock(type, data, author = 'user', id = crypto.randomUUID(), timestamp = Date.now(), isVirtual = false, originalNoteKey = null, fromLoad = false) {
@@ -1600,17 +1506,29 @@
                 let headerContent = [el('span', { textContent: `[ ${type} ]` })];
                 if (isVirtual) {
                     let sourceDisplay = originalNoteKey;
-                    if (sourceDisplay.startsWith('ref::')) sourceDisplay = `@${sourceDisplay.replace('ref::', '').toUpperCase()}`;
+                    if (sourceDisplay.startsWith('persona::')) sourceDisplay = `@${sourceDisplay.replace('persona::', '').toUpperCase()}`;
                     else sourceDisplay = parseLocal(sourceDisplay).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 
                     headerContent = [
                         el('span', { textContent: `[ scheduled event ]` }),
-                        el('button', { textContent: `↗ original: ${sourceDisplay}`, style: { background: 'none', border: 'none', color: 'var(--neon-purple)', fontSize: '10px', cursor: 'pointer', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.05em', marginLeft: '8px', textDecoration: 'underline' }, onclick: () => { if (originalNoteKey.startsWith('ref::')) loadRefPage(originalNoteKey.replace('ref::', '')); else { scheduleSave(true); loadDay(originalNoteKey); } } })
+                        el('button', { textContent: `↗ original: ${sourceDisplay}`, style: { background: 'none', border: 'none', color: 'var(--neon-purple)', fontSize: '10px', cursor: 'pointer', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.05em', marginLeft: '8px', textDecoration: 'underline' }, onclick: () => { if (originalNoteKey.startsWith('persona::')) loadPersonaPage(originalNoteKey.replace('persona::', '')); else { scheduleSave(true); loadDay(originalNoteKey); } } })
                     ];
                 }
 
-                block.dom = el('div', { className: `baritone-panel stream-block ${isVirtual ? 'virtual-block' : ''}`, 'data-id': id }, el('div', { className: 'panel-header' }, el('div', { style: { display: 'flex', alignItems: 'center' } }, ...headerContent), controls), instance.render());
-                this.insertBlockIntoDOMArray(block);
+                const safeAuthorClass = author.replace('.', '-');
+                block.dom = el('div', { className: `baritone-panel stream-block author-${safeAuthorClass} ${isVirtual ? 'virtual-block' : ''}`, 'data-id': id }, el('div', { className: 'panel-header' }, el('div', { style: { display: 'flex', alignItems: 'center' } }, ...headerContent), controls), instance.render());
+                
+                let insertIndex = this.blocks.length;
+                const activeIndex = this.getBlockIndex(this.activeBlockId);
+                if (activeIndex !== -1) insertIndex = activeIndex + 1;
+
+                if (insertIndex >= this.blocks.length) { 
+                    this.container.appendChild(block.dom); 
+                    this.blocks.push(block); 
+                } else { 
+                    this.container.insertBefore(block.dom, this.blocks[insertIndex].dom); 
+                    this.blocks.splice(insertIndex, 0, block); 
+                }
                 
                 if (isEditable() && !isVirtual && !fromLoad) { this.activeBlockId = id; const textBlock = this.addBasicBlock('text', '', 'user'); setTimeout(() => setCaret(textBlock.dom.querySelector('.text-content')), 50); }
                 if (!isVirtual && !fromLoad) scheduleSave(); 
@@ -1637,141 +1555,7 @@
                 scheduleSave();
             }
 
-            async getContextData(currentText) {
-                let profileStr = '';
-                let userName = 'USER';
-                let collabName = 'AI COMPANION';
-                
-                if (pgDB.isReady) {
-                    const profileObj = await pgDB.getProfile(); 
-                    if (profileObj['user_name']) userName = profileObj['user_name'];
-                    if (profileObj['collab_name']) collabName = profileObj['collab_name'];
-                    
-                    if (profileObj['user_context']) profileStr += `[About ${userName}]: ${profileObj['user_context']}\n`;
-                    if (profileObj['collab_persona']) profileStr += `[Your Persona & Role]: ${profileObj['collab_persona']}\n`;
-                }
-                
-                if (!profileStr) profileStr = "No specific persona instructions provided.";
-
-                let topicalContext = "";
-                if (pgDB.isReady && currentText) {
-                    const hits = await pgDB.searchSemantic(currentText, window.currentDateStr, 3);
-                    if (hits && hits.length > 0) topicalContext = hits.map(h => h.searchText).join('\n\n---\n\n');
-                }
-
-                return { profileStr, userName, collabName, topicalContext };
-            }
-
-            async ambientPredict(block, content) {
-                if (!aiEngine || isAILoading || this.isPredicting || this.activeBlockId !== block.id || this.slashMenu.active || block.isSidebar) return;
-                const sel = window.getSelection(); if (!sel.rangeCount) return;
-                const currentText = content.textContent.trim(); if (currentText.length < 5) return;
-                const ambientContentSnapshot = content.textContent;
-
-                this.isPredicting = true; aiStatusEl.className = 'neon-status ai-status loading'; aiStatusEl.textContent = 'sys.ai.anticipating';
-
-                try {
-                    const { profileStr, userName, collabName, topicalContext } = await this.getContextData(currentText);
-
-                    const editorState = this.save();
-                    let todaysContext = editorState.blocks.map(b => b.data?.text ? normalizePlainText(b.data.text) : '').join('\n');
-
-                    const systemPrompt = `You are ${collabName}, a silent ghostwriter seamlessly predicting the exact next words ${userName} is about to type.
-[PROFILES & CONTEXT]:
-${profileStr}
-
-[RELEVANT PAST NOTES]:
-${topicalContext || '(No relevant past notes)'}
-
-CRITICAL INSTRUCTIONS:
-1. Output ONLY the literal continuation of ${userName}'s last sentence. Use past notes for context if relevant.
-2. NEVER introduce yourself. NO quotes, NO explanation, NO formatting, NO chat prefixes.
-3. If it starts a new word, start with a space. If finishing a word, do not use a space.`;
-
-                    const response = await aiEngine.chat.completions.create({ messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: todaysContext }], temperature: 0.2, max_tokens: 30 });
-                    let prediction = response.choices[0].message.content || ""; prediction = prediction.replace(/^["'`\n]+|["'`\n]+$/g, '').trimEnd();
-
-                    if (prediction && document.activeElement === content && content.textContent === ambientContentSnapshot) {
-                        if (!prediction.match(/^[.,!?;]/) && !prediction.startsWith(' ') && !currentText.endsWith(' ')) prediction = ' ' + prediction;
-                        content.setAttribute('data-ghost', prediction);
-                    }
-                } catch (e) {} finally { this.isPredicting = false; aiStatusEl.className = 'neon-status ai-status'; aiStatusEl.textContent = 'sys.ai.online'; }
-            }
-
-            async triggerSidebarChat(currentBlock, content) {
-                if (!aiEngine || isAILoading || this.isPredicting) return;
-                
-                this.activeBlockId = currentBlock.id;
-                const aiBlock = this.addBasicBlock('text', '<span class="neon-status ai-status loading">sys.ai.thinking...</span>', 'ai', crypto.randomUUID(), Date.now(), true);
-                
-                this.isPredicting = true;
-                aiStatusEl.className = 'neon-status ai-status loading';
-                aiStatusEl.textContent = 'sys.ai.sidebar';
-
-                try {
-                    const { profileStr, userName, collabName, topicalContext } = await this.getContextData(content.textContent.trim());
-
-                    const systemPrompt = `You are ${collabName}, a supportive AI companion having a private sidebar conversation with ${userName}.
-The following profile describes both you and ${userName}. You must remember these details to provide a personalized, empathetic response.
-
-[PROFILES & CONTEXT]:
-${profileStr}
-
-[RELEVANT PAST CONTEXT]:
-${topicalContext || '(No relevant past notes)'}
-
-CRITICAL INSTRUCTIONS:
-1. NEVER introduce yourself (e.g., never say "Hello, I am...").
-2. DO NOT output conversational filler like "As an AI...".
-3. DO NOT output prefixes like "${collabName}:" or "AI:". Just output your dialogue directly.
-4. Respond conversationally, empathetically, and directly to their last message.
-5. Keep your response concise (1-3 sentences).`;
-
-                    const editorState = this.save();
-                    const messages = [{ role: 'system', content: systemPrompt }];
-                    
-                    editorState.blocks.forEach(b => {
-                        if (b.id === aiBlock.id) return; 
-                        const txt = b.data?.text ? normalizePlainText(b.data.text) : '';
-                        if (!txt) return;
-                        
-                        messages.push({
-                            role: b.author === 'ai' ? 'assistant' : 'user',
-                            content: b.isSidebar ? `[SIDEBAR]: ${txt}` : txt
-                        });
-                    });
-
-                    const response = await aiEngine.chat.completions.create({ 
-                        messages: messages, 
-                        temperature: 0.7, 
-                        max_tokens: 150 
-                    });
-
-                    let aiText = response.choices[0].message.content || ""; 
-                    
-                    const aiContentNode = aiBlock.dom.querySelector('.text-content');
-                    aiContentNode.innerHTML = escapeHTML(aiText).replace(/\n/g, '<br>');
-                    
-                    this.activeBlockId = aiBlock.id;
-                    const newUserBlock = this.addBasicBlock('text', '', 'user', crypto.randomUUID(), Date.now(), true);
-                    setTimeout(() => setCaret(newUserBlock.dom.querySelector('.text-content'), 0), 10); 
-                    scheduleSave();
-
-                } catch (e) {
-                    const aiContentNode = aiBlock.dom.querySelector('.text-content');
-                    aiContentNode.innerHTML = '<span style="color:#ef4444">connection failed.</span>';
-                } finally { 
-                    this.isPredicting = false; 
-                    aiStatusEl.className = 'neon-status ai-status'; 
-                    aiStatusEl.textContent = 'sys.ai.online'; 
-                }
-            }
-
             handleTextInput(block, content) {
-                if (content.hasAttribute('data-ghost')) content.removeAttribute('data-ghost');
-                clearTimeout(this.ambientTimer);
-                this.ambientTimer = setTimeout(() => this.ambientPredict(block, content), 750);
-
                 const text = content.textContent.replace(/\u00A0/g, ' ');
                 if (block.type === 'text') {
                     let newType = null;
@@ -1805,8 +1589,8 @@ CRITICAL INSTRUCTIONS:
                     const slashMatch = textBeforeCursor.match(/(?:^|\n)\/([a-zA-Z0-9_]*)$/);
                     if (slashMatch) this.openSlashMenu(block, content, slashMatch[1].toLowerCase(), range); else this.slashMenu.close();
 
-                    const refMatch = textBeforeCursor.match(/(?:^|\s|\n)@([a-zA-Z0-9_]*)$/);
-                    if (refMatch && !this.slashMenu.active) this.openRefMenu(block, content, refMatch[1], range); else this.refMenu.close();
+                    const refMatch = textBeforeCursor.match(/(?:^|\s|\n)@([a-zA-Z0-9_.]*)$/);
+                    if (refMatch && !this.slashMenu.active) this.openPersonaMenu(block, content, refMatch[1], range); else this.personaMenu.close();
                 }
             }
 
@@ -1825,27 +1609,38 @@ CRITICAL INSTRUCTIONS:
                 );
             }
 
-            async openRefMenu(block, content, filterText, currentRange) {
+            async openPersonaMenu(block, content, filterText, currentRange) {
                 const filterLower = filterText.toLowerCase().trim();
-                if (!this.cachedRefs) {
-                    const refs = await pgDB.getReferences(); const activeRefs = [];
-                    for (const ref of refs) {
-                        const backlinks = pgDB.findBacklinks(ref.slug); const refData = pgDB.cache[`ref::${ref.slug}`];
-                        const hasContent = refData && refData.blocks && refData.blocks.length > 0 && !(refData.blocks.length === 1 && !refData.blocks[0].data.text);
-                        if (backlinks.length > 0 || hasContent) activeRefs.push(ref); else await pgDB.pg.query(`DELETE FROM references_list WHERE slug = $1`, [ref.slug]);
+                if (!this.cachedPersonas) {
+                    const personas = await pgDB.getPersonas(); 
+                    const activePersonas = [];
+                    for (const persona of personas) {
+                        const backlinks = pgDB.findBacklinks(persona.slug); 
+                        const personaData = pgDB.cache[`persona::${persona.slug}`];
+                        const hasContent = personaData && personaData.blocks && personaData.blocks.length > 0 && !(personaData.blocks.length === 1 && !personaData.blocks[0].data.text);
+                        
+                        if (backlinks.length > 0 || hasContent || persona.slug === 'me' || persona.slug.endsWith('.ai')) {
+                            activePersonas.push(persona); 
+                        } else { 
+                            await pgDB.pg.query(`DELETE FROM personas_list WHERE slug = $1`, [persona.slug]); 
+                        }
                     }
-                    this.cachedRefs = activeRefs;
+                    this.cachedPersonas = activePersonas;
                 }
 
-                const filtered = filterLower ? this.cachedRefs.filter(r => r.display_name.toLowerCase().includes(filterLower) || r.slug.includes(filterLower)) : this.cachedRefs;
+                const filtered = filterLower ? this.cachedPersonas.filter(r => r.display_name.toLowerCase().includes(filterLower) || r.slug.includes(filterLower)) : this.cachedPersonas;
                 let items = filtered.map(r => ({ slug: r.slug, name: r.display_name, isNew: false }));
-                if (filterLower && !this.cachedRefs.some(r => r.display_name.toLowerCase() === filterLower)) items.push({ slug: null, name: filterText.trim(), isNew: true });
+                if (filterLower && !this.cachedPersonas.some(r => r.display_name.toLowerCase() === filterLower)) items.push({ slug: null, name: filterText.trim(), isNew: true });
                 if (items.length === 0 && !filterLower) return;
 
-                this.refMenu.open({ block, content }, currentRange, items, 
+                this.personaMenu.open({ block, content }, currentRange, items, 
                     async (item, ctx) => {
                         let slug = item.slug; let displayName = item.name;
-                        if (item.isNew) { slug = displayName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'ref-' + Date.now(); await pgDB.createReference(slug, displayName); this.cachedRefs = null; }
+                        if (item.isNew) { 
+                            slug = displayName.toLowerCase().replace(/[^a-z0-9.]+/g, '-').replace(/^-|-$/g, '') || 'persona-' + Date.now(); 
+                            await pgDB.createPersona(slug, displayName); 
+                            this.cachedPersonas = null; 
+                        }
                         
                         const sel = window.getSelection();
                         if (sel.rangeCount > 0) {
@@ -1861,7 +1656,7 @@ CRITICAL INSTRUCTIONS:
                                 }
                                 if (startNode) {
                                     const deleteRange = document.createRange(); deleteRange.setStart(startNode, startOffset); deleteRange.setEnd(range.startContainer, range.startOffset); deleteRange.deleteContents();
-                                    const mention = el('span', { className: 'ref-mention', 'data-ref': slug, contentEditable: 'false', textContent: `@${displayName.toUpperCase()}` });
+                                    const mention = el('span', { className: 'persona-mention', 'data-slug': slug, contentEditable: 'false', textContent: `@${displayName.toUpperCase()}` });
                                     const spaceAfter = document.createTextNode('\u00A0');
                                     deleteRange.insertNode(spaceAfter); deleteRange.insertNode(mention);
                                     const newRange = document.createRange(); newRange.setStartAfter(spaceAfter); newRange.collapse(true);
@@ -1869,67 +1664,17 @@ CRITICAL INSTRUCTIONS:
                                 }
                             }
                         }
-                        this.refMenu.close(); scheduleSave();
+                        this.personaMenu.close(); scheduleSave();
                     },
-                    (item, isSelected) => el('button', { className: `menu-item ${item.isNew ? 'create-new' : ''} ${isSelected ? 'selected' : ''}` }, el('span', { textContent: item.isNew ? `+ ${item.name.toUpperCase()}` : item.name.toUpperCase() }), el('span', { className: 'sub', textContent: item.isNew ? 'create new' : 'reference' }))
+                    (item, isSelected) => el('button', { className: `menu-item ${item.isNew ? 'create-new' : ''} ${isSelected ? 'selected' : ''}` }, el('span', { textContent: item.isNew ? `+ ${item.name.toUpperCase()}` : item.name.toUpperCase() }), el('span', { className: 'sub', textContent: item.isNew ? (item.name.endsWith('.ai') ? 'create ai persona' : 'create persona') : 'persona' }))
                 );
             }
 
             handleTextKeydown(e, block, content) {
-                if (e.key === 'Escape') {
-                    if (content.hasAttribute('data-ghost')) {
-                        e.preventDefault();
-                        content.removeAttribute('data-ghost');
-                        return;
-                    }
-                    if (block.isSidebar) {
-                        e.preventDefault();
-                        block.dom.classList.remove('sidebar');
-                        block.isSidebar = false;
-                        content.setAttribute('data-placeholder', "start writing, or type '/' for commands...");
-                        scheduleSave();
-                        return;
-                    }
-                }
-
-                if (e.key === 'Tab' && content.hasAttribute('data-ghost')) {
-                    e.preventDefault(); const ghostText = content.getAttribute('data-ghost'); content.removeAttribute('data-ghost');
-                    const sel = window.getSelection();
-                    if (sel.rangeCount > 0) { const range = sel.getRangeAt(0); const textNode = document.createTextNode(ghostText); range.insertNode(textNode); range.setStartAfter(textNode); range.collapse(true); sel.removeAllRanges(); sel.addRange(range); }
-                    scheduleSave(); return;
-                }
-                
-                if (content.hasAttribute('data-ghost') && e.key !== 'Enter') {
-                    content.removeAttribute('data-ghost');
-                }
-
                 if (this.slashMenu.handleKey(e)) return;
-                if (this.refMenu.handleKey(e)) return;
+                if (this.personaMenu.handleKey(e)) return;
 
                 if (e.key === 'Enter' && !e.shiftKey) {
-                    if (content.hasAttribute('data-ghost')) {
-                        e.preventDefault();
-                        content.removeAttribute('data-ghost');
-                        
-                        const newBlock = this.addBasicBlock('text', '', 'user', crypto.randomUUID(), Date.now(), true);
-                        setTimeout(() => setCaret(newBlock.dom.querySelector('.text-content'), 0), 10);
-                        scheduleSave();
-                        return;
-                    }
-
-                    if (block.isSidebar) {
-                        e.preventDefault();
-                        if (content.textContent.trim() === '') {
-                            block.dom.classList.remove('sidebar');
-                            block.isSidebar = false;
-                            content.setAttribute('data-placeholder', "start writing, or type '/' for commands...");
-                            scheduleSave();
-                            return;
-                        }
-                        this.triggerSidebarChat(block, content);
-                        return;
-                    }
-
                     e.preventDefault();
                     if (['ul', 'ol', 'quote', 'todo', 'todo-checked'].includes(block.type) && content.textContent.trim() === '') { 
                         this.replaceTextNodeType(block, 'text'); 
@@ -1946,9 +1691,16 @@ CRITICAL INSTRUCTIONS:
                         
                         let nextType = 'text';
                         if (['ul', 'ol', 'quote'].includes(block.type)) nextType = block.type;
-                        if (['todo', 'todo-checked'].includes(block.type)) nextType = 'todo'; // Checked items create unchecked next lines
+                        if (['todo', 'todo-checked'].includes(block.type)) nextType = 'todo'; 
                         
                         const newBlock = this.addBasicBlock(nextType, postHtml, 'user');
+
+                        // Check for AI Personas in the original block before focusing the new one
+                        const aiMentions = Array.from(content.querySelectorAll('.persona-mention')).filter(m => m.getAttribute('data-slug').endsWith('.ai'));
+                        if (aiMentions.length > 0) {
+                            this.triggerAIPersonas(block, content, aiMentions);
+                        }
+
                         setTimeout(() => setCaret(newBlock.dom.querySelector('.text-content'), 0), 10); scheduleSave();
                     }
                     return;
@@ -1961,20 +1713,11 @@ CRITICAL INSTRUCTIONS:
                         if (preCaretRange.toString().length === 0) {
                             e.preventDefault(); 
                             if (block.type !== 'text') { this.replaceTextNodeType(block, 'text'); scheduleSave(); return; }
-                            
-                            if (block.isSidebar) {
-                                block.dom.classList.remove('sidebar');
-                                block.isSidebar = false;
-                                content.setAttribute('data-placeholder', "start writing, or type '/' for commands...");
-                                scheduleSave();
-                                return;
-                            }
 
                             const idx = this.getBlockIndex(block.id);
                             if (idx > 0) {
                                 const prevBlock = this.blocks[idx - 1]; 
                                 
-                                // Deleting a divider block
                                 if (prevBlock.type === 'hr') {
                                     this.deleteBlock(prevBlock.id);
                                     scheduleSave();
@@ -1993,6 +1736,89 @@ CRITICAL INSTRUCTIONS:
                     }
                 }
             }
+
+            async triggerAIPersonas(triggerBlock, triggerContent, aiMentions) {
+                if (!aiEngine || isAILoading) return;
+                
+                const userPrompt = normalizePlainText(triggerContent.textContent);
+
+                // Fetch @me personality
+                const meData = pgDB.cache['persona::me'];
+                const meContext = meData && meData.blocks ? meData.blocks.map(b => b.data && b.data.text ? normalizePlainText(b.data.text) : '').join('\n') : '';
+
+                // Fetch general context
+                let topicalContext = '';
+                if (pgDB.isReady && userPrompt.length > 3) {
+                    const hits = await pgDB.searchSemantic(userPrompt, window.currentDateStr, 3);
+                    if (hits && hits.length > 0) topicalContext = hits.map(h => h.searchText).join('\n\n---\n\n');
+                }
+
+                let lastInsertId = triggerBlock.id;
+
+                for (const mention of aiMentions) {
+                    const aiSlug = mention.getAttribute('data-slug');
+                    const aiName = mention.textContent.replace('@', '');
+
+                    const aiData = pgDB.cache[`persona::${aiSlug}`];
+                    const aiInstructions = aiData && aiData.blocks ? aiData.blocks.map(b => b.data && b.data.text ? normalizePlainText(b.data.text) : '').join('\n') : '';
+
+                    const aiBlockId = crypto.randomUUID();
+                    const aiBlock = this.addBasicBlock('text', `<span class="neon-status ai-status loading">${aiName} thinking...</span>`, aiSlug, aiBlockId, Date.now(), lastInsertId);
+                    lastInsertId = aiBlockId; 
+
+                    const sysPrompt = `You are ${aiName}.
+[User Personality & Context (@me)]:
+${meContext || 'None provided.'}
+
+[Your Persona Instructions & Memory]:
+${aiInstructions || 'You are a helpful AI assistant.'}
+
+[Relevant Past Notes]:
+${topicalContext || '(None)'}
+
+CRITICAL INSTRUCTIONS:
+1. Respond concisely and strictly to the prompt.
+2. DO NOT prefix your response with your name or any label.
+3. Be helpful, direct, and embody your persona instructions perfectly.`;
+
+                    try {
+                        const response = await aiEngine.chat.completions.create({
+                            messages: [
+                                { role: 'system', content: sysPrompt },
+                                { role: 'user', content: userPrompt }
+                            ],
+                            temperature: 0.7,
+                            max_tokens: 500
+                        });
+
+                        let aiText = response.choices[0].message.content || "";
+                        
+                        const aiContentNode = aiBlock.dom.querySelector('.text-content');
+                        aiContentNode.innerHTML = escapeHTML(aiText).replace(/\n/g, '<br>');
+
+                        // Save the interaction silently to the AI's persona page so it remembers 
+                        await this.appendToPersonaPage(aiSlug, userPrompt, aiText);
+                        
+                    } catch (err) {
+                        const aiContentNode = aiBlock.dom.querySelector('.text-content');
+                        aiContentNode.innerHTML = '<span style="color:#ef4444">connection failed.</span>';
+                    }
+                }
+                scheduleSave();
+            }
+
+            async appendToPersonaPage(slug, userText, aiText) {
+                const pageKey = `persona::${slug}`;
+                if (!pgDB.cache[pageKey]) pgDB.cache[pageKey] = { blocks: [] };
+                
+                const b1 = { id: crypto.randomUUID(), type: 'quote', data: { text: escapeHTML(userText) }, author: 'user', timestamp: Date.now() };
+                const b2 = { id: crypto.randomUUID(), type: 'text', data: { text: escapeHTML(aiText).replace(/\n/g, '<br>') }, author: slug, timestamp: Date.now() };
+                
+                pgDB.cache[pageKey].blocks.push(b1, b2);
+                if (pgDB.isReady) {
+                    await pgDB.saveNote(pageKey, pgDB.cache[pageKey]);
+                }
+            }
         }
 
         const editor = new LeanStreamEditor('lean-editor');
@@ -2001,11 +1827,11 @@ CRITICAL INSTRUCTIONS:
         // ============================================================================
         // APP LIFECYCLE & STORAGE SYNC
         // ============================================================================
-        window.isRefPage = false;
-        window.currentRefSlug = null;
+        window.isPersonaPage = false;
+        window.currentPersonaSlug = null;
 
         const scheduleSave = debounce(async (immediate = false) => {
-            if (!(CONFIG.DEV_ALLOW_PAST_EDITING || window.currentDateStr === todayStr || window.isRefPage)) return;
+            if (!(CONFIG.DEV_ALLOW_PAST_EDITING || window.currentDateStr === todayStr || window.isPersonaPage)) return;
             const data = editor.save();
             const dbStatusEl = document.getElementById('db-status');
             try {
@@ -2026,15 +1852,20 @@ CRITICAL INSTRUCTIONS:
 
         function renderDateHeader() {
             const headerEl = document.getElementById('date-header');
-            if (window.isRefPage && window.currentRefSlug) {
-                pgDB.getReferences().then(refs => { const ref = refs.find(r => r.slug === window.currentRefSlug); headerEl.textContent = `@${ref ? ref.display_name.toUpperCase() : window.currentRefSlug.toUpperCase()}`; });
-            } else headerEl.textContent = parseLocal(window.currentDateStr).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).toLowerCase();
+            if (window.isPersonaPage && window.currentPersonaSlug) {
+                pgDB.getPersonas().then(personas => { 
+                    const persona = personas.find(p => p.slug === window.currentPersonaSlug); 
+                    headerEl.textContent = `@${persona ? persona.display_name.toUpperCase() : window.currentPersonaSlug.toUpperCase()}`; 
+                });
+            } else {
+                headerEl.textContent = parseLocal(window.currentDateStr).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).toLowerCase();
+            }
         }
 
         function getVirtualCalendarBlocks(targetDateStr) {
             const virtuals = []; const targetTime = parseLocal(targetDateStr).getTime();
             for (const [noteDate, dayData] of Object.entries(pgDB.cache)) {
-                if (noteDate === targetDateStr || !dayData || !dayData.blocks) continue;
+                if (noteDate === targetDateStr || noteDate.startsWith('persona::') || !dayData || !dayData.blocks) continue;
                 for (const block of dayData.blocks) {
                     if (block.type === 'calendar' && block.data && block.data.datetime) {
                         const eventDateObj = new Date(block.data.datetime);
@@ -2064,7 +1895,7 @@ CRITICAL INSTRUCTIONS:
 
         async function loadDay(dateStr) {
             if (pgDB.isReady && isEditable()) { try { await pgDB.saveNote(window.currentDateStr, editor.save()); } catch(e) {} }
-            window.isRefPage = false; window.currentRefSlug = null; window.currentDateStr = dateStr;
+            window.isPersonaPage = false; window.currentPersonaSlug = null; window.currentDateStr = dateStr;
             renderDateHeader(); removeBacklinksSection();
             
             let dayData = pgDB.cache[dateStr];
@@ -2076,11 +1907,11 @@ CRITICAL INSTRUCTIONS:
             editor.load([...getVirtualCalendarBlocks(dateStr), ...dayData.blocks]);
         }
 
-        async function loadRefPage(slug) {
-            if (pgDB.isReady) { try { await pgDB.saveNote(window.currentDateStr, editor.save()); } catch(e) {} }
-            window.isRefPage = true; window.currentRefSlug = slug; window.currentDateStr = `ref::${slug}`;
+        async function loadPersonaPage(slug) {
+            if (pgDB.isReady && isEditable()) { try { await pgDB.saveNote(window.currentDateStr, editor.save()); } catch(e) {} }
+            window.isPersonaPage = true; window.currentPersonaSlug = slug; window.currentDateStr = `persona::${slug}`;
             renderDateHeader();
-            editor.load((pgDB.cache[`ref::${slug}`] || { blocks: [] }).blocks);
+            editor.load((pgDB.cache[`persona::${slug}`] || { blocks: [] }).blocks);
             renderBacklinksSection(slug);
         }
 
@@ -2089,10 +1920,13 @@ CRITICAL INSTRUCTIONS:
             const backlinks = pgDB.findBacklinks(slug);
             if (backlinks.length === 0) return;
 
-            const section = el('div', { className: 'backlinks-section', id: 'backlinks-container' }, el('div', { className: 'backlinks-header' }, `[ ${backlinks.length} reference${backlinks.length !== 1 ? 's' : ''} ]`));
+            const section = el('div', { className: 'backlinks-section', id: 'backlinks-container' }, el('div', { className: 'backlinks-header' }, `[ ${backlinks.length} backlink${backlinks.length !== 1 ? 's' : ''} ]`));
             backlinks.forEach(bl => {
-                section.appendChild(el('button', { className: 'backlink-item', onclick: () => loadDay(bl.dateStr) },
-                    el('span', { textContent: parseLocal(bl.dateStr).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase() }),
+                section.appendChild(el('button', { className: 'backlink-item', onclick: () => {
+                    if (bl.dateStr.startsWith('persona::')) loadPersonaPage(bl.dateStr.replace('persona::', ''));
+                    else loadDay(bl.dateStr);
+                }},
+                    el('span', { textContent: bl.dateStr.startsWith('persona::') ? `@${bl.dateStr.replace('persona::', '').toUpperCase()}` : parseLocal(bl.dateStr).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase() }),
                     el('span', { className: 'backlink-preview', textContent: bl.preview })
                 ));
             });
@@ -2103,7 +1937,7 @@ CRITICAL INSTRUCTIONS:
         function removeBacklinksSection() { const existing = document.getElementById('backlinks-container'); if (existing) existing.remove(); }
 
         document.getElementById('date-header').onclick = () => {
-            if (window.isRefPage) return loadDay(todayStr);
+            if (window.isPersonaPage) return loadDay(todayStr);
             const [y, m, d] = window.currentDateStr.split('-');
             EditorialCalendar.open(new Date(y, m - 1, d), false, null, (selectedDate) => {
                 const selectedStr = getLocalYYYYMMDD(selectedDate);
