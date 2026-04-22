@@ -143,20 +143,22 @@
             opacity: 1;
         }
 
-        .save-status {
-            color: var(--muted-text);
-            opacity: 0;
-            transition: opacity 0.4s ease;
-        }
-
-        .save-status.visible {
-            opacity: 1;
+        /* Unified DB Status */
+        .db-status {
             color: var(--neon-green);
+            opacity: 0.8;
+            transition: opacity 0.3s ease, color 0.3s ease, text-shadow 0.3s ease;
         }
 
-        .storage-warning {
+        .db-status.saving {
+            opacity: 1;
+            text-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+        }
+
+        .db-status.error {
             color: #ef4444;
-            display: none;
+            opacity: 1;
+            text-shadow: none;
         }
 
         @keyframes neon-pulse {
@@ -266,6 +268,61 @@
             width: 3px;
             background: var(--neon-purple);
             opacity: 0.5;
+        }
+
+        /* --- NEW MARKDOWN BLOCKS --- */
+        #lean-editor {
+            counter-reset: lean-ol;
+        }
+
+        .stream-block:not(:has(.ol)) {
+            counter-reset: lean-ol;
+        }
+
+        .text-content.quote {
+            font-size: clamp(20px, 5vw, 26px);
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            color: var(--baritone-text);
+            background: var(--baritone-bg);
+            border-left: 4px solid var(--text-color);
+            padding: 16px 20px;
+            margin: 8px 0;
+            font-style: italic;
+        }
+
+        .text-content.ul,
+        .text-content.ol {
+            padding-left: 32px;
+            margin-top: 4px;
+            margin-bottom: 4px;
+        }
+        
+        /* Markers moved to parent ::after to avoid contenteditable caret/placeholder collisions */
+        .stream-block:has(.ul)::after {
+            content: '—';
+            position: absolute;
+            left: 0;
+            top: 4px;
+            color: var(--text-color);
+            font-weight: 900;
+            pointer-events: none;
+        }
+
+        .stream-block:has(.ol) {
+            counter-increment: lean-ol;
+        }
+        
+        .stream-block:has(.ol)::after {
+            content: counter(lean-ol) ".";
+            position: absolute;
+            left: 0;
+            top: 4px;
+            font-family: var(--font-mono);
+            font-weight: 700;
+            color: var(--text-color);
+            font-size: 0.9em;
+            pointer-events: none;
         }
 
         /* --- SLASH COMMAND MENU --- */
@@ -796,10 +853,7 @@
             <div id="date-header">today</div>
             <div class="status-row">
                 <span id="ai-inline-status" class="neon-status ai-status loading">sys.ai.booting</span>
-                <span id="db-status" class="neon-status"
-                    style="color: var(--neon-purple); opacity: 0.8;">pg_vector.init</span>
-                <span id="save-indicator" class="neon-status save-status">saved</span>
-                <span id="storage-warning" class="neon-status storage-warning">db.offline [memory mode]</span>
+                <span id="db-status" class="neon-status db-status">db.init</span>
             </div>
         </div>
     </div>
@@ -942,6 +996,7 @@
             constructor() { this.pg = null; this.cache = {}; this.isReady = false; this.pendingDays = new Set(); }
 
             async init() {
+                const dbStatusEl = document.getElementById('db-status');
                 try {
                     const [{ PGlite }, { vector }] = await Promise.all([
                         import("https://cdn.jsdelivr.net/npm/@electric-sql/pglite/dist/index.js"),
@@ -957,8 +1012,10 @@
                         CREATE TABLE IF NOT EXISTS profile_settings (key TEXT PRIMARY KEY, value TEXT);
                         CREATE TABLE IF NOT EXISTS references_list (slug TEXT PRIMARY KEY, display_name TEXT NOT NULL, created_at BIGINT);
                     `);
+                    
                     this.isReady = true;
-                    document.getElementById('db-status').textContent = 'pg_vector.ready';
+                    dbStatusEl.textContent = 'db.ready';
+                    dbStatusEl.className = 'neon-status db-status';
 
                     const res = await this.pg.query(`SELECT date_str, data FROM daily_notes`);
                     res.rows.forEach(r => { this.cache[r.date_str] = typeof r.data === 'string' ? JSON.parse(r.data) : r.data; });
@@ -966,8 +1023,8 @@
                     this.startBackgroundIndexer();
                 } catch (e) {
                     console.error("PGlite Error", e);
-                    document.getElementById('db-status').textContent = 'pg_vector.offline';
-                    document.getElementById('storage-warning').style.display = 'inline';
+                    dbStatusEl.textContent = 'db.offline [memory mode]';
+                    dbStatusEl.className = 'neon-status db-status error';
                 }
             }
 
@@ -987,15 +1044,21 @@
                 if (!this.isReady) return;
                 await this.pg.query(`DELETE FROM profile_settings WHERE key = $1`, [key]);
             }
+            
             async saveNote(dateStr, data) {
                 this.cache[dateStr] = data;
                 localStorage.setItem(`infinotes_backup_${dateStr}`, JSON.stringify(data));
-                if (!this.isReady) return;
+                
+                if (!this.isReady) {
+                    throw new Error("Database is offline, saved to memory/localStorage only.");
+                }
+                
                 try {
                     await this.pg.query(`INSERT INTO daily_notes (date_str, data) VALUES ($1, $2) ON CONFLICT (date_str) DO UPDATE SET data = EXCLUDED.data`, [dateStr, JSON.stringify(data)]);
                     this.pendingDays.add(dateStr);
                 } catch (e) {
-                    console.error("Save Note Error:", e);
+                    console.error("Save Note SQL Error:", e);
+                    throw e; // Throw so we can catch it in scheduleSave and show the error UI
                 }
             }
 
@@ -1616,7 +1679,7 @@
                     this.addBasicBlock('text', '', 'user');
                 } else {
                     blocksData.forEach(b => {
-                        if (['paragraph', 'text', 'h1', 'h2', 'h3', 'header', 'list', 'checklist'].includes(b.type)) {
+                        if (['paragraph', 'text', 'h1', 'h2', 'h3', 'header', 'list', 'checklist', 'ul', 'ol', 'quote'].includes(b.type)) {
                             let textContent = b.data?.text || '';
                             let typeToUse = ['paragraph', 'list', 'checklist'].includes(b.type) ? 'text' : (b.type === 'header' ? `h${b.data?.level || 2}` : b.type);
                             if (b.type === 'list') textContent = (b.data.items || []).map(i => `• ${i.content || i.text}`).join('<br>');
@@ -1627,7 +1690,7 @@
                         }
                     });
                 }
-                if (this.blocks.length === 0 || !['text', 'h1', 'h2', 'h3'].includes(this.blocks[this.blocks.length - 1].type)) this.addBasicBlock('text', '', 'user');
+                if (this.blocks.length === 0 || !['text', 'h1', 'h2', 'h3', 'ul', 'ol', 'quote'].includes(this.blocks[this.blocks.length - 1].type)) this.addBasicBlock('text', '', 'user');
             }
 
             save() {
@@ -1649,12 +1712,21 @@
             }
 
             replaceTextNodeType(block, newType) {
-                const tag = newType === 'h1' ? 'h1' : (newType === 'h2' ? 'h2' : (newType === 'h3' ? 'h3' : 'div'));
+                const tag = newType === 'h1' ? 'h1' : 
+                            newType === 'h2' ? 'h2' : 
+                            newType === 'h3' ? 'h3' : 
+                            newType === 'quote' ? 'blockquote' : 'div';
                 const oldContent = block.dom.querySelector('.text-content');
+                
+                let placeholder = "start writing, or type '/' for commands...";
+                if (['h1', 'h2', 'h3'].includes(newType)) placeholder = "Heading...";
+                if (['ul', 'ol'].includes(newType)) placeholder = "List item...";
+                if (newType === 'quote') placeholder = "Quote...";
+
                 const newContent = el(tag, {
                     className: `text-content ${newType === 'text' ? '' : newType}`,
                     contentEditable: isEditable(),
-                    'data-placeholder': newType === 'text' ? "start writing, or type '/' for commands..." : "Heading...",
+                    'data-placeholder': placeholder,
                     innerHTML: oldContent.innerHTML,
                     onfocus: () => { this.activeBlockId = block.id; },
                     oninput: () => { this.handleTextInput(block, newContent); scheduleSave(); },
@@ -1665,12 +1737,21 @@
             }
 
             addBasicBlock(type = 'text', html = '', author = 'user', id = crypto.randomUUID(), timestamp = Date.now()) {
-                const tag = type === 'h1' ? 'h1' : (type === 'h2' ? 'h2' : (type === 'h3' ? 'h3' : 'div'));
+                const tag = type === 'h1' ? 'h1' : 
+                            type === 'h2' ? 'h2' : 
+                            type === 'h3' ? 'h3' : 
+                            type === 'quote' ? 'blockquote' : 'div';
                 const block = { id, type, data: { text: html }, author, timestamp, dom: null };
+                
+                let placeholder = author === 'user' ? "start writing, or type '/' for commands..." : "";
+                if (['h1', 'h2', 'h3'].includes(type) && author === 'user') placeholder = "Heading...";
+                if (['ul', 'ol'].includes(type) && author === 'user') placeholder = "List item...";
+                if (type === 'quote' && author === 'user') placeholder = "Quote...";
+
                 const content = el(tag, {
                     className: `text-content ${type === 'text' ? '' : type}`,
                     contentEditable: isEditable(),
-                    'data-placeholder': author === 'user' ? (type === 'text' ? "start writing, or type '/' for commands..." : "Heading...") : "",
+                    'data-placeholder': placeholder,
                     innerHTML: html,
                     onfocus: () => { this.activeBlockId = id; },
                     oninput: () => { this.handleTextInput(block, content); scheduleSave(); },
@@ -1809,6 +1890,9 @@ INSTRUCTIONS:
                     if (text === '# ') { content.innerHTML = ''; this.replaceTextNodeType(block, 'h1'); return; }
                     if (text === '## ') { content.innerHTML = ''; this.replaceTextNodeType(block, 'h2'); return; }
                     if (text === '### ') { content.innerHTML = ''; this.replaceTextNodeType(block, 'h3'); return; }
+                    if (text === '- ' || text === '* ') { content.innerHTML = ''; this.replaceTextNodeType(block, 'ul'); return; }
+                    if (text === '1. ') { content.innerHTML = ''; this.replaceTextNodeType(block, 'ol'); return; }
+                    if (text === '> ') { content.innerHTML = ''; this.replaceTextNodeType(block, 'quote'); return; }
                 }
 
                 const sel = window.getSelection();
@@ -2069,6 +2153,14 @@ INSTRUCTIONS:
 
                 if (e.key === 'Enter' && !e.shiftKey && !this.slashMenuActive) {
                     e.preventDefault();
+                    
+                    // Double Enter on empty list/quote escapes it back to text
+                    if (['ul', 'ol', 'quote'].includes(block.type) && content.textContent.trim() === '') {
+                        this.replaceTextNodeType(block, 'text');
+                        scheduleSave();
+                        return;
+                    }
+
                     const sel = window.getSelection();
                     if (sel.rangeCount > 0) {
                         const range = sel.getRangeAt(0);
@@ -2078,7 +2170,8 @@ INSTRUCTIONS:
                         if (content.innerHTML.endsWith('<br>')) content.innerHTML = content.innerHTML.slice(0, -4);
 
                         this.activeBlockId = block.id;
-                        const newBlock = this.addBasicBlock('text', postHtml, 'user');
+                        const nextType = ['ul', 'ol', 'quote'].includes(block.type) ? block.type : 'text';
+                        const newBlock = this.addBasicBlock(nextType, postHtml, 'user');
                         setTimeout(() => setCaret(newBlock.dom.querySelector('.text-content'), 0), 10);
                         scheduleSave();
                     }
@@ -2090,7 +2183,16 @@ INSTRUCTIONS:
                     if (sel.rangeCount > 0) {
                         const range = sel.getRangeAt(0); const preCaretRange = range.cloneRange(); preCaretRange.selectNodeContents(content); preCaretRange.setEnd(range.startContainer, range.startOffset);
                         if (preCaretRange.toString().length === 0) {
-                            e.preventDefault(); const idx = this.blocks.findIndex(b => b.id === block.id);
+                            e.preventDefault(); 
+                            
+                            // Revert to normal text if backspacing at the beginning of a formatted block
+                            if (block.type !== 'text') {
+                                this.replaceTextNodeType(block, 'text');
+                                scheduleSave();
+                                return;
+                            }
+
+                            const idx = this.blocks.findIndex(b => b.id === block.id);
                             if (idx > 0) {
                                 const prevBlock = this.blocks[idx - 1]; const currentHtml = content.innerHTML.replace(/<br>$/, ''); const isEmpty = content.textContent.trim() === '';
                                 if (!['text', 'h1', 'h2', 'h3'].includes(prevBlock.type)) { this.deleteBlock(prevBlock.id); }
@@ -2115,21 +2217,53 @@ INSTRUCTIONS:
         // ============================================================================
         // APP LIFECYCLE & STORAGE SYNC
         // ============================================================================
-        const saveIndicator = document.getElementById('save-indicator');
         window.isRefPage = false;
         window.currentRefSlug = null;
 
-        const scheduleSave = debounce((immediate = false) => {
+        const scheduleSave = debounce(async (immediate = false) => {
             // Allow saving on today's page OR any reference page OR if DEV mode is on
             const canSave = (CONFIG.DEV_ALLOW_PAST_EDITING || window.currentDateStr === todayStr || window.isRefPage);
             if (!canSave) return;
+            
             const data = editor.save();
-            pgDB.saveNote(window.currentDateStr, data).then(() => {
-                saveIndicator.classList.add('visible');
-                setTimeout(() => saveIndicator.classList.remove('visible'), 1500);
-            }).catch(e => {
+            const dbStatusEl = document.getElementById('db-status');
+            
+            try {
+                // We await the actual database save here
+                await pgDB.saveNote(window.currentDateStr, data);
+                
+                // Show success ONLY if DB is truly online
+                dbStatusEl.textContent = 'db.saved';
+                dbStatusEl.classList.add('saving');
+                setTimeout(() => {
+                    if (dbStatusEl.textContent === 'db.saved') {
+                        dbStatusEl.textContent = 'db.ready';
+                        dbStatusEl.classList.remove('saving');
+                    }
+                }, 1500);
+                
+            } catch (e) {
                 console.error("Schedule Save Error:", e);
-            });
+                
+                // Proper error reflection based on what actually failed
+                if (!pgDB.isReady) {
+                    dbStatusEl.textContent = 'memory.saved [offline]';
+                    setTimeout(() => {
+                        if (dbStatusEl.textContent === 'memory.saved [offline]') {
+                            dbStatusEl.textContent = 'db.offline [memory mode]';
+                        }
+                    }, 1500);
+                } else {
+                    dbStatusEl.textContent = 'db.error [save failed]';
+                    dbStatusEl.className = 'neon-status db-status error';
+                    setTimeout(() => {
+                        if (dbStatusEl.textContent === 'db.error [save failed]') {
+                            dbStatusEl.textContent = 'db.ready';
+                            dbStatusEl.className = 'neon-status db-status';
+                        }
+                    }, 3000);
+                }
+            }
         }, 800);
 
         function renderDateHeader() {
@@ -2146,10 +2280,12 @@ INSTRUCTIONS:
         }
 
         async function loadDay(dateStr) {
-            // Save current page before navigating
+            // Save current page before navigating securely
             if (pgDB.isReady && isEditable()) {
-                const currentData = editor.save();
-                await pgDB.saveNote(window.currentDateStr, currentData);
+                try {
+                    const currentData = editor.save();
+                    await pgDB.saveNote(window.currentDateStr, currentData);
+                } catch(e) { console.error("Navigation Save Error:", e); }
             }
 
             window.isRefPage = false;
@@ -2174,10 +2310,12 @@ INSTRUCTIONS:
         }
 
         async function loadRefPage(slug) {
-            // Save current page first
+            // Save current page first securely
             if (pgDB.isReady) {
-                const currentData = editor.save();
-                await pgDB.saveNote(window.currentDateStr, currentData);
+                try {
+                    const currentData = editor.save();
+                    await pgDB.saveNote(window.currentDateStr, currentData);
+                } catch(e) { console.error("Ref Navigation Save Error:", e); }
             }
 
             window.isRefPage = true;
