@@ -24,7 +24,7 @@
         /* --- CORE THEME & EXPRESSIVE TYPOGRAPHY --- */
         :root {
             --bg-color: #ffffff;
-            --bg-color-transparent: rgba(255, 255, 255, 0.75); /* Lowered opacity for better translucency */
+            --bg-color-transparent: rgba(255, 255, 255, 0.65); /* Dropped opacity for flat tracing-paper translucency */
             --text-color: #000000;
             --muted-text: #888888;
             --neon-purple: #a855f7;
@@ -39,7 +39,7 @@
         @media (prefers-color-scheme: dark) {
             :root {
                 --bg-color: #0a0a0a;
-                --bg-color-transparent: rgba(10, 10, 10, 0.80); /* Lowered opacity for better translucency */
+                --bg-color-transparent: rgba(10, 10, 10, 0.70); /* Dropped opacity for dark mode translucency */
                 --text-color: #f0f0f0;
                 --muted-text: #666666;
                 --baritone-bg: #151515;
@@ -66,8 +66,7 @@
         #ui-layer { 
             position: relative; z-index: 1; min-height: 100vh; width: 100vw;
             background-color: var(--bg-color-transparent); 
-            /* Removed backdrop-filter to kill the glossy glass effect */
-            transition: opacity 0.4s ease; 
+            transition: opacity 0.4s ease; /* No backdrop-filter, purely a flat color overlay */
         }
 
         body.map-mode #ui-layer { opacity: 0; pointer-events: none; }
@@ -98,7 +97,7 @@
             position: relative; width: 100%; min-height: 24vh;
             display: flex; flex-direction: column; justify-content: flex-end;
             padding: 6vh 24px 24px 24px; z-index: 100;
-            background-color: var(--bg-color); /* Solid background so header is opaque */
+            background-color: var(--bg-color); /* Solid background so header is completely opaque */
         }
 
         .header-max-width { max-width: 632px; margin: 0 auto; width: 100%; position: relative; z-index: 2; }
@@ -244,6 +243,15 @@
         .time-row::-webkit-scrollbar { display: none; }
         .time-row .raw-btn { flex: 0 0 auto; scroll-snap-align: center; border-radius: 20px; box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.15); }
         .time-row .raw-btn:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.15); }
+        
+        /* System Toasts */
+        #sys-toast {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: #ef4444; color: #fff; padding: 12px 24px; border-radius: 4px;
+            font-family: var(--font-mono); font-size: 12px; z-index: 10000;
+            transition: opacity 0.3s; opacity: 0; pointer-events: none; text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2); font-weight: bold; text-transform: uppercase;
+        }
     </style>
 </head>
 
@@ -271,6 +279,9 @@
             <div id="lean-editor"></div>
         </div>
     </div>
+    
+    <!-- Custom Error Toasts -->
+    <div id="sys-toast"></div>
 
     <!-- Editorial Calendar Overlay -->
     <div id="editorial-cal" class="editorial-cal-modal">
@@ -334,6 +345,12 @@
             row: (...c) => el('div', { style: { display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' } }, ...c),
             textarea: (props) => el('textarea', { className: 'raw-input', ...props })
         };
+        
+        function showSysToast(msg, duration = 4000) {
+            const t = document.getElementById('sys-toast');
+            t.textContent = msg; t.style.opacity = '1';
+            setTimeout(() => t.style.opacity = '0', duration);
+        }
 
         const getLocalYYYYMMDD = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         const parseLocal = (s) => new Date(s + 'T00:00:00');
@@ -380,18 +397,32 @@
             const geoEl = document.getElementById('geo-status');
             if (!('geolocation' in navigator)) {
                 geoEl.textContent = 'loc.denied';
-                geoEl.className = 'neon-status geo-status error';
+                geoEl.className = 'neon-status geo-status error clickable-status';
+                showSysToast("Geolocation is not supported by your browser.");
                 return;
             }
 
             geoEl.textContent = 'loc.locating';
-            geoEl.className = 'neon-status geo-status loading';
+            geoEl.className = 'neon-status geo-status loading clickable-status';
 
+            // High timeout for stubborn PWA contexts
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
                     window.currentLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
                     geoEl.textContent = 'loc.active';
-                    geoEl.className = 'neon-status geo-status active';
+                    geoEl.className = 'neon-status geo-status active clickable-status';
+                    
+                    // Retroactive Geo-Stamping: Give location to any notes typed before clicking the button
+                    let stampedPastNotes = false;
+                    if (window.editor && window.editor.blocks) {
+                        window.editor.blocks.forEach(b => {
+                            if (!b.geo) {
+                                b.geo = window.currentLocation;
+                                stampedPastNotes = true;
+                            }
+                        });
+                    }
+                    if (stampedPastNotes) scheduleSave();
                     
                     if (window.bgMap) {
                         window.bgMap.setView([pos.coords.latitude, pos.coords.longitude], 14);
@@ -405,10 +436,12 @@
                     }
                 },
                 (err) => {
-                    geoEl.textContent = 'loc.denied';
-                    geoEl.className = 'neon-status geo-status error';
+                    console.warn("Geo error:", err);
+                    geoEl.textContent = 'loc.error';
+                    geoEl.className = 'neon-status geo-status error clickable-status';
+                    showSysToast(`Location failed: ${err.message || 'Unknown error'}`);
                 },
-                { enableHighAccuracy: true, timeout: 10000 }
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
             );
         }
 
@@ -455,7 +488,27 @@
             // Group notes by exact coordinates so they stack aesthetically in one tooltip
             const groupedNotes = {};
 
+            // 1. Grab blocks currently loaded in the live editor (highly accurate for today)
+            const liveBlocks = (window.editor && typeof window.editor.save === 'function') ? window.editor.save().blocks : [];
+            liveBlocks.forEach(block => {
+                if (block.geo && block.geo.lat && block.geo.lng) {
+                    const coordKey = `${block.geo.lat},${block.geo.lng}`;
+                    if (!groupedNotes[coordKey]) groupedNotes[coordKey] = [];
+                    
+                    let textPreview = '';
+                    if (['text', 'h1', 'h2', 'h3', 'quote', 'ul', 'ol', 'todo', 'todo-checked'].includes(block.type)) {
+                        textPreview = normalizePlainText(block.data.text || '').substring(0, 180);
+                        if ((block.data.text || '').length > 180) textPreview += '...';
+                    } else textPreview = `[${block.type.toUpperCase()} BLOCK]`;
+                    
+                    if (!textPreview.trim()) textPreview = `[EMPTY NOTE]`;
+                    groupedNotes[coordKey].push({ timestamp: block.timestamp, text: textPreview });
+                }
+            });
+
+            // 2. Grab historical notes directly from cache
             Object.entries(pgDB.cache).forEach(([dateStr, dayData]) => {
+                if (dateStr === window.currentDateStr) return; // Skip today, we grabbed live
                 if (!dayData?.blocks) return;
                 dayData.blocks.forEach(block => {
                     if (block.geo && block.geo.lat && block.geo.lng) {
@@ -464,16 +517,20 @@
                         
                         let textPreview = '';
                         if (['text', 'h1', 'h2', 'h3', 'quote', 'ul', 'ol', 'todo', 'todo-checked'].includes(block.type)) {
-                            textPreview = normalizePlainText(block.data.text).substring(0, 180);
-                            if (normalizePlainText(block.data.text).length > 180) textPreview += '...';
+                            textPreview = normalizePlainText(block.data.text || '').substring(0, 180);
+                            if ((block.data.text || '').length > 180) textPreview += '...';
                         } else textPreview = `[${block.type.toUpperCase()} BLOCK]`;
                         
                         if (!textPreview.trim()) textPreview = `[EMPTY NOTE]`;
-
                         groupedNotes[coordKey].push({ timestamp: block.timestamp, text: textPreview });
                     }
                 });
             });
+
+            if (Object.keys(groupedNotes).length === 0) {
+                showSysToast("No geolocated notes yet. Share location to start tracking!");
+                return;
+            }
 
             // Render beautifully formatted HTML popups for each location
             Object.keys(groupedNotes).forEach(key => {
