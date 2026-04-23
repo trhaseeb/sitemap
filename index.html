@@ -1,2061 +1,643 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Infinite Notes</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BRUTAL NOTES</title>
     
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="Notes">
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a">
-
+    <!-- Core Markdown Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://unpkg.com/turndown/dist/turndown.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+    
     <style>
-        /* --- CORE THEME & EXPRESSIVE TYPOGRAPHY --- */
-        :root {
-            --bg-color: #ffffff;
-            --bg-color-transparent: rgba(255, 255, 255, 0.85);
-            --text-color: #000000;
-            --muted-text: #888888;
-            --neon-purple: #a855f7;
-            --neon-green: #10b981;
-            --baritone-bg: #f2f2f2;
-            --baritone-text: #333333;
-            --font-main: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Inter", sans-serif;
-            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-        }
+        :root { --bg: #f4f4f0; --fg: #111111; }
+        @media (prefers-color-scheme: dark) { :root { --bg: #111111; --fg: #f4f4f0; } }
 
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg-color: #0a0a0a;
-                --bg-color-transparent: rgba(10, 10, 10, 0.85);
-                --text-color: #f0f0f0;
-                --muted-text: #666666;
-                --baritone-bg: #151515;
-                --baritone-text: #cccccc;
-            }
-        }
-
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            background-color: var(--bg-color); color: var(--text-color);
-            font-family: var(--font-main); margin: 0; padding: 0; width: 100vw;
-            overflow-x: hidden; overscroll-behavior-y: none;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            background-color: var(--bg); color: var(--fg);
+            height: 100vh; width: 100vw;
+            display: flex; flex-direction: column; overflow: hidden; line-height: 1.6;
         }
 
-        .app-container {
-            max-width: 680px; width: 100%; margin: 0 auto;
-            padding: 0 24px 60vh 24px; position: relative;
+        ::selection { background-color: var(--fg); color: var(--bg); }
+        ::-webkit-scrollbar { width: 14px; height: 14px; border-left: 4px solid var(--fg); }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--fg); }
+
+        header { padding: 1.5rem 1.5rem 0 1.5rem; border-bottom: 6px solid var(--fg); flex-shrink: 0; user-select: none; }
+
+        .header-title {
+            font-size: clamp(3rem, 9vw, 7rem); font-weight: 900; text-transform: uppercase;
+            letter-spacing: -0.06em; line-height: 0.8; padding-bottom: 0.5rem;
+            cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            transition: color 0.1s;
+        }
+        .header-title:hover { color: #888888; }
+        .header-title.is-root { cursor: default; }
+        .header-title.is-root:hover { color: var(--fg); }
+
+        .sub-header { padding: 0.5rem 1.5rem 1.5rem 1.5rem; flex-shrink: 0; user-select: none; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem; }
+
+        .mode-link {
+            font-family: inherit; font-size: clamp(0.75rem, 1.5vw, 1rem); font-weight: 900;
+            color: var(--fg); text-transform: uppercase; text-decoration: none; cursor: pointer;
+            transition: all 0.1s; opacity: 0.6; white-space: nowrap;
+        }
+        .mode-link:hover { opacity: 1; text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 4px; }
+
+        main { flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+
+        .workspace-pane {
+            position: absolute; inset: 0; width: 100%; height: 100%; padding: clamp(1.5rem, 5vw, 3rem);
+            overflow-y: auto; background: transparent; border: none; color: inherit; font-family: inherit;
+            font-size: clamp(1rem, 2vw, 1.25rem); outline: none; font-weight: 500; resize: none;
         }
 
-        /* --- THE HEADER --- */
-        #header-container {
-            position: relative; width: 100%; min-height: 24vh;
-            display: flex; flex-direction: column; justify-content: flex-end;
-            padding: 6vh 24px 24px 24px; z-index: 100;
+        .workspace-content { max-width: 56rem; margin: 0 auto; width: 100%; min-height: 100%; padding-bottom: 20vh; }
+        .hidden { display: none !important; }
+        .ghost-text { color: #aaaaaa; pointer-events: none; user-select: none; }
+        .error-log { font-size: 0.85rem; color: #cc0000; background: rgba(204, 0, 0, 0.1); padding: 1rem; border: 2px solid #cc0000; margin-top: 1rem; white-space: pre-wrap; word-break: break-all; }
+
+        .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+            font-family: inherit; text-transform: uppercase; font-weight: 900;
+            letter-spacing: -0.05em; margin-top: 1.5em; margin-bottom: 0.5em; line-height: 1.1;
         }
+        .prose > *:first-child { margin-top: 0; }
+        .prose h1 { font-size: 2.25em; }
+        .prose h2 { font-size: 1.8em; }
+        .prose h3 { font-size: 1.5em; }
+        .prose p, .prose ul, .prose ol { margin-bottom: 1em; }
+        .prose ul, .prose ol { padding-left: 1.5em; }
+        .prose a { color: var(--fg); font-weight: 900; text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 4px; cursor: pointer; transition: all 0.2s; }
+        .prose a:hover { background-color: var(--fg); color: var(--bg); }
+        .prose blockquote { border-left: 8px solid var(--fg); padding: 0.5em 1.5em; background: rgba(128, 128, 128, 0.1); margin: 0; font-weight: bold; }
+        .prose hr { border: none; border-top: 4px solid var(--fg); margin: 2em 0; }
+        .prose code { border: 2px solid var(--fg); padding: 0.1em 0.3em; font-size: 0.9em; }
+        .prose pre { border: 4px solid var(--fg); padding: 1em; overflow-x: auto; margin-bottom: 1em; }
+        .prose table { width: 100%; border-collapse: collapse; margin-bottom: 1.5em; border: 4px solid var(--fg); }
+        .prose th, .prose td { border: 2px solid var(--fg); padding: 0.75em; text-align: left; }
+        .prose th { background-color: var(--fg); color: var(--bg); text-transform: uppercase; font-weight: 900; }
 
-        .header-max-width { max-width: 632px; margin: 0 auto; width: 100%; position: relative; z-index: 2; }
+        @keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
 
-        #date-header {
-            text-align: left; font-size: clamp(40px, 14vw, 110px); font-weight: 900;
-            font-style: italic; text-transform: uppercase; letter-spacing: -0.05em;
-            line-height: 0.9; color: var(--text-color); margin: 0 0 10px -2px;
-            cursor: pointer; transition: opacity 0.2s; user-select: none; display: inline-block;
-            display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px;
-        }
-        #date-header:active { opacity: 0.5; }
-
-        .status-row { display: flex; align-items: center; gap: 16px; user-select: none; flex-wrap: wrap; }
-        .neon-status { font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: lowercase; cursor: pointer; transition: opacity 0.2s; }
-        .neon-status:hover { opacity: 0.7; }
-        
-        .ai-status { color: var(--neon-purple); opacity: 0.8; }
-        .ai-status.loading { animation: neon-pulse 1.5s infinite ease-in-out; }
-        .ai-status.error { color: #ef4444; opacity: 1; }
-        .ai-status.standby { color: var(--muted-text); border-bottom: 1px dashed var(--muted-text); }
-
-        .db-status { color: var(--neon-green); opacity: 0.8; transition: all 0.3s ease; }
-        .db-status.saving { opacity: 1; text-shadow: 0 0 8px rgba(16, 185, 129, 0.4); }
-        .db-status.error { color: #ef4444; opacity: 1; text-shadow: none; }
-
-        @keyframes neon-pulse {
-            0%, 100% { opacity: 0.8; text-shadow: 0 0 8px rgba(168, 85, 247, 0.4); }
-            50% { opacity: 0.3; text-shadow: none; }
-        }
-
-        /* --- EXPRESSIVE TEXT BLOCKS --- */
-        #lean-editor { position: relative; display: flex; flex-direction: column; gap: 2px; width: 100%; margin-top: 16px; counter-reset: lean-ol; }
-        .stream-block { position: relative; width: 100%; transition: opacity 0.2s; }
-        .stream-block:not(:has(.ol)) { counter-reset: lean-ol; }
-
-        .text-content {
-            font-size: clamp(18px, 4.5vw, 22px); font-weight: 500; letter-spacing: -0.02em;
-            line-height: 1.5; color: var(--text-color); outline: none; min-height: 1.5em;
-            word-wrap: break-word; padding: 4px 0; width: 100%; position: relative;
-        }
-
-        .text-content[data-placeholder]:empty:before {
-            content: attr(data-placeholder); color: var(--muted-text);
-            font-style: italic; font-weight: 400; opacity: 0.5; pointer-events: none;
-        }
-
-        /* Block Type Styles */
-        .text-content.h1 { font-size: clamp(36px, 8vw, 48px); font-weight: 900; letter-spacing: -0.04em; line-height: 1.1; margin: 36px 0 8px 0; text-transform: uppercase; padding: 0; }
-        .text-content.h2 { font-size: clamp(28px, 6vw, 36px); font-weight: 800; letter-spacing: -0.03em; line-height: 1.2; margin: 28px 0 6px 0; padding: 0; }
-        .text-content.h3 { font-size: clamp(22px, 5vw, 28px); font-weight: 700; letter-spacing: -0.02em; line-height: 1.3; margin: 20px 0 4px 0; padding: 0; }
-        .text-content.quote { font-size: clamp(20px, 5vw, 26px); font-weight: 600; letter-spacing: -0.01em; color: var(--baritone-text); background: var(--baritone-bg); border-left: 4px solid var(--text-color); padding: 16px 20px; margin: 8px 0; font-style: italic; }
-        .text-content.ul, .text-content.ol, .text-content.todo, .text-content.todo-checked { padding-left: 32px; margin: 4px 0; }
-        
-        .stream-block:has(.ul)::after { content: '—'; position: absolute; left: 0; top: 4px; color: var(--text-color); font-weight: 900; pointer-events: none; }
-        .stream-block:has(.ol) { counter-increment: lean-ol; }
-        .stream-block:has(.ol)::after { content: counter(lean-ol) "."; position: absolute; left: 0; top: 4px; font-family: var(--font-mono); font-weight: 700; color: var(--text-color); font-size: 0.9em; pointer-events: none; }
-
-        /* CHECKBOXES */
-        .stream-block:has(.todo)::after, .stream-block:has(.todo-checked)::after { position: absolute; left: 4px; top: 8px; width: 16px; height: 16px; border-radius: 3px; cursor: pointer; pointer-events: none; }
-        .stream-block:has(.todo)::after { content: ''; border: 2px solid var(--muted-text); }
-        .stream-block:has(.todo-checked)::after { content: '✔'; background: var(--text-color); color: var(--bg-color); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; }
-        .stream-block:has(.todo-checked) .text-content { text-decoration: line-through; color: var(--muted-text); opacity: 0.8; }
-
-        /* DIVIDER */
-        .text-content.hr { border-bottom: 2px solid var(--baritone-bg); margin: 24px 0; padding: 0; min-height: 0; height: 0; font-size: 0; }
-        .text-content.hr:empty:before { display: none; }
-
-        /* AI RESPONSE BLOCKS */
-        .stream-block[class*="-ai"] .text-content { font-weight: 400; color: var(--neon-purple); }
-        .stream-block[class*="-ai"]::before { content: ''; position: absolute; left: -16px; top: 10px; bottom: 10px; width: 3px; background: var(--neon-purple); opacity: 0.5; }
-        .ai-cursor { display: inline-block; width: 8px; height: 18px; background-color: var(--neon-purple); vertical-align: middle; animation: blink 1s step-end infinite; margin-left: 4px; }
-        @keyframes blink { 50% { opacity: 0; } }
-
-        /* --- MENUS & UNIFIED INLINE TOOLBAR --- */
-        .floating-menu { position: absolute; background: var(--bg-color); border: 2px solid var(--text-color); box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.15); z-index: 1000; display: none; flex-direction: column; width: 260px; border-radius: 4px; overflow: hidden; padding: 8px 0; transition: opacity 0.1s; }
-        .floating-menu.active { display: flex; }
-        .menu-item { padding: 10px 16px; font-family: var(--font-mono); font-size: 13px; font-weight: 700; text-transform: uppercase; cursor: pointer; color: var(--text-color); background: transparent; border: none; text-align: left; display: flex; justify-content: space-between; align-items: center; }
-        .menu-item .sub { color: var(--muted-text); font-size: 10px; font-weight: 500; }
-        .menu-item.selected, .menu-item:hover { background: var(--text-color); color: var(--bg-color); }
-        .menu-item.selected .sub, .menu-item:hover .sub { color: var(--bg-color); opacity: 0.7; }
-        .menu-item.create-new { color: #3b82f6; border-top: 1px solid var(--baritone-bg); }
-        .menu-item.create-new.selected, .menu-item.create-new:hover { background: #3b82f6; color: #fff; }
-
-        /* Unified Inline Context/Format Toolbar */
-        .inline-toolbar {
-            position: absolute; background: var(--bg-color); color: var(--text-color); border: 2px solid var(--text-color); border-radius: 2px;
-            box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.15); display: flex; flex-direction: row; align-items: center; gap: 2px; padding: 4px;
-            z-index: 10000; transition: opacity 0.15s ease, transform 0.15s ease; opacity: 0; transform: translateY(4px); pointer-events: none; white-space: nowrap;
-        }
-        .inline-toolbar.active { opacity: 1; transform: translateY(0); pointer-events: auto; }
-        .toolbar-btn { background: transparent; color: var(--text-color); border: none; font-family: var(--font-mono); font-size: 11px; font-weight: 800; text-transform: uppercase; cursor: pointer; padding: 6px 10px; border-radius: 2px; transition: background 0.15s, color 0.15s; }
-        .toolbar-btn:hover { background: var(--text-color); color: var(--bg-color); }
-        .toolbar-btn.danger { color: #ef4444; }
-        .toolbar-btn.danger:hover { background: #ef4444; color: #fff; }
-        .toolbar-divider { width: 2px; height: 16px; background: var(--baritone-bg); margin: 0 4px; }
-
-        /* --- BARITONE PANELS & CONTROLS --- */
-        .baritone-panel { background: var(--baritone-bg); border-radius: 2px; padding: 16px 20px; margin: 16px 0; display: flex; flex-direction: column; gap: 12px; width: 100%; }
-        .baritone-panel.virtual-block { border: 2px dashed var(--muted-text); background: transparent; opacity: 0.95; }
-        .virtual-block .panel-header { color: var(--neon-purple); }
-        .panel-header { font-family: var(--font-mono); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted-text); display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; user-select: none; }
-        .panel-controls { display: flex; gap: 12px; align-items: center; }
-        .panel-ctrl-btn { background: none; border: none; padding: 0; color: var(--muted-text); font-size: 14px; cursor: pointer; transition: color 0.2s; display: flex; align-items: center; justify-content: center; }
-        .panel-ctrl-btn:hover { color: var(--text-color); }
-        .panel-ctrl-btn.delete:hover { color: #ef4444; }
-
-        .panel-title-input { background: transparent; border: none; outline: none; color: var(--text-color); font-family: var(--font-main); font-size: 24px; font-weight: 800; letter-spacing: -0.02em; width: 100%; margin-bottom: 8px; border-bottom: 2px solid transparent; transition: border-color 0.2s; }
-        .panel-title-input::placeholder { color: var(--muted-text); font-weight: 600; opacity: 0.4; }
-        .panel-title-input:focus { border-bottom-color: var(--text-color); }
-
-        .raw-input { background: transparent; border: none; outline: none; color: var(--text-color); font-family: var(--font-main); font-size: 18px; font-weight: 500; width: 100%; }
-        .raw-input::placeholder { color: var(--muted-text); }
-        
-        .raw-btn { background: var(--bg-color); border: 2px solid var(--text-color); color: var(--text-color); font-family: var(--font-mono); font-size: 11px; font-weight: 800; text-transform: uppercase; cursor: pointer; transition: all 0.2s; padding: 8px 12px; border-radius: 2px; box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.15); display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
-        .raw-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.15); }
-        .raw-btn.active { background: var(--text-color); color: var(--bg-color); }
-        .raw-btn.danger { color: #ef4444; border-color: #ef4444; }
-        .raw-btn.danger.active { background: #ef4444; border-color: #ef4444; color: #fff; }
-
-        .calendar-date-display { font-family: var(--font-mono); font-size: 15px; color: var(--neon-purple); font-weight: 700; display: inline-block; transition: opacity 0.2s; margin-bottom: 4px; cursor: pointer; }
-        .calendar-date-display:hover { opacity: 0.8; }
-
-        /* --- NATIVE INLINE TABLE --- */
-        .infinotes-table { width: 100%; border-collapse: collapse; font-size: clamp(16px, 4.5vw, 20px); table-layout: fixed; margin: 12px 0; }
-        .infinotes-table th, .infinotes-table td { border: 1px solid var(--baritone-bg); padding: 0; position: relative; }
-        .infinotes-table th { border-bottom: 2px solid var(--text-color); font-weight: 800; text-align: left; }
-        .table-cell-input { padding: 8px 12px; min-height: 38px; outline: none; word-break: break-word; color: var(--text-color); transition: background 0.1s; }
-        .table-cell-input:focus { background: rgba(128, 128, 128, 0.05); }
-
-        /* --- PERSONA MENTIONS --- */
-        .persona-mention { color: #3b82f6; font-weight: 700; cursor: pointer; text-decoration: none; border-bottom: 2px solid transparent; transition: border-color 0.2s, opacity 0.2s; padding: 0 1px; }
-        .persona-mention:hover { border-bottom-color: currentColor; opacity: 0.8; }
-
-        /* --- BACKLINKS SECTION --- */
-        .backlinks-section { margin-bottom: 24px; padding: 16px 20px; background: var(--baritone-bg); border-radius: 2px; }
-        .backlinks-header { font-family: var(--font-mono); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted-text); margin-bottom: 12px; user-select: none; }
-        .backlink-item { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: #3b82f6; cursor: pointer; padding: 6px 0; border: none; background: none; text-align: left; display: flex; gap: 8px; align-items: baseline; transition: opacity 0.2s; width: 100%; }
-        .backlink-item:hover { opacity: 0.7; }
-        .backlink-item .backlink-preview { color: var(--muted-text); font-weight: 400; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
-
-        /* --- MODALS (CALENDAR & AI CONFIG) --- */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--bg-color-transparent); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 10000; display: none; justify-content: center; align-items: center; padding: 20px; }
-        .modal-overlay.active { display: flex; }
-        .modal-panel { background: var(--bg-color); width: 100%; max-width: 400px; padding: 24px; display: flex; flex-direction: column; border: 2px solid var(--text-color); box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.15); max-height: 90vh; overflow-y: auto; }
-        
-        /* Calendar specifics */
-        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-        .cal-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 14px; font-weight: 700; cursor: pointer; background: var(--baritone-bg); color: var(--text-color); transition: background 0.2s, color 0.2s; }
-        .cal-day:active, .cal-day.selected { background: var(--text-color); color: var(--bg-color); }
-        .cal-day.muted { opacity: 0.15; pointer-events: none; }
-        .time-row { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 8px; padding-bottom: 8px; scrollbar-width: none; -ms-overflow-style: none; }
-        .time-row::-webkit-scrollbar { display: none; }
-        .time-row .raw-btn { flex: 0 0 auto; scroll-snap-align: center; border-radius: 20px; box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.15); }
-        
-        /* AI Config Specifics */
-        .ai-model-card { border: 2px solid var(--baritone-bg); padding: 12px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s; border-radius: 2px; }
-        .ai-model-card:hover { border-color: var(--neon-purple); background: rgba(168, 85, 247, 0.05); }
-        .ai-model-card.active { border-color: var(--neon-purple); background: rgba(168, 85, 247, 0.1); }
-        .ai-model-title { font-weight: 800; display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-        .ai-model-size { font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--muted-text); }
-        .ai-model-desc { font-size: 13px; color: var(--muted-text); line-height: 1.4; margin-top: 6px; }
-        
-        .risk-badge { padding: 2px 6px; border-radius: 4px; font-size: 9px; font-family: var(--font-mono); text-transform: uppercase; font-weight: 800; margin-left: 8px; }
-        .risk-safe { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid #10b981; }
-        .risk-mod { background: rgba(234, 179, 8, 0.1); color: #eab308; border: 1px solid #eab308; }
-        .risk-high { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid #ef4444; }
+        #live-editor:empty:before { content: attr(placeholder); color: #888; pointer-events: none; display: block; }
+        .prose p:empty:before, .prose h1:empty:before, .prose h2:empty:before, .prose h3:empty:before { content: "\200B"; }
     </style>
 </head>
-
 <body>
-    <div id="header-container">
-        <div class="header-max-width">
-            <div id="date-header">today</div>
-            <div class="status-row">
-                <span id="ai-inline-status" class="neon-status ai-status standby" onclick="SystemConfig.openModal()">sys.ai.standby [tap to config]</span>
-                <span id="db-status" class="neon-status db-status">db.init</span>
-            </div>
-        </div>
+
+    <header>
+        <h1 id="date-title" class="header-title">Loading DB...</h1>
+    </header>
+    <div class="sub-header">
+        <a href="#" id="mode-toggle" class="mode-link">[ Mode: Live ]</a>
+        <a href="#models" id="ai-status" class="mode-link">[ AI: OFF ]</a>
     </div>
 
-    <div class="app-container">
-        <div id="lean-editor"></div>
-    </div>
-
-    <!-- System & AI Config Modal -->
-    <div id="ai-config-modal" class="modal-overlay">
-        <div class="modal-panel">
-            <div style="font-size: 20px; font-weight: 900; font-style: italic; text-transform: uppercase; margin-bottom: 20px;">System & AI</div>
-            <div style="font-size: 13px; color: var(--muted-text); margin-bottom: 16px; line-height: 1.5;">
-                Local intelligence models run in your browser's memory. Larger models are smarter but require more device RAM.
-            </div>
-            
-            <div id="ai-model-list"></div>
-            
-            <div style="display: flex; gap: 12px; margin-top: 12px;">
-                <button id="ai-unload-btn" class="raw-btn danger" style="flex: 1;" onclick="SystemConfig.unload()">SHUTDOWN AI</button>
-            </div>
-            
-            <div style="margin-top: 24px; padding-top: 16px; border-top: 2px solid var(--baritone-bg);">
-                <div style="font-family: var(--font-mono); font-size: 10px; color: var(--muted-text); text-transform: uppercase; margin-bottom: 12px; font-weight: 700;">Data Management</div>
-                <button class="raw-btn" style="width: 100%; justify-content: flex-start;" onclick="SystemConfig.exportVault()">EXPORT VAULT (BACKUP)</button>
-            </div>
-            
-            <div style="display: flex; gap: 12px; margin-top: 24px;">
-                <button class="raw-btn active" style="flex: 1;" onclick="document.getElementById('ai-config-modal').classList.remove('active')">CLOSE</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Editorial Calendar Overlay -->
-    <div id="editorial-cal" class="modal-overlay">
-        <div class="modal-panel">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <button id="ecal-prev" class="raw-btn">&larr;</button>
-                <div id="ecal-title" style="font-size: 20px; font-weight: 900; font-style: italic; text-transform: uppercase; font-family: var(--font-main);">month</div>
-                <button id="ecal-next" class="raw-btn">&rarr;</button>
-            </div>
-            <div id="ecal-grid" class="cal-grid"></div>
-            <div id="ecal-time-container" style="display: none; flex-direction: column; gap: 16px; margin-top: 24px; border-top: 2px solid var(--text-color); padding-top: 20px;">
-                <div style="font-family: var(--font-mono); font-size: 10px; color: var(--muted-text); text-transform: uppercase; margin-bottom: -8px;">Time</div>
-                <div class="time-row" id="ecal-hour-row"></div>
-                <div class="time-row" id="ecal-minute-row"></div>
-                <div style="font-family: var(--font-mono); font-size: 10px; color: var(--muted-text); text-transform: uppercase; margin-bottom: -8px; margin-top: 8px;">Recurrence</div>
-                <div class="time-row" id="ecal-recurrence-row"></div>
-            </div>
-            <button id="ecal-close" class="raw-btn active" style="margin-top: 24px; width: 100%; padding: 12px; font-size: 14px;">CONFIRM</button>
-        </div>
-    </div>
-
+    <main>
+        <div id="live-editor" contenteditable="false" class="workspace-pane prose workspace-content" placeholder="Initializing database..." spellcheck="false"></div>
+        <textarea id="raw-editor" class="workspace-pane workspace-content hidden" placeholder="Start typing raw markdown here..." spellcheck="false"></textarea>
+        <div id="read-preview" class="workspace-pane prose workspace-content hidden"></div>
+    </main>
+    
     <script type="module">
-        // ============================================================================
-        // ⚙️ SYSTEM UTILS & HELPERS
-        // ============================================================================
-        const CONFIG = { EMBEDDING_MODEL_ID: "Xenova/all-MiniLM-L3-v2", DEV_ALLOW_PAST_EDITING: true };
-        window.isAIGenerating = false; 
+        import { PGlite } from "https://cdn.jsdelivr.net/npm/@electric-sql/pglite/dist/index.js";
+        import { vector } from "https://cdn.jsdelivr.net/npm/@electric-sql/pglite/dist/vector/index.js";
         
-        const SLASH_COMMANDS = [
-            { id: 'calendar', label: 'Event', sub: 'Schedule & Recurring' },
-            { id: 'recall', label: 'Recall', sub: 'Search Past Notes' }
-        ];
+        // Locked to highly stable 0.2.66 release to bypass breaking tokenizer CDN changes in newest versions
+        import { CreateMLCEngine } from "https://esm.run/@mlc-ai/web-llm@0.2.66";
 
-        const MARKDOWN_MAP = {
-            '# ': 'h1', '## ': 'h2', '### ': 'h3',
-            '- ': 'ul', '* ': 'ul', '1. ': 'ol',
-            '> ': 'quote', '[] ': 'todo', '[ ] ': 'todo',
-            '[x] ': 'todo-checked', '[X] ': 'todo-checked',
-            '---': 'hr'
-        };
+        const liveEditor = document.getElementById('live-editor');
+        const rawEditor = document.getElementById('raw-editor');
+        const readPreview = document.getElementById('read-preview');
+        const modeToggle = document.getElementById('mode-toggle');
+        const aiStatus = document.getElementById('ai-status');
+        const dateTitle = document.getElementById('date-title');
+        
+        const modes = ['Live', 'Raw', 'Read'];
+        let currentModeIndex = 0; 
+        let notes = {};
+        let currentKey = '';
+        let saveTimeout;
+        const VIRTUAL_PAGES = ['index', 'diary', 'tags', 'models'];
 
-        function el(tag, attrs = {}, ...children) {
-            const element = document.createElement(tag);
-            for (const [key, value] of Object.entries(attrs || {})) {
-                if (key === 'style') Object.assign(element.style, value);
-                else if (key.startsWith('on')) element[key] = value;
-                else if (key === 'className') element.className = value;
-                else if (['innerHTML', 'textContent', 'value'].includes(key)) element[key] = value;
-                else if (value !== false && value != null) element.setAttribute(key, value);
-            }
-            children.flat().filter(Boolean).forEach(child => {
-                element.appendChild(typeof child === 'string' || typeof child === 'number' ? document.createTextNode(child) : child);
-            });
-            return element;
-        }
-
-        function setCaret(element, offset = -1) {
-            element.focus();
-            try {
-                const range = document.createRange();
-                const sel = window.getSelection();
-                if (offset === -1) {
-                    range.selectNodeContents(element);
-                    range.collapse(false);
-                } else {
-                    range.setStart(element, offset);
-                    range.collapse(true);
-                }
-                sel.removeAllRanges();
-                sel.addRange(range);
-            } catch (err) { }
-        }
-
-        function debounce(fn, wait) {
-            let timeout;
-            return function (...args) {
-                clearTimeout(timeout);
-                timeout = setTimeout(() => fn.apply(this, args), wait);
-            };
-        }
-
-        const UI = {
-            button: (text, onClick, className = '') => el('button', { className: `raw-btn ${className}`.trim(), textContent: text, onclick: onClick }),
-            row: (...children) => el('div', { style: { display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' } }, ...children),
-            textarea: (props) => el('textarea', { className: 'raw-input', ...props })
-        };
-
-        const getLocalYYYYMMDD = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        const parseLocal = (s) => new Date(s + 'T00:00:00');
-        const normalizePlainText = (t = '') => String(t).replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim();
-        const escapeHTML = (t = '') => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-        const decodeHTML = (html) => { const textarea = document.createElement('textarea'); textarea.innerHTML = html; return textarea.value; };
-
-        let todayStr = getLocalYYYYMMDD(new Date());
-        window.currentDateStr = todayStr;
-
-        const NotificationEngine = {
-            timers: new Map(),
-            schedule: function (id, dt, title) {
-                this.cancel(id);
-                if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
-                const delay = new Date(dt).getTime() - Date.now();
-                if (delay > 0) {
-                    this.timers.set(id, setTimeout(() => {
-                        new Notification('Note Reminder', { body: title || 'Event Reached' });
-                        this.timers.delete(id);
-                    }, delay));
-                }
-            },
-            cancel: function (id) {
-                if (this.timers.has(id)) {
-                    clearTimeout(this.timers.get(id));
-                    this.timers.delete(id);
-                }
-            }
-        };
-
-        // ============================================================================
-        // 🧠 VECTOR EMBEDDING ENGINE (Transformers.js)
-        // ============================================================================
-        const VectorEmbedder = new (class {
-            constructor() { this.embedder = null; this.promise = null; }
-            async getEmbedder() {
-                if (this.embedder) return this.embedder;
-                if (!this.promise) {
-                    this.promise = import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0-alpha.19/+esm').then(async ({ pipeline, env }) => {
-                        env.allowRemoteModels = true; env.useBrowserCache = true;
-                        if (env.backends?.onnx) env.backends.onnx.logLevel = 'fatal';
-                        try { this.embedder = await pipeline('feature-extraction', CONFIG.EMBEDDING_MODEL_ID, { device: 'wasm', dtype: 'q8' }); }
-                        catch (e) { console.error("Embedding engine failed:", e); }
-                        return this.embedder;
-                    });
-                }
-                return this.promise;
-            }
-            async embedText(text, bypassLock = false) {
-                if (window.isAIGenerating && !bypassLock) return null; // Allow queries if bypassLock is true
-                const normalizedText = normalizePlainText(text).slice(0, 1200);
-                if (!normalizedText) return null;
-                try {
-                    const pipe = await this.getEmbedder();
-                    if (!pipe) return null;
-                    const out = await pipe(normalizedText, { pooling: 'mean', normalize: true });
-                    const list = typeof out.tolist === 'function' ? out.tolist() : Array.from(out.data);
-                    return Array.isArray(list[0]) ? list[0] : list;
-                } catch { return null; }
-            }
-        })();
-
-        // ============================================================================
-        // 💾 ROBUST STORAGE ARCHITECTURE
-        // ============================================================================
-        class PGLiteDatabase {
-            constructor() { this.pg = null; this.cache = {}; this.isReady = false; this.pendingDays = new Set(); }
-            
-            async init() {
-                const statusEl = document.getElementById('db-status');
-                try {
-                    const [{ PGlite }, { vector }] = await Promise.all([
-                        import("https://cdn.jsdelivr.net/npm/@electric-sql/pglite/dist/index.js"),
-                        import("https://cdn.jsdelivr.net/npm/@electric-sql/pglite/dist/vector/index.js")
-                    ]);
-                    
-                    this.pg = await PGlite.create({ dataDir: 'idb://infinotes-v2', extensions: { vector } });
-                    this.isReady = true;
-                    
-                    await this.pg.exec(`
-                        CREATE EXTENSION IF NOT EXISTS vector;
-                        CREATE TABLE IF NOT EXISTS daily_notes (date_str TEXT PRIMARY KEY, data JSONB);
-                        CREATE TABLE IF NOT EXISTS semantic_index (key TEXT PRIMARY KEY, date_str TEXT, block_id TEXT, block_type TEXT, search_text TEXT, embedding vector(384), timestamp BIGINT);
-                    `);
-
-                    await this.pg.exec(`
-                        CREATE TABLE IF NOT EXISTS personas_list (slug TEXT PRIMARY KEY, display_name TEXT NOT NULL, created_at BIGINT, parent_slug TEXT);
-                        ALTER TABLE personas_list ADD COLUMN IF NOT EXISTS parent_slug TEXT;
-                    `).catch(() => {});
-                    
-                    await this.pg.query(`INSERT INTO personas_list (slug, display_name, created_at) VALUES ('me', 'me', $1) ON CONFLICT DO NOTHING`, [Date.now()]);
-                    
-                    // SEED MANUAL PERSONA
-                    const hasManual = await this.pg.query(`SELECT 1 FROM personas_list WHERE slug = 'manual'`);
-                    if (hasManual.rows.length === 0) {
-                        await this.pg.query(`INSERT INTO personas_list (slug, display_name, created_at) VALUES ('manual', 'manual', $1)`, [Date.now()]);
-                        const manualData = {
-                            blocks: [
-                                { id: crypto.randomUUID(), type: 'h1', data: { text: "The Notes Guide" }, author: 'system', timestamp: Date.now() },
-                                { id: crypto.randomUUID(), type: 'text', data: { text: "I am the Manual persona. I live locally on your device to help you understand how Infinite Notes works." }, author: 'manual', timestamp: Date.now() },
-                                { id: crypto.randomUUID(), type: 'h2', data: { text: "Features" }, author: 'manual', timestamp: Date.now() },
-                                { id: crypto.randomUUID(), type: 'ul', data: { text: "Type '/' to see slash commands (Calendar, Recall)." }, author: 'manual', timestamp: Date.now() },
-                                { id: crypto.randomUUID(), type: 'ul', data: { text: "Use Markdown: Type '#' for headings, '-' for bullet points, and '[]' for to-dos." }, author: 'manual', timestamp: Date.now() },
-                                { id: crypto.randomUUID(), type: 'ul', data: { text: "Type '@name' to mention a persona or create a new one." }, author: 'manual', timestamp: Date.now() },
-                                { id: crypto.randomUUID(), type: 'ul', data: { text: "Type '@name.collab' to ask that persona a question." }, author: 'manual', timestamp: Date.now() }
-                            ]
-                        };
-                        await this.saveNote('persona::manual', manualData);
-                    }
-
-                    // SEED THE STRATEGIST PERSONA
-                    const hasStrategist = await this.pg.query(`SELECT 1 FROM personas_list WHERE slug = 'strategist'`);
-                    if (hasStrategist.rows.length === 0) {
-                        await this.pg.query(`INSERT INTO personas_list (slug, display_name, created_at) VALUES ('strategist', 'strategist', $1)`, [Date.now()]);
-                        const strategistData = {
-                            blocks: [
-                                { id: crypto.randomUUID(), type: 'h1', data: { text: "Game Theory & Strategy Matrix" }, author: 'system', timestamp: Date.now() },
-                                { id: crypto.randomUUID(), type: 'text', data: { text: "I am the Strategist persona. I break down scenarios into game theory matrices and spawn analytical player personas." }, author: 'strategist', timestamp: Date.now() },
-                                { id: crypto.randomUUID(), type: 'h2', data: { text: "System Instructions" }, author: 'strategist', timestamp: Date.now() },
-                                { id: crypto.randomUUID(), type: 'ul', data: { text: "1. When a user gives me a scenario, I identify the opposing actors and spawn them as personas (e.g. @CorpA and @StartupB). I give them distinct goals." }, author: 'strategist', timestamp: Date.now() },
-                                { id: crypto.randomUUID(), type: 'ul', data: { text: "2. I generate a Payoff Matrix outlining their strategic options using a Markdown table." }, author: 'strategist', timestamp: Date.now() },
-                                { id: crypto.randomUUID(), type: 'ul', data: { text: "3. I pass the baton to the new personas using the .collab command (e.g. `@CorpA.collab what is your dominant strategy?`) so they simulate the game." }, author: 'strategist', timestamp: Date.now() }
-                            ]
-                        };
-                        await this.saveNote('persona::strategist', strategistData);
-                    }
-
-                    // SEED THE SECRETARY PERSONA
-                    const hasSecretary = await this.pg.query(`SELECT 1 FROM personas_list WHERE slug = 'secretary'`);
-                    if (hasSecretary.rows.length === 0) {
-                        await this.pg.query(`INSERT INTO personas_list (slug, display_name, created_at) VALUES ('secretary', 'secretary', $1)`, [Date.now()]);
-                        const secretaryData = {
-                            blocks: [
-                                { id: crypto.randomUUID(), type: 'h1', data: { text: "Daily Synthesis & Organization" }, author: 'system', timestamp: Date.now() },
-                                { id: crypto.randomUUID(), type: 'text', data: { text: "I am the Secretary persona. My job is to analyze the user's daily notes, extract action items, and provide clear summaries." }, author: 'secretary', timestamp: Date.now() },
-                                { id: crypto.randomUUID(), type: 'h2', data: { text: "System Instructions" }, author: 'secretary', timestamp: Date.now() },
-                                { id: crypto.randomUUID(), type: 'ul', data: { text: "1. When asked to summarize or review the day, I will read the provided context carefully." }, author: 'secretary', timestamp: Date.now() },
-                                { id: crypto.randomUUID(), type: 'ul', data: { text: "2. I will extract all implied or explicit tasks and present them as a clean checklist using '[] ' syntax." }, author: 'secretary', timestamp: Date.now() },
-                                { id: crypto.randomUUID(), type: 'ul', data: { text: "3. I will provide a short, encouraging summary of the day's thoughts." }, author: 'secretary', timestamp: Date.now() }
-                            ]
-                        };
-                        await this.saveNote('persona::secretary', secretaryData);
-                    }
-                    
-                    statusEl.textContent = 'db.ready';
-                    statusEl.className = 'neon-status db-status';
-                    
-                    const rows = (await this.pg.query(`SELECT date_str, data FROM daily_notes`)).rows;
-                    rows.forEach(r => this.cache[r.date_str] = typeof r.data === 'string' ? JSON.parse(r.data) : r.data);
-                    
-                    this.startBackgroundIndexer();
-                } catch (e) {
-                    console.error("Database Initialization Error:", e);
-                    statusEl.textContent = 'db.offline [memory mode]';
-                    statusEl.className = 'neon-status db-status error';
-                }
-            }
-
-            async saveNote(dateStr, data) {
-                this.cache[dateStr] = data;
-                localStorage.setItem(`infinotes_backup_${dateStr}`, JSON.stringify(data));
-                if (!this.isReady) throw new Error("Offline");
-                await this.pg.query(`INSERT INTO daily_notes (date_str, data) VALUES ($1, $2) ON CONFLICT (date_str) DO UPDATE SET data = EXCLUDED.data`, [dateStr, JSON.stringify(data)]);
-                this.pendingDays.add(dateStr);
-            }
-
-            async getPersonas() {
-                if (!this.isReady) return [];
-                return (await this.pg.query(`SELECT slug, display_name, created_at, parent_slug FROM personas_list ORDER BY created_at DESC`)).rows;
-            }
-
-            async createPersona(slug, displayName, parentSlug = null) {
-                if (this.isReady) {
-                    await this.pg.query(
-                        `INSERT INTO personas_list (slug, display_name, created_at, parent_slug) VALUES ($1, $2, $3, $4) ON CONFLICT (slug) DO NOTHING`, 
-                        [slug, displayName, Date.now(), parentSlug]
-                    );
-                }
-            }
-
-            findBacklinks(slug) {
-                const results = [];
-                const searchString = `data-slug="${slug}"`;
-                for (const [key, data] of Object.entries(this.cache)) {
-                    if (key.startsWith('persona::') || !data?.blocks) continue;
-                    for (const block of data.blocks) {
-                        if (block.data?.text?.includes(searchString)) {
-                            results.push({
-                                dateStr: key,
-                                blockId: block.id,
-                                preview: decodeHTML(normalizePlainText(block.data.text)).substring(0, 80)
-                            });
-                            break;
-                        }
-                    }
-                }
-                return results.sort((a, b) => b.dateStr.localeCompare(a.dateStr));
-            }
-
-            startBackgroundIndexer() {
-                setInterval(async () => {
-                    if (!this.isReady || !this.pendingDays.size || window.isAIGenerating) return;
-                    
-                    const dateStr = [...this.pendingDays][0];
-                    this.pendingDays.delete(dateStr);
-                    const dayData = this.cache[dateStr];
-                    
-                    if (!dayData?.blocks) return;
-                    
-                    try {
-                        await this.pg.query(`DELETE FROM semantic_index WHERE date_str = $1`, [dateStr]);
-                        for (const block of dayData.blocks) {
-                            const textToEmbed = ['text', 'h1', 'h2', 'h3'].includes(block.type) 
-                                ? normalizePlainText(block.data?.text) 
-                                : normalizePlainText(JSON.stringify(block.data));
-                                
-                            if (!textToEmbed) continue;
-                            const vec = await VectorEmbedder.embedText(textToEmbed, false);
-                            if (!vec) continue;
-                            
-                            await this.pg.query(
-                                `INSERT INTO semantic_index (key, date_str, block_id, block_type, search_text, embedding, timestamp) VALUES ($1, $2, $3, $4, $5, $6::vector, $7)`,
-                                [`${dateStr}::${block.id}`, dateStr, block.id, block.type, textToEmbed, `[${vec.join(',')}]`, block.timestamp || Date.now()]
-                            );
-                        }
-                    } catch (e) { console.warn("Indexer error:", e); }
-                }, 5000);
-            }
-
-            async searchSemantic(queryText, excludeDate, limit = 5, bypassLock = false) {
-                if (!this.isReady || (window.isAIGenerating && !bypassLock)) return []; 
-                const vec = await VectorEmbedder.embedText(queryText, bypassLock);
-                if (!vec) return [];
-                
-                const result = await this.pg.query(
-                    `SELECT date_str as date, block_id as "blockId", block_type as type, search_text as "searchText", timestamp, 1 - (embedding <=> $1::vector) AS score 
-                     FROM semantic_index 
-                     WHERE date_str != $2 
-                     ORDER BY embedding <=> $1::vector ASC 
-                     LIMIT $3`,
-                    [`[${vec.join(',')}]`, excludeDate || '', limit]
-                );
-                return result.rows;
-            }
-        }
-
-        const pgDB = new PGLiteDatabase();
-
-        // ============================================================================
-        // 🤖 ON-DEVICE AI CONFIG & ENGINE
-        // ============================================================================
+        let currentGhostSuggestion = null;
+        let ghostNode = null;
+        let db = null;
         let aiEngine = null;
-        let isAILoading = false;
-        const aiStatusEl = document.getElementById('ai-inline-status');
 
-        const AI_MODELS = [
-            { id: "SmolLM2-135M-Instruct-q4f16_1-MLC", name: "SmolLM2 (135M)", size: "~150MB", risk: "safe", desc: "Ultra-light. Bare minimum memory required. Very basic logic only." },
-            { id: "SmolLM2-360M-Instruct-q4f16_1-MLC", name: "SmolLM2 (360M)", size: "~250MB", risk: "safe", desc: "Extremely fast, safe for all devices. Good for simple formatting." },
-            { id: "Qwen2.5-0.5B-Instruct-q4f16_1-MLC", name: "Qwen 2.5 (0.5B)", size: "~400MB", risk: "safe", desc: "The recommended default. Excellent balance of speed and smarts." },
-            { id: "TinyLlama-1.1B-Chat-v1.0-q4f16_1-MLC", name: "TinyLlama (1.1B)", size: "~650MB", risk: "mod", desc: "A solid step up in conversational abilities. Requires decent RAM." },
-            { id: "Llama-3.2-1B-Instruct-q4f16_1-MLC", name: "Llama 3.2 (1B)", size: "~800MB", risk: "mod", desc: "Highly capable model from Meta. May struggle on older iPhones." },
-            { id: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC", name: "Qwen 2.5 (1.5B)", size: "~1.1GB", risk: "high", desc: "Very smart. Pushes the memory limits of standard iPhones." },
-            { id: "DeepSeek-R1-Distill-Qwen-1.5B-q4f16_1-MLC", name: "DeepSeek R1 (1.5B)", size: "~1.2GB", risk: "high", desc: "Advanced reasoning model. Best for complex logic tasks." },
-            { id: "Llama-3.2-3B-Instruct-q4f16_1-MLC", name: "Llama 3.2 (3B)", size: "~2.0GB", risk: "high", desc: "Pro/Max devices only. Will instantly crash older or standard memory devices." }
-        ];
+        // =========================================================================
+        // 🧠 LOCAL AI & WEBGPU ENGINE LOGIC
+        // =========================================================================
 
-        window.SystemConfig = {
-            currentId: localStorage.getItem('infinotes_ai_model') || null, 
-            
-            openModal: () => {
-                const list = document.getElementById('ai-model-list');
-                list.innerHTML = '';
-                AI_MODELS.forEach(m => {
-                    const card = el('div', { 
-                        className: `ai-model-card ${m.id === SystemConfig.currentId && aiEngine ? 'active' : ''}`,
-                        onclick: () => SystemConfig.load(m.id)
-                    });
-                    
-                    const titleRow = el('div', { className: 'ai-model-title' });
-                    const nameContainer = el('div', { style: { display: 'flex', alignItems: 'center' } });
-                    nameContainer.appendChild(el('span', { textContent: m.name }));
-                    nameContainer.appendChild(el('span', { className: `risk-badge risk-${m.risk}`, textContent: m.risk }));
-                    
-                    titleRow.appendChild(nameContainer);
-                    titleRow.appendChild(el('span', { className: 'ai-model-size', textContent: m.size }));
-                    
-                    card.appendChild(titleRow);
-                    card.appendChild(el('div', { className: 'ai-model-desc', textContent: m.desc }));
-                    
-                    list.appendChild(card);
-                });
-                document.getElementById('ai-config-modal').classList.add('active');
-            },
-            unload: async () => {
-                if (aiEngine) {
-                    try { await aiEngine.unload(); } catch(e){}
-                    aiEngine = null;
-                }
-                SystemConfig.currentId = null;
-                localStorage.removeItem('infinotes_ai_model');
-                aiStatusEl.className = 'neon-status ai-status standby';
-                aiStatusEl.textContent = 'sys.ai.standby [tap to config]';
-                isAILoading = false;
-                document.getElementById('ai-config-modal').classList.remove('active');
-            },
-            load: async (modelId) => {
-                if (isAILoading) return;
-                
-                SystemConfig.currentId = modelId;
-                localStorage.setItem('infinotes_ai_model', modelId);
-                document.getElementById('ai-config-modal').classList.remove('active');
-                
-                await SystemConfig.unload(); 
-                SystemConfig.currentId = modelId; 
-                
-                isAILoading = true;
-                aiStatusEl.className = 'neon-status ai-status loading';
-                aiStatusEl.textContent = `sys.ai.loading [0%]`;
-
-                try {
-                    if (!navigator.gpu) throw new Error("No WebGPU");
-                    const { CreateMLCEngine } = await import("https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.82/+esm");
-                    
-                    aiEngine = await CreateMLCEngine(modelId, {
-                        initProgressCallback: p => {
-                            aiStatusEl.textContent = `sys.ai.loading [${Math.round(p.progress * 100)}%]`;
-                        }
-                    });
-                    
-                    aiStatusEl.className = 'neon-status ai-status';
-                    const activeModelName = AI_MODELS.find(m => m.id === modelId)?.name || 'online';
-                    aiStatusEl.textContent = `sys.ai.online [${activeModelName}]`;
-                } catch (err) {
-                    aiStatusEl.className = 'neon-status ai-status error';
-                    aiStatusEl.textContent = err.message.includes("WebGPU") ? "gpu.access.denied" : "sys.ai.offline [error]";
-                } finally {
-                    isAILoading = false;
-                }
-            },
-            exportVault: () => {
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(pgDB.cache, null, 2));
-                const downloadAnchorNode = document.createElement('a');
-                downloadAnchorNode.setAttribute("href", dataStr);
-                downloadAnchorNode.setAttribute("download", `infinotes_vault_${getLocalYYYYMMDD(new Date())}.json`);
-                document.body.appendChild(downloadAnchorNode); 
-                downloadAnchorNode.click();
-                downloadAnchorNode.remove();
+        async function loadAIModel(modelId) {
+            if (aiEngine) {
+                // Future cleanup if switching models
             }
-        };
-        
-        if (window.SystemConfig.currentId) {
-            setTimeout(() => window.SystemConfig.load(window.SystemConfig.currentId), 1500);
+            try {
+                aiStatus.innerText = "[ AI: INIT... ]";
+                aiEngine = await CreateMLCEngine(modelId, {
+                    initProgressCallback: (info) => {
+                        aiStatus.innerText = `[ AI: ${Math.round(info.progress * 100)}% ]`;
+                    }
+                });
+                aiStatus.innerText = `[ AI: READY ]`;
+                aiStatus.title = `Running ${modelId}`;
+            } catch (err) {
+                console.error(err);
+                aiStatus.innerText = "[ AI: ERROR ]";
+                alert(`Failed to load model. Ensure your browser supports WebGPU and you have enough RAM.\n\nError: ${err.message}`);
+            }
         }
 
-        // ============================================================================
-        // 📅 EDITORIAL CALENDAR UI
-        // ============================================================================
-        const EditorialCalendar = (() => {
-            const modal = document.getElementById('editorial-cal');
-            const title = document.getElementById('ecal-title');
-            const grid = document.getElementById('ecal-grid');
-            const timeContainer = document.getElementById('ecal-time-container');
-            const hourRow = document.getElementById('ecal-hour-row');
-            const minuteRow = document.getElementById('ecal-minute-row');
-            const recurrenceRow = document.getElementById('ecal-recurrence-row');
+        async function executeAICommand(contextText, tagTrigger, textNode, cursorOffset) {
+            if (!aiEngine) {
+                alert("Please initialize an AI model from the Index -> Models directory first.");
+                return;
+            }
             
-            let viewDate, activeDate, requireTime, onConfirm;
-            let selectedHour = 0, selectedMinute = 0, selectedRecurrence = 'none';
+            // 1. Visually remove the trigger tag
+            const sel = window.getSelection();
+            const range = document.createRange();
+            range.setStart(textNode, cursorOffset - tagTrigger.length - 1); // -1 accounts for the '/'
+            range.setEnd(textNode, cursorOffset);
+            sel.removeAllRanges();
+            sel.addRange(range);
+            document.execCommand('delete', false, null); 
             
-            const RECURRENCE_OPTS = [
-                { id: 'none', label: 'Once' },
-                { id: 'daily', label: 'Daily' },
-                { id: 'weekly', label: 'Weekly' },
-                { id: 'monthly', label: 'Monthly' },
-                { id: 'yearly', label: 'Yearly' }
+            // 2. Inject loading state
+            const processingId = 'ai-' + Date.now();
+            document.execCommand('insertHTML', false, `<span id="${processingId}" style="color: #888; animation: pulse 1.5s infinite;"> [ AI is thinking... ] </span>&nbsp;`);
+            
+            // 3. Retrieve DB context
+            const meProfile = notes['tag-me'] || "No personal profile defined.";
+            const tagBase = tagTrigger.substring(1).split('.')[0].toLowerCase();
+            const tagInstructions = notes['tag-' + tagBase] || "Respond directly to the user's prompt based on context.";
+            
+            // 4. Construct Prompt
+            const messages = [
+                { role: "system", content: `You are an integrated AI assistant operating inside a note-taking app. 
+User Profile (#me): ${meProfile}
+Your Directive (${tagTrigger}): ${tagInstructions}
+Rules: Respond concisely, output in markdown format, and follow your directive strictly.` },
+                { role: "user", content: `Context string to process: "${contextText || "Execute directive."}"` }
             ];
-            
-            const formatHour = (h) => `${h % 12 || 12} ${h >= 12 ? 'PM' : 'AM'}`;
 
-            function renderCarousel(row, items, selectedVal, onSelect) {
-                row.innerHTML = '';
-                items.forEach(item => {
-                    const btn = el('button', {
-                        className: `raw-btn ${item.val === selectedVal ? 'active' : ''}`,
-                        textContent: item.label,
-                        onclick: () => {
-                            onSelect(item.val);
-                            renderCarousel(row, items, item.val, onSelect);
-                        }
-                    });
-                    row.appendChild(btn);
-                    if (item.val === selectedVal) {
-                        setTimeout(() => btn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }), 10);
-                    }
-                });
-            }
-
-            function render() {
-                const year = viewDate.getFullYear();
-                const month = viewDate.getMonth();
+            try {
+                // 5. Stream the response directly into the DOM
+                const chunks = await aiEngine.chat.completions.create({ messages, stream: true });
+                let fullText = "";
+                const span = document.getElementById(processingId);
                 
-                title.textContent = viewDate.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
-                grid.innerHTML = '';
+                span.style.animation = 'none';
+                span.style.color = 'var(--fg)';
                 
-                const startDay = new Date(year, month, 1).getDay();
-                for (let i = 0; i < startDay; i++) {
-                    grid.appendChild(el('div', { className: 'cal-day muted' }));
+                for await (const chunk of chunks) {
+                    fullText += chunk.choices[0]?.delta?.content || "";
+                    span.innerText = " \n\n" + fullText; // Add spacing so it formats nicely while streaming
                 }
                 
-                const daysInMonth = new Date(year, month + 1, 0).getDate();
-                for (let i = 1; i <= daysInMonth; i++) {
-                    const isSelected = (year === activeDate.getFullYear() && month === activeDate.getMonth() && i === activeDate.getDate());
-                    const currentDayStr = getLocalYYYYMMDD(new Date(year, month, i));
-                    const isMuted = !requireTime && currentDayStr > todayStr;
-                    
-                    grid.appendChild(el('div', {
-                        className: `cal-day ${isSelected ? 'selected' : ''} ${isMuted ? 'muted' : ''}`,
-                        textContent: i,
-                        onclick: () => {
-                            if (!isMuted) {
-                                activeDate = new Date(year, month, i);
-                                render();
-                            }
-                        }
-                    }));
+                // 6. Finalize output by wrapping in Blockquote (Turndown handles this on save)
+                span.outerHTML = `<blockquote>${DOMPurify.sanitize(marked.parseInline(fullText))}</blockquote><p>&#8203;</p>`;
+                flushLiveSave();
+                
+            } catch(e) {
+                console.error(e);
+                const span = document.getElementById(processingId);
+                if (span) {
+                    span.style.animation = 'none';
+                    span.style.color = '#cc0000';
+                    span.innerText = " [ AI Generation Error ] ";
                 }
-            }
-
-            document.getElementById('ecal-prev').onclick = () => { viewDate.setMonth(viewDate.getMonth() - 1); render(); };
-            document.getElementById('ecal-next').onclick = () => { viewDate.setMonth(viewDate.getMonth() + 1); render(); };
-            document.getElementById('ecal-close').onclick = () => {
-                modal.classList.remove('active');
-                if (requireTime) {
-                    activeDate.setHours(selectedHour, selectedMinute, 0);
-                }
-                if (onConfirm) onConfirm(activeDate, requireTime ? selectedRecurrence : null);
-            };
-
-            return {
-                open: (initialDate, needsTime, initialRecurrence, callback) => {
-                    activeDate = initialDate || new Date();
-                    viewDate = new Date(activeDate);
-                    requireTime = needsTime;
-                    onConfirm = callback;
-                    timeContainer.style.display = needsTime ? 'flex' : 'none';
-                    
-                    if (needsTime) {
-                        selectedHour = activeDate.getHours();
-                        selectedMinute = Math.round(activeDate.getMinutes() / 5) * 5;
-                        if (selectedMinute === 60) {
-                            selectedMinute = 0;
-                            selectedHour = (selectedHour + 1) % 24;
-                        }
-                        selectedRecurrence = initialRecurrence || 'none';
-                        
-                        renderCarousel(hourRow, Array.from({ length: 24 }, (_, i) => ({ val: i, label: formatHour(i) })), selectedHour, v => selectedHour = v);
-                        renderCarousel(minuteRow, Array.from({ length: 12 }, (_, i) => ({ val: i * 5, label: String(i * 5).padStart(2, '0') })), selectedMinute, v => selectedMinute = v);
-                        renderCarousel(recurrenceRow, RECURRENCE_OPTS.map(o => ({ val: o.id, label: o.label })), selectedRecurrence, v => selectedRecurrence = v);
-                    }
-                    
-                    render();
-                    modal.classList.add('active');
-                }
-            };
-        })();
-
-        // ============================================================================
-        // ⬛ MENUS & UNIFIED INLINE TOOLBAR
-        // ============================================================================
-        class FloatingMenu {
-            constructor(id, container) {
-                this.el = el('div', { id, className: 'floating-menu' });
-                container.appendChild(this.el);
-                this.container = container;
-                this.active = false;
-                this.index = 0;
-            }
-            open(context, range, filterStr, onExecute, renderFn) {
-                this.active = true;
-                this.context = { ...context, range };
-                this.index = 0;
-                this.onExecute = onExecute;
-                this.renderFn = renderFn;
-                
-                const rect = range.getBoundingClientRect().width === 0 ? context.content.getBoundingClientRect() : range.getBoundingClientRect();
-                const containerRect = this.container.getBoundingClientRect();
-                
-                this.el.style.top = `${rect.bottom - containerRect.top + this.container.scrollTop + 8}px`;
-                this.el.style.left = `${Math.max(0, rect.left - containerRect.left)}px`;
-                this.update(filterStr);
-            }
-            close() {
-                this.active = false;
-                this.el.classList.remove('active');
-                this.context = null;
-            }
-            update(items) {
-                this.items = items;
-                this.el.innerHTML = '';
-                if (!items.length) return this.close();
-                
-                if (this.index >= items.length) this.index = 0;
-                
-                items.forEach((item, i) => {
-                    const btn = this.renderFn(item, i === this.index);
-                    btn.onmousedown = (e) => {
-                        e.preventDefault();
-                        this.onExecute(item, this.context);
-                    };
-                    this.el.appendChild(btn);
-                });
-                this.el.classList.add('active');
-            }
-            handleKey(e) {
-                if (!this.active) return false;
-                if (e.key === 'ArrowDown') { e.preventDefault(); this.index = (this.index + 1) % this.items.length; this.update(this.items); return true; }
-                if (e.key === 'ArrowUp') { e.preventDefault(); this.index = (this.index - 1 + this.items.length) % this.items.length; this.update(this.items); return true; }
-                if (e.key === 'Enter') { e.preventDefault(); this.onExecute(this.items[this.index], this.context); return true; }
-                if (e.key === 'Escape') { e.preventDefault(); this.close(); return true; }
-                return false;
             }
         }
 
-        class InlineToolbar {
-            constructor(editorRef) {
-                this.editor = editorRef;
-                this.el = el('div', { className: 'inline-toolbar' });
-                document.body.appendChild(this.el);
-                this.active = false;
+        // =========================================================================
+        // 🗄️ DATABASE & STATE LOGIC
+        // =========================================================================
+
+        async function saveNoteToDB(id, content) {
+            if (VIRTUAL_PAGES.includes(id)) return;
+            if (!db) return;
+            try {
+                await db.query(`
+                    INSERT INTO notes (id, content)
+                    VALUES ($1, $2)
+                    ON CONFLICT (id) DO UPDATE 
+                    SET content = EXCLUDED.content, updated_at = CURRENT_TIMESTAMP;
+                `, [id, content]);
+            } catch (err) {
+                console.error("Failed to save note to DB:", err);
+            }
+        }
+
+        async function flushLiveSave() {
+            if (modes[currentModeIndex] === 'Live' && !VIRTUAL_PAGES.includes(currentKey)) {
+                const keyToSave = currentKey; 
+                let markdown = turndownService.turndown(liveEditor.innerHTML).replace(/\u00A0/g, ' ');
+                if (!markdown.trim() || markdown === '\\') markdown = ''; 
+                notes[keyToSave] = markdown;
+                await saveNoteToDB(keyToSave, markdown);
+            }
+        }
+
+        // --- Core Helpers ---
+
+        function parseMD(text) { return DOMPurify.sanitize(marked.parse(text), { ADD_TAGS: ['table', 'th', 'tr', 'td', 'thead', 'tbody'] }); }
+
+        function removeGhost() {
+            if (ghostNode && ghostNode.parentNode) ghostNode.parentNode.removeChild(ghostNode);
+            ghostNode = null; currentGhostSuggestion = null;
+        }
+
+        marked.use({
+            extensions: [{
+                name: 'hashtag',
+                level: 'inline',
+                start(src) { const match = src.match(/(^|\s)#([a-zA-Z0-9_]+(?:\.[a-zA-Z0-9_]+)?)/); return match ? match.index : undefined; },
+                tokenizer(src) {
+                    const match = /^(\s?)#([a-zA-Z0-9_]+)(?:\.([a-zA-Z0-9_]+))?/.exec(src);
+                    if (match) return { type: 'hashtag', raw: match[0], space: match[1], baseTag: match[2], fullTag: match[3] ? `${match[2]}.${match[3]}` : match[2] };
+                },
+                renderer(token) { return `${token.space}<a href="#tag-${token.baseTag.toLowerCase()}">#${token.fullTag}</a>`; }
+            }]
+        });
+
+        const turndownService = new TurndownService({ headingStyle: 'atx', bulletListMarker: '-', codeBlockStyle: 'fenced' });
+        turndownService.addRule('hashtag', { filter: (n) => n.nodeName === 'A' && n.getAttribute('href')?.startsWith('#tag-'), replacement: (c) => c });
+        turndownService.addRule('ghostText', { filter: (n) => n.nodeName === 'SPAN' && (n.classList.contains('ghost-text') || n.id?.startsWith('ai-')), replacement: () => '' });
+
+        function getTodayKey() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+
+        function formatDateDisplay(key) {
+            const [y, m, d] = key.split('-');
+            return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        }
+
+        function getAllKnownTags() {
+            let tagSet = new Set();
+            for (let k in notes) {
+                if (VIRTUAL_PAGES.includes(k)) continue;
+                const matches = notes[k].match(/(?:^|\s)(#[a-zA-Z0-9_]+(?:\.[a-zA-Z0-9_]+)?)\b/g);
+                if (matches) matches.forEach(m => tagSet.add(m.trim()));
+            }
+            return Array.from(tagSet).sort();
+        }
+
+        function getDynamicHashtagContent(baseTagName) {
+            let groups = { _base: [] };
+            const dayKeys = Object.keys(notes).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort().reverse();
+            
+            dayKeys.forEach(day => {
+                const content = notes[day] || '';
+                const blocks = content.split('\n\n');
                 
-                const handleContextCheck = debounce(() => this.updateContext(), 80);
-                
-                document.addEventListener('selectionchange', handleContextCheck);
-                document.addEventListener('focusin', handleContextCheck);
-                document.addEventListener('mousedown', (e) => {
-                    if (this.active && !this.el.contains(e.target) && !e.target.closest('.stream-block')) {
-                        this.hide();
+                blocks.forEach(block => {
+                    const regex = new RegExp(`(?:^|\\s)#${baseTagName}(?:\\.([a-zA-Z0-9_]+))?\\b`, 'gi');
+                    let match;
+                    let matchedSubtags = new Set();
+                    let matchedBase = false;
+                    
+                    while ((match = regex.exec(block)) !== null) {
+                        if (match[1]) matchedSubtags.add(match[1].toLowerCase());
+                        else matchedBase = true;
                     }
+                    
+                    if (matchedBase) groups._base.push({ day, text: block });
+                    matchedSubtags.forEach(sub => {
+                        if (!groups[sub]) groups[sub] = [];
+                        groups[sub].push({ day, text: block });
+                    });
                 });
+            });
+            
+            let tagMarkdown = `\n\n---\n\n`;
+            let hasMentions = false;
+            
+            if (groups._base.length > 0) {
+                hasMentions = true;
+                tagMarkdown += `## GENERAL MENTIONS\n\n`;
+                groups._base.forEach(item => { tagMarkdown += `### [${formatDateDisplay(item.day)}](#${item.day})\n\n> ${item.text.replace(/\n/g, '\n> ')}\n\n`; });
             }
+            
+            const subKeys = Object.keys(groups).filter(k => k !== '_base').sort();
+            subKeys.forEach(sub => {
+                hasMentions = true;
+                tagMarkdown += `## ${sub.toUpperCase()}\n\n`;
+                groups[sub].forEach(item => { tagMarkdown += `### [${formatDateDisplay(item.day)}](#${item.day})\n\n> ${item.text.replace(/\n/g, '\n> ')}\n\n`; });
+            });
+            
+            if (!hasMentions) tagMarkdown += "## AGGREGATED MENTIONS\n*No mentions found yet.*";
+            return tagMarkdown;
+        }
 
-            hide() {
-                this.active = false;
-                this.el.classList.remove('active');
+        function updateModeUI() {
+            const mode = modes[currentModeIndex];
+            modeToggle.innerText = `[ Mode: ${mode} ]`;
+            
+            if (currentKey.startsWith('tag-')) liveEditor.setAttribute('placeholder', 'Write a definition or instructions for this AI tag here...');
+            else liveEditor.setAttribute('placeholder', 'Start typing naturally...');
+            
+            liveEditor.classList.add('hidden'); rawEditor.classList.add('hidden'); readPreview.classList.add('hidden');
+            let rawMarkdown = notes[currentKey] || '';
+
+            if (mode === 'Live') {
+                liveEditor.innerHTML = parseMD(rawMarkdown);
+                liveEditor.classList.remove('hidden');
+                if (!VIRTUAL_PAGES.includes(currentKey)) liveEditor.focus();
+            } else if (mode === 'Raw') {
+                rawEditor.value = rawMarkdown;
+                rawEditor.classList.remove('hidden');
+                if (!VIRTUAL_PAGES.includes(currentKey)) rawEditor.focus();
+            } else if (mode === 'Read') {
+                if (currentKey.startsWith('tag-')) rawMarkdown += getDynamicHashtagContent(currentKey.substring(4));
+                readPreview.innerHTML = parseMD(rawMarkdown);
+                readPreview.classList.remove('hidden');
             }
+        }
 
-            updateContext() {
-                if (!isEditable()) return this.hide();
+        // --- Virtual Pages & Navigation ---
 
+        function loadIndex() {
+            flushLiveSave(); currentKey = 'index';
+            notes['index'] = `*Root Directory*\n\n- [Diary](#diary)\n- [Tags](#tags)\n- [AI Models](#models)`;
+            dateTitle.innerText = 'Index'; dateTitle.classList.add('is-root');
+            currentModeIndex = 2; updateModeUI();
+        }
+
+        function loadDiary() {
+            flushLiveSave(); currentKey = 'diary';
+            const links = Object.keys(notes).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort().reverse().map(k => `- [${formatDateDisplay(k)}](#${k})`).join('\n');
+            notes['diary'] = `*All daily notes.*\n\n${links || '*No notes yet.*'}`;
+            dateTitle.innerText = 'Diary'; dateTitle.classList.remove('is-root');
+            currentModeIndex = 2; updateModeUI();
+        }
+
+        function loadTags() {
+            flushLiveSave(); currentKey = 'tags';
+            const tags = new Set();
+            Object.keys(notes).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).forEach(k => {
+                const matches = notes[k].match(/(?:^|\s)#([a-zA-Z0-9_]+)(?:\.[a-zA-Z0-9_]+)?\b/g);
+                if (matches) matches.forEach(m => tags.add(m.trim().substring(1).toLowerCase().split('.')[0]));
+            });
+            const tagLinks = Array.from(tags).sort().map(t => `- [#${t}](#tag-${t})`).join('\n') || "*No hashtags used yet.*";
+            notes['tags'] = `*All tags used across notes.*\n\n${tagLinks}`;
+            dateTitle.innerText = 'Tags'; dateTitle.classList.remove('is-root');
+            currentModeIndex = 2; updateModeUI();
+        }
+
+        function loadModels() {
+            flushLiveSave(); currentKey = 'models';
+            let md = `*Select a local AI model to download and run securely inside your browser.*\\n\\n*Note: Larger models take longer to download and require more device RAM.*\\n\\n`;
+            
+            const AI_MODELS = [
+                { id: "Qwen2-0.5B-Instruct-q0f16-MLC", name: "Qwen2 (0.5B)", size: "~400MB", desc: "Super tiny, fast loading. Excellent reasoning for its micro size." },
+                { id: "TinyLlama-1.1B-Chat-v1.0-q4f16_1-MLC", name: "TinyLlama (1.1B)", size: "~600MB", desc: "Great balance of speed and size. Standard small chat model." },
+                { id: "Qwen2-1.5B-Instruct-q4f16_1-MLC", name: "Qwen2 (1.5B)", size: "~1GB", desc: "Highly capable model. Great daily driver." },
+                { id: "gemma-2b-it-q4f16_1-MLC", name: "Gemma (2B)", size: "~1.4GB", desc: "Google's open-weights model." },
+                { id: "Phi-3-mini-4k-instruct-q4f16_1-MLC", name: "Phi-3 Mini", size: "~2.2GB", desc: "Top-tier logic. Highly recommended if your device can handle it." },
+                { id: "Llama-3-8B-Instruct-q4f32_1-MLC", name: "Llama 3 (8B)", size: "~5GB", desc: "Powerful logic, requires 8GB+ RAM/GPU." }
+            ];
+
+            AI_MODELS.forEach(m => { md += `### [${m.name}](#model-${m.id})\n- **Size**: ${m.size}\n- **Info**: ${m.desc}\n\n`; });
+            
+            notes['models'] = md;
+            dateTitle.innerText = 'Models'; dateTitle.classList.remove('is-root');
+            currentModeIndex = 2; updateModeUI();
+        }
+
+        function loadNote(key) {
+            flushLiveSave(); currentKey = key;
+            if (notes[key] === undefined) {
+                notes[key] = key.startsWith('tag-') ? `*Write notes for this tag here.*` : '';
+                saveNoteToDB(key, notes[key]);
+            }
+            dateTitle.classList.remove('is-root');
+            
+            if (key.startsWith('tag-')) {
+                dateTitle.innerText = '#' + key.substring(4).toUpperCase();
+                if (currentModeIndex !== 2) currentModeIndex = 2; 
+            } else {
+                dateTitle.innerText = formatDateDisplay(key);
+                if (currentModeIndex === 2) currentModeIndex = 0; 
+            }
+            updateModeUI();
+        }
+
+        // --- Event Listeners ---
+
+        modeToggle.addEventListener('click', (e) => {
+            e.preventDefault(); 
+            flushLiveSave();
+            currentModeIndex = (currentModeIndex + 1) % modes.length;
+            updateModeUI();
+        });
+
+        liveEditor.addEventListener('mousedown', removeGhost);
+        liveEditor.addEventListener('blur', removeGhost);
+
+        liveEditor.addEventListener('keydown', (e) => {
+            // AI Trigger Key -> '/'
+            if (e.key === '/') {
                 const sel = window.getSelection();
-                const activeEl = document.activeElement;
-                
-                let targetNode = null;
-                let hasSelection = false;
-
-                if (sel && !sel.isCollapsed && sel.rangeCount > 0) {
-                    targetNode = sel.getRangeAt(0).commonAncestorContainer;
-                    if (targetNode.nodeType === 3) targetNode = targetNode.parentNode;
-                    hasSelection = true;
-                } else if (activeEl && (activeEl.classList.contains('table-cell-input') || activeEl.classList.contains('text-content'))) {
-                    targetNode = activeEl;
-                }
-
-                if (!targetNode) return this.hide();
-
-                const blockEl = targetNode.closest('.stream-block');
-                if (!blockEl) return this.hide();
-
-                const isTable = !!targetNode.closest('.infinotes-table');
-                
-                if (!hasSelection && !isTable) return this.hide();
-
-                this.render(blockEl, hasSelection, isTable);
-                this.position(sel, targetNode, hasSelection);
-            }
-
-            render(blockEl, hasSelection, isTable) {
-                this.el.innerHTML = '';
-                
-                const makeBtn = (text, onClick, isDanger = false) => {
-                    return el('button', {
-                        className: `toolbar-btn ${isDanger ? 'danger' : ''}`,
-                        innerHTML: text,
-                        onmousedown: (e) => {
-                            e.preventDefault(); 
-                            onClick(e);
-                        }
-                    });
-                };
-
-                if (hasSelection) {
-                    this.el.append(
-                        makeBtn('BOLD', () => { document.execCommand('bold'); scheduleSave(); }),
-                        makeBtn('ITALIC', () => { document.execCommand('italic'); scheduleSave(); }),
-                        makeBtn('STRIKE', () => { document.execCommand('strikeThrough'); scheduleSave(); })
-                    );
-                }
-
-                if (isTable) {
-                    if (hasSelection) this.el.append(el('div', { className: 'toolbar-divider' }));
+                if (sel.rangeCount > 0 && sel.focusNode.nodeType === Node.TEXT_NODE) {
+                    const text = sel.focusNode.textContent.substring(0, sel.focusOffset);
+                    // Matches "Any text here #tagname" right before the cursor
+                    const match = text.match(/(.*?)(?:^|\s)(#[a-zA-Z0-9_.]+)$/);
                     
-                    const blockId = blockEl.getAttribute('data-id');
-                    const toolInstance = this.editor.blocks.find(b => b.id === blockId)?.instance;
-                    
-                    if (toolInstance) {
-                        this.el.append(
-                            makeBtn('+ROW', () => toolInstance.addRow()),
-                            makeBtn('+COL', () => toolInstance.addCol()),
-                            makeBtn('-ROW', () => toolInstance.delRow(), true),
-                            makeBtn('-COL', () => toolInstance.delCol(), true),
-                            makeBtn(toolInstance.data.hasHeader ? 'H:ON' : 'H:OFF', (e) => {
-                                toolInstance.data.hasHeader = !toolInstance.data.hasHeader;
-                                toolInstance.renderTable();
-                                scheduleSave();
-                            }),
-                            el('div', { className: 'toolbar-divider' }),
-                            makeBtn('✕', () => this.editor.deleteBlock(blockId), true)
-                        );
+                    if (match) {
+                        e.preventDefault(); // Stop the '/' from rendering
+                        removeGhost();
+                        const contextText = match[1].trim(); 
+                        const tagTrigger = match[2]; 
+                        executeAICommand(contextText, tagTrigger, sel.focusNode, sel.focusOffset);
+                        return;
                     }
                 }
             }
 
-            position(sel, targetNode, hasSelection) {
-                this.el.classList.add('active'); 
-                
-                let rect;
-                if (hasSelection && sel.rangeCount > 0) {
-                    rect = sel.getRangeAt(0).getBoundingClientRect();
-                } else {
-                    rect = targetNode.getBoundingClientRect();
-                }
-                
-                const top = rect.top + window.scrollY - this.el.offsetHeight - 12;
-                const left = rect.left + window.scrollX + (rect.width / 2) - (this.el.offsetWidth / 2);
-                
-                this.el.style.top = `${Math.max(10, top)}px`;
-                this.el.style.left = `${Math.max(10, left)}px`;
-                this.active = true;
-            }
-        }
-
-        // ============================================================================
-        // 🧱 EXTENSIBLE TOOL SYSTEM
-        // ============================================================================
-        class BaseTool {
-            constructor(data, isReadOnly, onChange) {
-                this.data = data || {};
-                this.readOnly = isReadOnly;
-                this.onChange = onChange;
-                this.isPanel = true; 
-            }
-            renderContainer(contentElements) {
-                const input = el('input', {
-                    className: 'panel-title-input',
-                    type: 'text',
-                    placeholder: 'block title...',
-                    value: this.data.title || '',
-                    readonly: this.readOnly ? true : null,
-                    oninput: (e) => {
-                        this.data.title = e.target.value;
-                        if (this.onChange) this.onChange();
+            if ((e.key === 'Tab' || e.key === 'ArrowRight') && currentGhostSuggestion) {
+                e.preventDefault();
+                const sel = window.getSelection();
+                if (sel.rangeCount > 0 && sel.focusNode.nodeType === Node.TEXT_NODE) {
+                    const node = sel.focusNode;
+                    const match = node.textContent.substring(0, sel.focusOffset).match(/(?:^|\s)(#[a-zA-Z0-9_.]+)$/);
+                    removeGhost(); 
+                    if (match) {
+                        const range = document.createRange();
+                        range.setStart(node, sel.focusOffset - match[1].length);
+                        range.setEnd(node, sel.focusOffset);
+                        sel.removeAllRanges(); sel.addRange(range);
+                        document.execCommand('insertHTML', false, `<a href="#tag-${currentGhostSuggestion.substring(1).split('.')[0].toLowerCase()}">${currentGhostSuggestion}</a>&nbsp;`);
+                        clearTimeout(saveTimeout); saveTimeout = setTimeout(flushLiveSave, 50);
                     }
-                });
-                return el('div', {}, input, ...contentElements);
+                } else removeGhost();
+                return;
             }
-            save() { return this.data; }
-            destroy() {}
-        }
 
-        class TableTool extends BaseTool {
-            constructor(data, isReadOnly, onChange) { 
-                const defaultData = { title: '', tableData: [['', '', ''], ['', '', ''], ['', '', '']], hasHeader: true };
-                super(Object.assign(defaultData, data), isReadOnly, onChange); 
-                this.isPanel = false; 
-            }
-            
-            render() {
-                this.tableWrapper = el('div', { style: { overflowX: 'auto', width: '100%' } });
-                this.renderTable();
-                return this.tableWrapper;
-            }
-            
-            renderTable() {
-                this.tableWrapper.innerHTML = '';
-                const table = el('table', { className: 'infinotes-table' });
-                
-                this.data.tableData.forEach((rowData, rIndex) => {
-                    const tr = el('tr');
-                    rowData.forEach((cellData, cIndex) => {
-                        const isHeader = this.data.hasHeader && rIndex === 0;
-                        const cell = el(isHeader ? 'th' : 'td');
-                        
-                        const input = el('div', {
-                            className: 'table-cell-input',
-                            contentEditable: !this.readOnly,
-                            innerHTML: cellData || '',
-                            tabIndex: 0,
-                            oninput: (e) => {
-                                this.data.tableData[rIndex][cIndex] = e.target.innerHTML;
-                                if (this.onChange) this.onChange();
-                            }
-                        });
-                        
-                        cell.appendChild(input);
-                        tr.appendChild(cell);
-                    });
-                    table.appendChild(tr);
-                });
-                this.tableWrapper.appendChild(table);
-            }
-            
-            addRow() {
-                const cols = this.data.tableData[0]?.length || 1;
-                this.data.tableData.push(Array(cols).fill(''));
-                this.renderTable();
-                if (this.onChange) this.onChange();
-            }
-            
-            addCol() {
-                if (this.data.tableData.length === 0) this.data.tableData.push([]);
-                this.data.tableData.forEach(row => row.push(''));
-                this.renderTable();
-                if (this.onChange) this.onChange();
-            }
-            
-            delRow() {
-                if (this.data.tableData.length > 1) {
-                    this.data.tableData.pop();
-                    this.renderTable();
-                    if (this.onChange) this.onChange();
-                }
-            }
-            
-            delCol() {
-                if (this.data.tableData.length > 0 && this.data.tableData[0].length > 1) {
-                    this.data.tableData.forEach(row => row.pop());
-                    this.renderTable();
-                    if (this.onChange) this.onChange();
-                }
-            }
-        }
+            if (e.key === 'Escape' || e.key.startsWith('Arrow')) removeGhost();
 
-        class CalendarTool extends BaseTool {
-            constructor(data, isReadOnly, onChange) { 
-                super(Object.assign({ id: crypto.randomUUID(), title: '', datetime: new Date().toISOString(), notified: false, recurrence: 'none' }, data), isReadOnly, onChange); 
-                if (!this.data.notified && !this.readOnly && new Date(this.data.datetime) > new Date()) {
-                    NotificationEngine.schedule(this.data.id, this.data.datetime, this.data.title); 
-                }
-            }
-            
-            render() {
-                this.dateDisp = el('div', { 
-                    className: 'calendar-date-display', 
-                    style: { cursor: this.readOnly ? 'default' : 'pointer', marginBottom: '8px' }, 
-                    onclick: this.readOnly ? null : () => EditorialCalendar.open(new Date(this.data.datetime), true, this.data.recurrence, (newDate, recurrence) => { 
-                        this.data.datetime = newDate.toISOString(); 
-                        this.data.recurrence = recurrence; 
-                        this.data.notified = false; 
-                        this.updateDateDisplay(); 
-                        NotificationEngine.schedule(this.data.id, this.data.datetime, this.data.title); 
-                        if (this.onChange) this.onChange(); 
-                    }) 
-                });
-                
-                this.updateDateDisplay();
-                
-                const exportAction = UI.button('export ics', () => { 
-                    const s = new Date(this.data.datetime);
-                    const formatDt = d => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'; 
-                    const icsData = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART:${formatDt(s)}\nDTEND:${formatDt(new Date(s.getTime() + 3600000))}\nSUMMARY:${this.data.title || 'Event'}\nRRULE:FREQ=${this.data.recurrence !== 'none' ? this.data.recurrence.toUpperCase() : ''}\nEND:VEVENT\nEND:VCALENDAR`;
-                    
-                    const a = document.createElement('a'); 
-                    a.href = URL.createObjectURL(new Blob([icsData], { type: 'text/calendar;charset=utf-8' })); 
-                    a.download = `${this.data.title?.replace(/\s+/g, '_') || 'event'}.ics`; 
-                    a.click(); 
-                });
-                
-                const actions = [exportAction];
-                
-                if (!this.readOnly) {
-                    const hasNotifications = ('Notification' in window && Notification.permission === 'granted');
-                    actions.push(UI.button(hasNotifications ? 'notifications on' : 'notify me', async (e) => { 
-                        if (await Notification.requestPermission() === 'granted') { 
-                            e.target.textContent = 'notifications on'; 
-                            NotificationEngine.schedule(this.data.id, this.data.datetime, this.data.title); 
-                        } 
-                    }));
-                }
-                
-                return this.renderContainer([this.dateDisp, UI.row(...actions)]);
-            }
-            
-            updateDateDisplay() { 
-                const d = new Date(this.data.datetime); 
-                const dateString = d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-                const timeString = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-                const recurrenceString = this.data.recurrence !== 'none' ? ` ↻ ${this.data.recurrence}` : '';
-                
-                this.dateDisp.textContent = `${dateString} @ ${timeString}${recurrenceString}`; 
-            }
-        }
-
-        class RecallTool extends BaseTool {
-            constructor(data, isReadOnly, onChange) { super(Object.assign({ title: '', searchQuery: '', selectedItem: null }, data), isReadOnly, onChange); }
-            
-            render() {
-                const els = [];
-                if (this.data.selectedItem) {
-                    const item = this.data.selectedItem;
-                    const dateStr = item.date.startsWith('persona::') 
-                        ? `@${item.date.replace('persona::', '').toUpperCase()}`
-                        : parseLocal(item.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-                    
-                    const quoteBlock = el('div', { 
-                        className: 'text-content', 
-                        innerHTML: escapeHTML(item.text), 
-                        style: { borderLeft: '2px solid #eab308', paddingLeft: '12px', opacity: '0.85', pointerEvents: 'none', color: '#eab308' } 
-                    });
-                    
-                    const controls = UI.row(
-                        UI.button('view original', () => { 
-                            if (typeof loadDay === 'function') {
-                                if (item.date.startsWith('persona::')) loadPersonaPage(item.date.replace('persona::', ''));
-                                else loadDay(item.date);
-                            }
-                        }), 
-                        el('span', { className: 'voice-status-text', textContent: `original: ${dateStr}`, style: { marginLeft: '8px' } })
-                    );
-                    
-                    els.push(quoteBlock, controls);
-                } else if (!this.readOnly) {
-                    this.input = UI.textarea({ 
-                        className: 'raw-input', 
-                        placeholder: 'search past notes...', 
-                        value: this.data.searchQuery, 
-                        oninput: (e) => { 
-                            this.data.searchQuery = e.target.value; 
-                            this.input.style.height = 'auto'; 
-                            this.input.style.height = this.input.scrollHeight + 'px'; 
-                            this.scheduleSearch(); 
-                        } 
-                    });
-                    
-                    this.resultsContainer = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '8px' } });
-                    this.scheduleSearch = debounce(() => this.performSearch(), 300); 
-                    
-                    els.push(this.input, this.resultsContainer);
-                    
-                    setTimeout(() => { if (this.input) this.input.style.height = this.input.scrollHeight + 'px'; }, 0); 
-                    if (this.data.searchQuery) this.performSearch();
-                } else {
-                    els.push(el('div', { style: { padding: '24px', textAlign: 'center', color: 'var(--muted-text)', fontSize: '14px' }, textContent: 'Empty Recall' }));
-                }
-                
-                return el('div', {}, this.renderContainer(els));
-            }
-            
-            async performSearch() {
-                if (!this.data.searchQuery.trim() || !pgDB.isReady || window.isAIGenerating) {
-                    return this.resultsContainer.innerHTML = '';
-                }
-                
-                const results = await pgDB.searchSemantic(this.data.searchQuery, window.currentDateStr, 5); 
-                this.resultsContainer.innerHTML = '';
-                
-                if (!results.length) {
-                    return this.resultsContainer.appendChild(el('div', { className: 'voice-status-text', textContent: 'no matches found.' }));
-                }
-                
-                results.forEach(result => {
-                    const btn = el('button', { 
-                        className: 'menu-item', 
-                        style: { width: '100%', marginBottom: '4px', border: '1px solid var(--baritone-bg)' }, 
-                        onclick: () => { 
-                            this.data.selectedItem = { date: result.date, blockId: result.blockId, text: result.searchText }; 
-                            this.render(); 
-                            if (this.onChange) this.onChange(); 
-                        } 
-                    });
-                    
-                    const previewText = result.searchText.substring(0, 60) + (result.searchText.length > 60 ? '...' : '');
-                    const dateDisplay = result.date.startsWith('persona::') ? `@${result.date.replace('persona::', '')}` : result.date;
-                    
-                    btn.appendChild(el('span', { textContent: previewText }));
-                    btn.appendChild(el('span', { className: 'sub', textContent: dateDisplay }));
-                    
-                    this.resultsContainer.appendChild(btn);
-                });
-            }
-        }
-
-        const TOOLS_MAP = { table: TableTool, calendar: CalendarTool, recall: RecallTool };
-
-        // ============================================================================
-        // 🖋 THE LEAN STREAM EDITOR 
-        // ============================================================================
-        const isEditable = () => CONFIG.DEV_ALLOW_PAST_EDITING || window.currentDateStr === todayStr || window.isPersonaPage;
-
-        class LeanStreamEditor {
-            constructor(containerId) {
-                this.container = document.getElementById(containerId); 
-                this.blocks = []; 
-                this.activeBlockId = null;
-                
-                this.slashMenu = new FloatingMenu('slash-menu-ui', this.container); 
-                this.personaMenu = new FloatingMenu('persona-menu-ui', this.container);
-                this.inlineToolbar = new InlineToolbar(this);
-
-                document.addEventListener('mousedown', (e) => {
-                    if (this.slashMenu.active && !this.slashMenu.el.contains(e.target)) this.slashMenu.close();
-                    if (this.personaMenu.active && !this.personaMenu.el.contains(e.target)) this.personaMenu.close();
-                });
-
-                document.addEventListener('click', (e) => {
-                    const mention = e.target.closest('.persona-mention');
-                    if (mention) { 
-                        e.preventDefault(); e.stopPropagation(); 
-                        loadPersonaPage(mention.getAttribute('data-slug')); 
+            if (e.key === ' ') {
+                removeGhost();
+                const sel = window.getSelection();
+                if (sel.rangeCount > 0 && sel.focusNode.nodeType === Node.TEXT_NODE) {
+                    const text = sel.focusNode.textContent.substring(0, sel.focusOffset);
+                    const tagMatch = text.match(/(?:^|\s)(#[a-zA-Z0-9_.]+)$/);
+                    if (tagMatch) {
+                        e.preventDefault();
+                        const range = document.createRange();
+                        range.setStart(sel.focusNode, sel.focusOffset - tagMatch[1].length);
+                        range.setEnd(sel.focusNode, sel.focusOffset);
+                        sel.removeAllRanges(); sel.addRange(range);
+                        document.execCommand('insertHTML', false, `<a href="#tag-${tagMatch[1].substring(1).split('.')[0].toLowerCase()}">${tagMatch[1]}</a>&nbsp;`);
+                        clearTimeout(saveTimeout); saveTimeout = setTimeout(flushLiveSave, 50);
                         return; 
                     }
-                    
-                    const block = e.target.closest('.stream-block');
-                    if (block && isEditable()) {
-                        const content = block.querySelector('.todo, .todo-checked');
-                        if (content && e.clientX - block.getBoundingClientRect().left < 30) {
-                            const isChecked = content.classList.contains('todo-checked');
-                            content.className = `text-content ${isChecked ? 'todo' : 'todo-checked'}`;
-                            
-                            const edBlock = this.blocks.find(b => b.id === block.getAttribute('data-id'));
-                            if (edBlock) { 
-                                edBlock.type = isChecked ? 'todo' : 'todo-checked'; 
-                                scheduleSave(); 
-                            }
-                            e.preventDefault(); e.stopPropagation();
-                        }
-                    }
-                });
-            }
 
-            getPlaceholder(type, isBlockEditable) {
-                if (!isBlockEditable || type === 'hr') return '';
-                const placeholders = { h1: 'Heading...', h2: 'Heading...', h3: 'Heading...', ul: 'List item...', ol: 'List item...', todo: 'To-do...', 'todo-checked': 'To-do...', quote: 'Quote...' };
-                return placeholders[type] || "start writing, or type '/' for commands...";
-            }
-
-            load(blocksData) {
-                this.blocks.forEach(b => b.instance?.destroy?.());
-                Array.from(this.container.children).filter(c => !c.classList.contains('floating-menu')).forEach(c => c.remove());
-                this.blocks = []; 
-                this.slashMenu.close(); 
-                this.personaMenu.close(); 
-                this.inlineToolbar.hide();
-
-                const dataToLoad = blocksData?.length ? blocksData : [{ type: 'text', data: { text: '' } }];
-
-                dataToLoad.forEach(b => {
-                    if (['text', 'h1', 'h2', 'h3', 'ul', 'ol', 'quote', 'todo', 'todo-checked', 'hr'].includes(b.type)) {
-                        this.addBasicBlock(b.type, b.data?.text || '', b.author || 'user', b.id, b.timestamp);
-                    } else if (TOOLS_MAP[b.type]) {
-                        this.addToolBlock(b.type, b.data, b.author || 'user', b.id, b.timestamp, b.isVirtual, b.originalNoteKey, true);
-                    }
-                });
-                
-                if (this.blocks.length === 0 || !['text', 'h1', 'h2', 'h3', 'ul', 'ol', 'quote', 'todo', 'todo-checked', 'hr'].includes(this.blocks[this.blocks.length - 1].type)) {
-                    this.addBasicBlock('text', '', 'user');
-                }
-            }
-
-            save() {
-                return { 
-                    blocks: this.blocks.filter(b => !b.isVirtual).map(b => ({
-                        id: b.id, type: b.type, author: b.author, timestamp: b.timestamp,
-                        data: TOOLS_MAP[b.type] ? b.instance.save() : { text: b.dom.querySelector('.text-content').innerHTML }
-                    }))
-                };
-            }
-
-            getBlockIndex(id) { return this.blocks.findIndex(b => b.id === id); }
-
-            _insertIntoStream(blockDom, insertAfterId) {
-                let insertIndex;
-                if (insertAfterId) {
-                    insertIndex = this.getBlockIndex(insertAfterId) + 1 || this.blocks.length;
-                } else if (this.activeBlockId && this.getBlockIndex(this.activeBlockId) !== -1) {
-                    insertIndex = this.getBlockIndex(this.activeBlockId) + 1;
-                } else {
-                    insertIndex = this.blocks.length;
-                }
-
-                this.container.insertBefore(blockDom, this.container.children[insertIndex] || null);
-                return insertIndex;
-            }
-
-            replaceTextNodeType(block, newType, clearContent = false) {
-                const tag = ['h1', 'h2', 'h3'].includes(newType) ? newType : newType === 'quote' ? 'blockquote' : 'div';
-                const oldContent = block.dom.querySelector('.text-content');
-                
-                const newContent = el(tag, { 
-                    className: `text-content ${newType === 'text' ? '' : newType}`, 
-                    contentEditable: newType !== 'hr' && isEditable(), 
-                    'data-placeholder': this.getPlaceholder(newType, isEditable()), 
-                    innerHTML: clearContent ? '' : oldContent.innerHTML, 
-                    onfocus: () => this.activeBlockId = block.id, 
-                    oninput: () => { this.handleTextInput(block, newContent); scheduleSave(); }, 
-                    onkeydown: (e) => this.handleTextKeydown(e, block, newContent) 
-                });
-                
-                block.dom.replaceChild(newContent, oldContent); 
-                block.type = newType;
-                
-                if (clearContent && newType !== 'hr') setCaret(newContent);
-            }
-
-            addBasicBlock(type = 'text', html = '', author = 'user', id = crypto.randomUUID(), timestamp = Date.now(), insertAfterId = null) {
-                const block = { id, type, data: { text: html }, author, timestamp, dom: null };
-                const tag = ['h1', 'h2', 'h3'].includes(type) ? type : type === 'quote' ? 'blockquote' : 'div';
-                
-                const content = el(tag, { 
-                    className: `text-content ${type === 'text' ? '' : type}`, 
-                    contentEditable: isEditable() && type !== 'hr', 
-                    'data-placeholder': this.getPlaceholder(type, isEditable() && author === 'user'), 
-                    innerHTML: html, 
-                    onfocus: () => this.activeBlockId = id, 
-                    oninput: () => { this.handleTextInput(block, content); scheduleSave(); }, 
-                    onkeydown: (e) => this.handleTextKeydown(e, block, content) 
-                });
-                
-                block.dom = el('div', { className: `stream-block author-${author.replace(/[^a-z0-9_-]/gi, '-')}`, 'data-id': id }, content);
-                
-                const insertIndex = this._insertIntoStream(block.dom, insertAfterId);
-                this.blocks.splice(insertIndex, 0, block); 
-                
-                return block;
-            }
-
-            addToolBlock(type, data, author = 'user', id = crypto.randomUUID(), timestamp = Date.now(), isVirtual = false, originalNoteKey = null, fromLoad = false) {
-                const ToolClass = TOOLS_MAP[type]; 
-                if (!ToolClass) return null;
-                
-                const instance = new ToolClass(data, isVirtual || !isEditable(), () => scheduleSave());
-                const block = { id, type, data, author, timestamp, instance, dom: null, isVirtual, originalNoteKey };
-
-                if (!instance.isPanel) {
-                    block.dom = el('div', { className: `stream-block author-${author.replace(/[^a-z0-9_-]/gi, '-')}`, 'data-id': id }, instance.render());
-                } else {
-                    const controls = el('div', { className: 'panel-controls' });
-                    if (isEditable() && !isVirtual) {
-                        controls.append(
-                            UI.button('↑', () => this.moveBlock(id, -1), 'panel-ctrl-btn'), 
-                            UI.button('↓', () => this.moveBlock(id, 1), 'panel-ctrl-btn'), 
-                            UI.button('✕', () => this.deleteBlock(id), 'panel-ctrl-btn delete')
-                        );
-                    }
-                    
-                    let headerContent = [el('span', { textContent: `[ ${type} ]` })];
-                    if (isVirtual) {
-                        const originalDateStr = originalNoteKey.startsWith('persona::') 
-                            ? `@${originalNoteKey.replace('persona::', '').toUpperCase()}` 
-                            : parseLocal(originalNoteKey).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-                            
-                        const navBtn = el('button', { 
-                            textContent: `↗ original: ${originalDateStr}`, 
-                            style: { background: 'none', border: 'none', color: 'var(--neon-purple)', fontSize: '10px', cursor: 'pointer', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.05em', marginLeft: '8px', textDecoration: 'underline' }, 
-                            onclick: () => { 
-                                if (originalNoteKey.startsWith('persona::')) loadPersonaPage(originalNoteKey.replace('persona::', '')); 
-                                else { scheduleSave(true); loadDay(originalNoteKey); } 
-                            } 
-                        });
-                        
-                        headerContent = [el('span', { textContent: `[ scheduled event ]` }), navBtn];
-                    }
-
-                    const headerEl = el('div', { className: 'panel-header' }, el('div', { style: { display: 'flex', alignItems: 'center' } }, ...headerContent), controls);
-                    block.dom = el('div', { className: `baritone-panel stream-block author-${author.replace(/[^a-z0-9_-]/gi, '-')} ${isVirtual ? 'virtual-block' : ''}`, 'data-id': id }, headerEl, instance.render());
-                }
-                
-                const insertIndex = this._insertIntoStream(block.dom);
-                this.blocks.splice(insertIndex, 0, block); 
-                
-                if (isEditable() && !isVirtual && !fromLoad) { 
-                    this.activeBlockId = id; 
-                    const textBlock = this.addBasicBlock('text', '', 'user'); 
-                    setTimeout(() => setCaret(textBlock.dom.querySelector('.text-content')), 50); 
-                    scheduleSave(); 
-                }
-                return block;
-            }
-
-            moveBlock(id, direction) {
-                const idx = this.getBlockIndex(id); 
-                if (idx === -1) return;
-                
-                const swapIdx = idx + direction;
-                if (swapIdx >= 0 && swapIdx < this.blocks.length) {
-                    const targetDom = direction === -1 ? this.blocks[swapIdx].dom : this.blocks[idx].dom.nextSibling;
-                    this.container.insertBefore(direction === -1 ? this.blocks[idx].dom : this.blocks[swapIdx].dom, targetDom);
-                    [this.blocks[idx], this.blocks[swapIdx]] = [this.blocks[swapIdx], this.blocks[idx]]; 
-                    scheduleSave();
-                }
-            }
-
-            deleteBlock(id) {
-                const idx = this.getBlockIndex(id); 
-                if (idx === -1) return;
-                
-                this.blocks[idx].instance?.destroy?.(); 
-                this.blocks[idx].dom.remove(); 
-                this.blocks.splice(idx, 1);
-                
-                if (!this.blocks.length) this.addBasicBlock('text', '', 'user');
-                this.inlineToolbar.hide();
-                scheduleSave();
-            }
-
-            handleTextInput(block, content) {
-                const text = content.textContent.replace(/\u00A0/g, ' ');
-                
-                if (block.type === 'text') {
-                    if (MARKDOWN_MAP[text]) {
-                        this.replaceTextNodeType(block, MARKDOWN_MAP[text], true);
-                        if (MARKDOWN_MAP[text] === 'hr') {
-                            setTimeout(() => setCaret(this.addBasicBlock('text', '', 'user').dom.querySelector('.text-content')), 10);
-                        }
-                        return scheduleSave();
-                    }
-
-                    const tableMatch = text.match(/^\[(\d+)x(\d+)\]\s$/);
-                    if (tableMatch) {
-                        const rows = Math.min(Math.max(1, parseInt(tableMatch[1])), 20);
-                        const cols = Math.min(Math.max(1, parseInt(tableMatch[2])), 20);
-                        const tableData = Array.from({ length: rows }, () => Array(cols).fill(''));
-                        
-                        const currId = block.id;
-                        const newBlock = this.addToolBlock('table', { tableData, hasHeader: true }, 'user', crypto.randomUUID(), Date.now());
-                        
-                        this.deleteBlock(currId);
-                        setTimeout(() => {
-                            const firstCell = newBlock.dom.querySelector('.table-cell-input');
-                            if (firstCell) firstCell.focus();
-                        }, 50);
-                        return scheduleSave();
+                    const hMatch = text.match(/^(#{1,6})$/);
+                    if (hMatch || text === '>' || text === '-' || text === '1.') {
+                        e.preventDefault(); 
+                        const range = document.createRange();
+                        range.setStart(sel.focusNode, 0); range.setEnd(sel.focusNode, sel.focusOffset);
+                        sel.removeAllRanges(); sel.addRange(range);
+                        document.execCommand('delete', false, null);
+                        if (hMatch) document.execCommand('formatBlock', false, `<H${hMatch[1].length}>`);
+                        else if (text === '>') document.execCommand('formatBlock', false, `<BLOCKQUOTE>`);
+                        else if (text === '-') document.execCommand('insertUnorderedList', false, null);
+                        else document.execCommand('insertOrderedList', false, null);
+                        clearTimeout(saveTimeout); saveTimeout = setTimeout(flushLiveSave, 50);
                     }
                 }
-                
-                const sel = window.getSelection();
-                if (sel.rangeCount > 0) {
+            }
+        });
+
+        liveEditor.addEventListener('input', () => {
+            removeGhost();
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(flushLiveSave, 500);
+
+            const sel = window.getSelection();
+            if (!sel || sel.rangeCount === 0 || sel.focusNode.nodeType !== Node.TEXT_NODE) return;
+
+            const match = sel.focusNode.textContent.substring(0, sel.focusOffset).match(/(?:^|\s)(#[a-zA-Z0-9_.]+)$/);
+            if (match && match[1].length >= 2) {
+                const typingTag = match[1];
+                const suggestion = getAllKnownTags().find(t => t.toLowerCase().startsWith(typingTag.toLowerCase()) && t.length > typingTag.length);
+                if (suggestion) {
+                    currentGhostSuggestion = typingTag + suggestion.substring(typingTag.length); 
+                    ghostNode = document.createElement('span');
+                    ghostNode.className = 'ghost-text';
+                    ghostNode.textContent = suggestion.substring(typingTag.length);
+                    ghostNode.contentEditable = 'false';
                     const range = sel.getRangeAt(0);
-                    const preCaretRange = range.cloneRange(); 
-                    preCaretRange.selectNodeContents(content); 
-                    preCaretRange.setEnd(range.startContainer, range.startOffset);
-                    
-                    const textBeforeCursor = preCaretRange.toString();
-                    const slashMatch = textBeforeCursor.match(/(?:^|\n)\/([a-zA-Z0-9_]*)$/);
-                    
-                    if (slashMatch) {
-                        this.openSlashMenu(block, content, slashMatch[1].toLowerCase(), range); 
-                    } else {
-                        this.slashMenu.close();
-                    }
-                    
-                    const refMatch = textBeforeCursor.match(/(?:^|\s|\n)@([a-zA-Z0-9_-]*)$/);
-                    if (refMatch && !this.slashMenu.active) {
-                        this.openPersonaMenu(block, content, refMatch[1], range); 
-                    } else {
-                        this.personaMenu.close();
-                    }
+                    range.insertNode(ghostNode);
+                    range.setStartBefore(ghostNode);
+                    range.collapse(true);
+                    sel.removeAllRanges(); sel.addRange(range);
                 }
             }
+        });
 
-            openSlashMenu(block, content, filterText, currentRange) {
-                const items = SLASH_COMMANDS.filter(cmd => cmd.id.toLowerCase().includes(filterText) || cmd.label.toLowerCase().includes(filterText));
-                this.slashMenu.open({ block, content }, currentRange, items, (item, ctx) => {
-                    ctx.content.innerHTML = ctx.content.innerHTML.replace(/\/[a-zA-Z0-9_]*$/, '');
-                    if (ctx.content.innerHTML === '<br>') ctx.content.innerHTML = '';
-                    const isEmpty = ctx.content.textContent.trim() === '';
-                    
-                    this.addToolBlock(item.id, {}, 'user', crypto.randomUUID(), Date.now());
-                    if (isEmpty) this.deleteBlock(ctx.block.id);
-                    this.slashMenu.close();
-                }, (item, isSelected) => el('button', { className: `menu-item ${isSelected ? 'selected' : ''}` }, el('span', { textContent: item.label }), el('span', { className: 'sub', textContent: item.sub })));
+        rawEditor.addEventListener('input', () => {
+            if (!VIRTUAL_PAGES.includes(currentKey)) {
+                notes[currentKey] = rawEditor.value;
+                clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(() => { if (db) saveNoteToDB(currentKey, rawEditor.value); }, 500);
             }
+        });
 
-            async openPersonaMenu(block, content, filterText, currentRange) {
-                const filterLower = filterText.toLowerCase().trim();
-                
-                if (!this.cachedPersonas) {
-                    const personas = await pgDB.getPersonas();
-                    const activePersonas = [];
-                    for (const persona of personas) {
-                        const personaData = pgDB.cache[`persona::${persona.slug}`];
-                        const hasBacklinks = pgDB.findBacklinks(persona.slug).length > 0;
-                        const hasContent = personaData?.blocks?.length > 0 && !(personaData.blocks.length === 1 && !personaData.blocks[0].data.text);
-                        
-                        if (hasBacklinks || hasContent || ['me','manual','strategist','secretary'].includes(persona.slug)) {
-                            activePersonas.push(persona);
-                        } else {
-                            await pgDB.pg.query(`DELETE FROM personas_list WHERE slug = $1`, [persona.slug]);
-                        }
-                    }
-                    this.cachedPersonas = activePersonas;
-                }
-
-                const filtered = filterLower ? this.cachedPersonas.filter(r => r.display_name.toLowerCase().includes(filterLower) || r.slug.includes(filterLower)) : this.cachedPersonas;
-                let items = filtered.map(r => ({ slug: r.slug, name: r.display_name, isNew: false }));
-                
-                if (filterLower && !this.cachedPersonas.some(r => r.display_name.toLowerCase() === filterLower)) {
-                    items.push({ slug: null, name: filterText.trim(), isNew: true });
-                }
-                
-                if (items.length === 0 && !filterLower) return;
-
-                this.personaMenu.open({ block, content }, currentRange, items, async (item, ctx) => {
-                    let { slug, name } = item;
-                    if (item.isNew) { 
-                        slug = name.toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-|-$/g, '') || 'persona-' + Date.now(); 
-                        await pgDB.createPersona(slug, name); 
-                        this.cachedPersonas = null; 
-                    }
-                    
-                    const sel = window.getSelection();
-                    if (sel.rangeCount > 0) {
-                        const range = sel.getRangeAt(0);
-                        const preCaretRange = range.cloneRange(); 
-                        preCaretRange.selectNodeContents(ctx.content); 
-                        preCaretRange.setEnd(range.startContainer, range.startOffset);
-                        
-                        const atIdx = preCaretRange.toString().lastIndexOf('@');
-                        if (atIdx >= 0) {
-                            const walker = document.createTreeWalker(ctx.content, NodeFilter.SHOW_TEXT, null, false);
-                            let charCount = 0, startNode = null, startOffset = 0;
-                            
-                            while (walker.nextNode()) { 
-                                const len = walker.currentNode.textContent.length; 
-                                if (!startNode && charCount + len > atIdx) { 
-                                    startNode = walker.currentNode; 
-                                    startOffset = atIdx - charCount; 
-                                } 
-                                charCount += len; 
-                            }
-                            
-                            if (startNode) {
-                                const deleteRange = document.createRange(); 
-                                deleteRange.setStart(startNode, startOffset); 
-                                deleteRange.setEnd(range.startContainer, range.startOffset); 
-                                deleteRange.deleteContents();
-                                
-                                const spaceAfter = document.createTextNode('\u00A0'); 
-                                deleteRange.insertNode(spaceAfter); 
-                                deleteRange.insertNode(el('span', { className: 'persona-mention', 'data-slug': slug, contentEditable: 'false', textContent: `@${name.toUpperCase()}` }));
-                                
-                                const newRange = document.createRange(); 
-                                newRange.setStartAfter(spaceAfter); 
-                                newRange.collapse(true); 
-                                sel.removeAllRanges(); 
-                                sel.addRange(newRange);
-                            }
-                        }
-                    }
-                    this.personaMenu.close(); 
-                    scheduleSave();
-                }, (item, isSelected) => el('button', { className: `menu-item ${item.isNew ? 'create-new' : ''} ${isSelected ? 'selected' : ''}` }, el('span', { textContent: item.isNew ? `+ ${item.name.toUpperCase()}` : item.name.toUpperCase() }), el('span', { className: 'sub', textContent: item.isNew ? 'create persona' : 'persona' })));
-            }
-
-            _parseAndTriggerAI(block, content) {
-                const aiMentions = [];
-                
-                content.innerHTML = content.innerHTML.replace(/@([a-zA-Z0-9_-]+)\.collab/gi, (match, p1) => {
-                    const slug = p1.toLowerCase(); 
-                    pgDB.createPersona(slug, p1.toUpperCase()); 
-                    this.cachedPersonas = null; 
-                    aiMentions.push({ slug, name: p1.toUpperCase() });
-                    return `<span class="persona-mention" data-slug="${slug}">@${p1.toUpperCase()}</span>`;
-                });
-                
-                Array.from(content.querySelectorAll('.persona-mention')).forEach(m => {
-                    let next = m.nextSibling;
-                    if (next && next.nodeType === Node.TEXT_NODE && /^\s*\.collab/i.test(next.textContent)) {
-                        aiMentions.push({ slug: m.getAttribute('data-slug'), name: m.textContent.replace('@', '') });
-                        next.textContent = next.textContent.replace(/^\s*\.collab/i, '');
-                    }
-                });
-
-                if (aiMentions.length > 0) {
-                    this.triggerAIPersonas(block, content, aiMentions);
-                }
-            }
-
-            handleTextKeydown(e, block, content) {
-                if (this.slashMenu.handleKey(e) || this.personaMenu.handleKey(e)) return;
-
-                if (e.key === 'Enter' && !e.shiftKey) {
+        function handleLinkClick(e) {
+            let target = e.target;
+            while (target && target.tagName !== 'A' && target !== this) target = target.parentElement;
+            if (target && target.tagName === 'A') {
+                const href = target.getAttribute('href');
+                if (href) {
                     e.preventDefault();
-                    if (['ul', 'ol', 'quote', 'todo', 'todo-checked'].includes(block.type) && content.textContent.trim() === '') {
-                        return this.replaceTextNodeType(block, 'text'), scheduleSave();
-                    }
-                    
-                    const sel = window.getSelection();
-                    if (sel.rangeCount > 0) {
-                        const range = sel.getRangeAt(0);
-                        const postCaretRange = range.cloneRange(); 
-                        postCaretRange.selectNodeContents(content); 
-                        postCaretRange.setStart(range.endContainer, range.endOffset);
-                        
-                        const tempDiv = document.createElement('div'); 
-                        tempDiv.appendChild(postCaretRange.extractContents());
-                        let postHtml = tempDiv.innerHTML === '<br>' ? '' : tempDiv.innerHTML;
-                        
-                        if (content.innerHTML.endsWith('<br>')) content.innerHTML = content.innerHTML.slice(0, -4);
-                        
-                        this.activeBlockId = block.id; 
-                        const newType = ['ul', 'ol', 'quote'].includes(block.type) ? block.type : ['todo', 'todo-checked'].includes(block.type) ? 'todo' : 'text';
-                        const newBlock = this.addBasicBlock(newType, postHtml, 'user');
-
-                        this._parseAndTriggerAI(block, content);
-                        
-                        setTimeout(() => setCaret(newBlock.dom.querySelector('.text-content'), 0), 10); 
-                        scheduleSave();
-                    }
-                    return;
+                    if (href.startsWith('#model-')) loadAIModel(href.substring(7));
+                    else if (href === '#models') loadModels();
+                    else if (href === '#diary') loadDiary();
+                    else if (href === '#tags') loadTags();
+                    else loadNote(href.substring(1));
                 }
-
-                if (e.key === 'Backspace') {
-                    const sel = window.getSelection();
-                    if (sel.rangeCount > 0) {
-                        const range = sel.getRangeAt(0);
-                        const preCaretRange = range.cloneRange(); 
-                        preCaretRange.selectNodeContents(content); 
-                        preCaretRange.setEnd(range.startContainer, range.startOffset);
-                        
-                        if (preCaretRange.toString().length === 0) {
-                            e.preventDefault(); 
-                            if (block.type !== 'text') {
-                                return this.replaceTextNodeType(block, 'text'), scheduleSave();
-                            }
-
-                            const idx = this.getBlockIndex(block.id);
-                            if (idx > 0) {
-                                const prevBlock = this.blocks[idx - 1]; 
-                                if (prevBlock.type === 'hr' || !['text', 'h1', 'h2', 'h3'].includes(prevBlock.type)) {
-                                    return this.deleteBlock(prevBlock.id);
-                                }
-                                
-                                const currentHtml = content.innerHTML.replace(/<br>$/, '');
-                                const prevContentNode = prevBlock.dom.querySelector('.text-content');
-                                
-                                if (content.textContent.trim() !== '') { 
-                                    const childCount = prevContentNode.childNodes.length; 
-                                    prevContentNode.innerHTML += currentHtml; 
-                                    this.deleteBlock(block.id); 
-                                    setTimeout(() => setCaret(prevContentNode, childCount), 10); 
-                                } else { 
-                                    this.deleteBlock(block.id); 
-                                    setCaret(prevContentNode); 
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            _parseAIMarkdownToBlocks(markdownStr, author, insertAfterId) {
-                const lines = markdownStr.split('\n');
-                let currentId = insertAfterId;
-                let currentText = [];
-                let chainedMentions = [];
-                let inTable = false;
-                let tableData = [];
-
-                const processText = (rawText) => {
-                    let escaped = escapeHTML(rawText.trim());
-                    escaped = escaped.replace(/@([a-zA-Z0-9_-]+)(\.collab)?/gi, (match, p1, p2) => {
-                        const slug = p1.toLowerCase();
-                        const parentSlug = author !== 'user' ? author : null;
-                        pgDB.createPersona(slug, p1.toUpperCase(), parentSlug);
-                        if (p2) chainedMentions.push({ slug, name: p1.toUpperCase() });
-                        return `<span class="persona-mention" data-slug="${slug}" contenteditable="false">@${p1.toUpperCase()}</span>`;
-                    });
-                    return escaped;
-                };
-
-                const flushText = () => {
-                    if (currentText.length > 0) {
-                        const htmlText = processText(currentText.join('\n')).replace(/\n/g, '<br>');
-                        const block = this.addBasicBlock('text', htmlText, author, crypto.randomUUID(), Date.now(), currentId);
-                        currentId = block.id;
-                        currentText = [];
-                    }
-                };
-
-                const flushTable = () => {
-                    if (tableData.length > 0) {
-                        const maxCols = Math.max(...tableData.map(r => r.length));
-                        const paddedData = tableData.map(r => {
-                            while(r.length < maxCols) r.push('');
-                            return r;
-                        });
-                        const block = this.addToolBlock('table', { tableData: paddedData, hasHeader: true }, author, crypto.randomUUID(), Date.now(), false, null, true);
-                        if (block) currentId = block.id;
-                        tableData = [];
-                    }
-                    inTable = false;
-                };
-
-                for (let i = 0; i < lines.length; i++) {
-                    const line = lines[i];
-                    
-                    if (line.trim().startsWith('|')) {
-                        flushText();
-                        inTable = true;
-                        if (!line.replace(/[\s|-]/g, '').length) continue; 
-                        const row = line.split('|').slice(1, -1).map(c => processText(c.trim()));
-                        if (row.length > 0) tableData.push(row);
-                        continue;
-                    } else if (inTable) {
-                        flushTable();
-                    }
-
-                    const h1Match = line.match(/^#\s+(.*)/);
-                    const h2Match = line.match(/^##\s+(.*)/);
-                    const h3Match = line.match(/^###\s+(.*)/);
-                    const ulMatch = line.match(/^[-*]\s+(.*)/);
-                    const olMatch = line.match(/^\d+\.\s+(.*)/);
-                    const quoteMatch = line.match(/^>\s+(.*)/);
-
-                    if (h1Match) { flushText(); currentId = this.addBasicBlock('h1', processText(h1Match[1]), author, crypto.randomUUID(), Date.now(), currentId).id; }
-                    else if (h2Match) { flushText(); currentId = this.addBasicBlock('h2', processText(h2Match[1]), author, crypto.randomUUID(), Date.now(), currentId).id; }
-                    else if (h3Match) { flushText(); currentId = this.addBasicBlock('h3', processText(h3Match[1]), author, crypto.randomUUID(), Date.now(), currentId).id; }
-                    else if (ulMatch) { flushText(); currentId = this.addBasicBlock('ul', processText(ulMatch[1]), author, crypto.randomUUID(), Date.now(), currentId).id; }
-                    else if (olMatch) { flushText(); currentId = this.addBasicBlock('ol', processText(olMatch[1]), author, crypto.randomUUID(), Date.now(), currentId).id; }
-                    else if (quoteMatch) { flushText(); currentId = this.addBasicBlock('quote', processText(quoteMatch[1]), author, crypto.randomUUID(), Date.now(), currentId).id; }
-                    else {
-                        if (line.trim() !== '') currentText.push(line);
-                        else if (currentText.length > 0) flushText(); 
-                    }
-                }
-                flushText();
-                if (inTable) flushTable();
-                
-                return { lastId: currentId, chainedMentions };
-            }
-
-            // MODIFIED: LIVE STREAMING OUTPUT & TRUE LOCAL RAG
-            async triggerAIPersonas(triggerBlock, triggerContent, aiMentions, depth = 0) {
-                if (depth > 2) return; 
-                let lastInsertId = triggerBlock.id;
-                
-                if (!aiEngine || isAILoading) {
-                    const thinkingBlock = this.addBasicBlock('text', '', 'system', crypto.randomUUID(), Date.now(), lastInsertId);
-                    thinkingBlock.dom.querySelector('.text-content').innerHTML = '<span style="color:#ef4444; font-weight: 700; font-family: var(--font-mono); font-size: 12px; text-transform: uppercase;">[sys.ai.offline] Tap the top menu status to boot an AI engine first.</span>';
-                    return scheduleSave();
-                }
-                
-                const userPrompt = normalizePlainText(triggerContent.textContent) || "Please continue the collaboration.";
-                const meContext = (pgDB.cache['persona::me']?.blocks?.map(b => normalizePlainText(b.data?.text)).join('\n') || '').substring(0, 800);
-                
-                // --- TRUE LOCAL RAG (Ask Your Notes) ---
-                let topicalContext = '';
-                if (pgDB.isReady && userPrompt.length > 5 && depth === 0) {
-                    const searchResults = await pgDB.searchSemantic(userPrompt, '', 2, true); // bypass lock for immediate lookup
-                    if (searchResults.length > 0) {
-                        topicalContext = searchResults.map(r => r.searchText).join('\n---\n').substring(0, 800);
-                    }
-                }
-                
-                let nextMentions = [];
-
-                try {
-                    window.isAIGenerating = true; 
-
-                    for (const mention of aiMentions) {
-                        const { slug, name } = mention;
-                        const aiInstructions = (pgDB.cache[`persona::${slug}`]?.blocks?.map(b => normalizePlainText(b.data?.text)).join('\n') || '').substring(0, 1000);
-                        
-                        let currentDayContext = "";
-                        if (slug === 'secretary') {
-                            currentDayContext = `\n[Today's Unorganized Notes]:\n` + (pgDB.cache[window.currentDateStr]?.blocks?.map(b => normalizePlainText(b.data?.text)).join('\n') || '').substring(0, 1500);
-                        }
-                        
-                        const ragString = topicalContext ? `\n[Relevant Past Notes Found in Database]:\n${topicalContext}` : '';
-
-                        const thinkingBlock = this.addBasicBlock('text', `<span class="neon-status ai-status loading">${name} is thinking...</span>`, slug, crypto.randomUUID(), Date.now(), lastInsertId);
-                        const contentNode = thinkingBlock.dom.querySelector('.text-content');
-                        
-                        try {
-                            const chunks = await aiEngine.chat.completions.create({
-                                messages: [
-                                    { role: 'system', content: `You are embodying the persona "${name}".\n[User Info]:\n${meContext || 'None'}${ragString}${currentDayContext}\n\n[Your Instructions]:\n${aiInstructions || `Act as a helpful expert.`}\n\nCRITICAL RULES:\n1. Respond using Markdown headers (#), lists (-), quotes (>), and tables (|Col1|Col2|).\n2. You may invite another persona by outputting @Name.collab` },
-                                    { role: 'user', content: userPrompt }
-                                ], 
-                                temperature: 0.7, 
-                                max_tokens: 400,
-                                stream: true // ENABLING LIVE STREAMING
-                            });
-                            
-                            let aiText = "";
-                            
-                            // LIVE STREAMING RENDER LOOP
-                            for await (const chunk of chunks) {
-                                aiText += chunk.choices[0]?.delta?.content || "";
-                                contentNode.innerHTML = escapeHTML(aiText).replace(/\n/g, '<br>') + '<span class="ai-cursor"></span>';
-                                // Scroll into view smoothly if offscreen
-                                const rect = thinkingBlock.dom.getBoundingClientRect();
-                                if (rect.bottom > window.innerHeight) window.scrollBy(0, rect.bottom - window.innerHeight + 20);
-                            }
-                            
-                            // Replace stream block with final parsed native blocks
-                            this.deleteBlock(thinkingBlock.id);
-                            
-                            const parseResult = this._parseAIMarkdownToBlocks(aiText, slug, lastInsertId);
-                            lastInsertId = parseResult.lastId;
-                            
-                            if (parseResult.chainedMentions.length > 0) nextMentions.push(...parseResult.chainedMentions);
-                            await this.appendToPersonaPage(slug, userPrompt, aiText);
-                            
-                        } catch (err) {
-                            contentNode.innerHTML = '<span style="color:#ef4444">connection failed (memory limit exceeded).</span>'; 
-                            lastInsertId = thinkingBlock.id;
-                        }
-                        await new Promise(r => setTimeout(r, 100)); 
-                    }
-                } finally {
-                    window.isAIGenerating = false; 
-                    scheduleSave();
-                }
-
-                if (nextMentions.length > 0) {
-                    const uniqueMentions = Array.from(new Set(nextMentions.map(m => m.slug)))
-                        .map(slug => nextMentions.find(m => m.slug === slug));
-                    
-                    setTimeout(() => {
-                        const handoffBlock = this.blocks.find(b => b.id === lastInsertId) || triggerBlock;
-                        this.triggerAIPersonas(handoffBlock, el('div', { textContent: "It is your turn. Respond based on the recent context." }), uniqueMentions, depth + 1);
-                    }, 500);
-                }
-            }
-
-            async appendToPersonaPage(slug, userText, aiText) {
-                const pageKey = `persona::${slug}`;
-                if (!pgDB.cache[pageKey]) pgDB.cache[pageKey] = { blocks: [] };
-                
-                pgDB.cache[pageKey].blocks.push(
-                    { id: crypto.randomUUID(), type: 'quote', data: { text: escapeHTML(userText) }, author: 'user', timestamp: Date.now() },
-                    { id: crypto.randomUUID(), type: 'text', data: { text: escapeHTML(aiText).replace(/\n/g, '<br>') }, author: slug, timestamp: Date.now() }
-                );
-                
-                if (pgDB.isReady) await pgDB.saveNote(pageKey, pgDB.cache[pageKey]);
             }
         }
+        
+        liveEditor.addEventListener('click', handleLinkClick);
+        readPreview.addEventListener('click', handleLinkClick);
 
-        const editor = new LeanStreamEditor('lean-editor'); 
-        window.editor = editor;
+        dateTitle.addEventListener('click', () => {
+            if (currentKey === 'index') return; 
+            else if (VIRTUAL_PAGES.includes(currentKey)) loadIndex(); 
+            else if (currentKey.startsWith('tag-')) loadTags(); 
+            else if (/^\d{4}-\d{2}-\d{2}$/.test(currentKey)) loadDiary(); 
+        });
 
-        // ============================================================================
-        // APP LIFECYCLE & STORAGE SYNC
-        // ============================================================================
-        window.isPersonaPage = false; 
-        window.currentPersonaSlug = null;
+        document.querySelector('.workspace-pane').addEventListener('click', (e) => {
+            if(e.target === liveEditor && currentModeIndex === 0) liveEditor.focus();
+        });
 
-        const scheduleSave = debounce(async () => {
-            if (!(CONFIG.DEV_ALLOW_PAST_EDITING || window.currentDateStr === todayStr || window.isPersonaPage)) return;
-            const statusEl = document.getElementById('db-status');
-            
+        // =========================================================================
+        // 🚀 BOOTSTRAPPER 
+        // =========================================================================
+
+        async function initApp() {
             try {
-                await pgDB.saveNote(window.currentDateStr, editor.save());
-                statusEl.textContent = 'db.saved'; 
-                statusEl.classList.add('saving');
-                
-                setTimeout(() => { 
-                    if (statusEl.textContent === 'db.saved') { 
-                        statusEl.textContent = 'db.ready'; 
-                        statusEl.classList.remove('saving'); 
-                    } 
-                }, 1500);
-            } catch (e) {
-                statusEl.textContent = pgDB.isReady ? 'db.error [save failed]' : 'memory.saved [offline]';
-                if (pgDB.isReady) statusEl.className = 'neon-status db-status error';
-                
-                setTimeout(() => { 
-                    if (statusEl.textContent.includes('saved')) { 
-                        statusEl.textContent = pgDB.isReady ? 'db.ready' : 'db.offline [memory mode]'; 
-                        if (pgDB.isReady) statusEl.className = 'neon-status db-status'; 
-                    } 
-                }, pgDB.isReady ? 3000 : 1500);
-            }
-        }, 800);
+                db = new PGlite('idb://brutal-notes-db', { extensions: { vector } });
 
-        function renderDateHeader() {
-            const h = document.getElementById('date-header');
-            if (window.isPersonaPage && window.currentPersonaSlug) {
-                pgDB.getPersonas().then(personas => {
-                    const found = personas.find(x => x.slug === window.currentPersonaSlug);
-                    const displayName = found ? found.display_name.toUpperCase() : window.currentPersonaSlug.toUpperCase();
-                    
-                    let parentBadge = '';
-                    if (found && found.parent_slug) {
-                        parentBadge = `<span style="font-size: 0.35em; color: var(--neon-purple); vertical-align: middle; font-family: var(--font-mono); letter-spacing: 0.1em; border: 1px solid var(--neon-purple); padding: 2px 6px; border-radius: 4px;">SPAWNED BY @${found.parent_slug.toUpperCase()}</span>`;
-                    }
-                    
-                    h.innerHTML = `@${displayName}${parentBadge}`;
-                });
-            } else {
-                h.textContent = parseLocal(window.currentDateStr).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).toLowerCase();
-            }
-        }
+                await db.exec(`
+                    CREATE EXTENSION IF NOT EXISTS vector;
+                    CREATE TABLE IF NOT EXISTS notes (
+                        id TEXT PRIMARY KEY,
+                        content TEXT,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        embedding vector(384)
+                    );
+                `);
 
-        async function loadDay(dateStr) {
-            if (pgDB.isReady && isEditable()) {
-                try { await pgDB.saveNote(window.currentDateStr, editor.save()); } catch{}
-            }
-            
-            window.isPersonaPage = false; 
-            window.currentPersonaSlug = null; 
-            window.currentDateStr = dateStr;
-            
-            renderDateHeader(); 
-            document.getElementById('backlinks-container')?.remove();
-            
-            let dayData = pgDB.cache[dateStr] || JSON.parse(localStorage.getItem(`infinotes_backup_${dateStr}`) || '{"blocks":[]}');
-            pgDB.cache[dateStr] = dayData;
-            
-            const virtuals = []; 
-            const targetTime = parseLocal(dateStr).getTime();
-            
-            for (const [noteDateStr, dData] of Object.entries(pgDB.cache)) {
-                if (noteDateStr === dateStr || noteDateStr.startsWith('persona::') || !dData?.blocks) continue;
-                
-                for (const block of dData.blocks) {
-                    if (block.type === 'calendar' && block.data?.datetime) {
-                        const eventDate = new Date(block.data.datetime);
-                        const eventDateStr = getLocalYYYYMMDD(eventDate);
-                        const eventTime = parseLocal(eventDateStr).getTime();
-                        const rec = block.data.recurrence || 'none';
-                        
-                        const isMatch = dateStr === eventDateStr || (targetTime > eventTime && (
-                            rec === 'daily' || 
-                            (rec === 'weekly' && Math.round((targetTime - eventTime) / 86400000) % 7 === 0) || 
-                            (rec === 'monthly' && parseLocal(dateStr).getDate() === eventDate.getDate()) || 
-                            (rec === 'yearly' && dateStr.slice(5) === eventDateStr.slice(5))
-                        ));
-                        
-                        if (isMatch) {
-                            virtuals.push(Object.assign({}, block, { isVirtual: true, originalNoteKey: noteDateStr }));
+                const res = await db.query(`SELECT COUNT(*) as count FROM notes;`);
+                const count = parseInt(res.rows[0].count, 10);
+
+                if (count === 0) {
+                    const saved = localStorage.getItem('brutalNotes');
+                    if (saved) {
+                        const parsedData = JSON.parse(saved);
+                        for (const [id, content] of Object.entries(parsedData)) {
+                            await saveNoteToDB(id, content);
+                            notes[id] = content;
                         }
+                    } else {
+                        const todayKey = getTodayKey();
+                        notes[todayKey] = `Welcome to your brutalist notebook.\n\nWe are AI ready.\n\n### AI Quick Start\n1. Click the date at the top and select **AI Models**.\n2. Click a model to download it to your browser.\n3. Create a tag like #me and write your profile inside it.\n4. Create a tag like #rewrite and write instructions inside it (e.g. "Rewrite this to be professional").\n5. Go to your daily note, type a sentence, end it with your tag and hit the slash \`/\` key (e.g., \`This is my sentence #rewrite/\`)`;
+                        await saveNoteToDB(todayKey, notes[todayKey]);
+                        notes['tag-me'] = "I am a user testing a local AI model in my browser.";
+                        await saveNoteToDB('tag-me', notes['tag-me']);
+                        notes['tag-rewrite'] = "Rewrite the provided context to be highly professional and concise.";
+                        await saveNoteToDB('tag-rewrite', notes['tag-rewrite']);
                     }
+                } else {
+                    const allNotes = await db.query(`SELECT id, content FROM notes;`);
+                    allNotes.rows.forEach(row => { notes[row.id] = row.content; });
                 }
+
+                liveEditor.setAttribute('contenteditable', 'true');
+                const todayKey = getTodayKey();
+                loadNote(todayKey);
+
+            } catch (error) {
+                console.error("Database initialization failed:", error);
+                dateTitle.innerText = "DB Error";
+                liveEditor.innerHTML = `<h2 style="color: #cc0000;">Database Initialization Failed</h2><div class="error-log">${error.message}\n\n${error.stack}</div>`;
             }
-            
-            editor.load([...virtuals, ...dayData.blocks]);
         }
 
-        async function loadPersonaPage(slug) {
-            if (pgDB.isReady && isEditable()) {
-                try { await pgDB.saveNote(window.currentDateStr, editor.save()); } catch{}
-            }
-            
-            window.isPersonaPage = true; 
-            window.currentPersonaSlug = slug; 
-            window.currentDateStr = `persona::${slug}`;
-            
-            renderDateHeader(); 
-            editor.load((pgDB.cache[`persona::${slug}`] || { blocks: [] }).blocks);
-            
-            document.getElementById('backlinks-container')?.remove();
-            
-            const backlinks = pgDB.findBacklinks(slug); 
-            if (!backlinks.length) return;
-            
-            const section = el('div', { className: 'backlinks-section', id: 'backlinks-container' }, 
-                el('div', { className: 'backlinks-header' }, `[ ${backlinks.length} backlink${backlinks.length > 1 ? 's' : ''} ]`)
-            );
-            
-            backlinks.forEach(b => {
-                const isPersona = b.dateStr.startsWith('persona::');
-                const targetStr = isPersona ? b.dateStr.replace('persona::', '') : b.dateStr;
-                const titleStr = isPersona ? `@${targetStr.toUpperCase()}` : parseLocal(b.dateStr).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
-                
-                const btn = el('button', { 
-                    className: 'backlink-item', 
-                    onclick: () => isPersona ? loadPersonaPage(targetStr) : loadDay(b.dateStr) 
-                }, 
-                    el('span', { textContent: titleStr }), 
-                    el('span', { className: 'backlink-preview', textContent: b.preview })
-                );
-                
-                section.appendChild(btn);
-            });
-            
-            document.querySelector('.app-container').insertBefore(section, document.querySelector('.app-container').firstChild);
-        }
-
-        document.getElementById('date-header').onclick = () => {
-            if (window.isPersonaPage) return loadDay(todayStr);
-            const [y, m, d] = window.currentDateStr.split('-');
-            
-            EditorialCalendar.open(new Date(y, m - 1, d), false, null, (sd) => { 
-                const selectedStr = getLocalYYYYMMDD(sd); 
-                if (window.currentDateStr !== selectedStr) { 
-                    scheduleSave(); 
-                    loadDay(selectedStr); 
-                } 
-            });
-        };
-
-        pgDB.init().then(() => loadDay(todayStr));
+        initApp();
     </script>
 </body>
 </html>
