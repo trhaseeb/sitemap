@@ -49,6 +49,7 @@
         }
         .mode-link:hover { opacity: 1; text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 4px; }
 
+        /* Restored Original Structure */
         main { flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column; }
 
         .workspace-pane {
@@ -98,6 +99,7 @@
         <a href="#models" id="ai-status" class="mode-link">[ AI: OFF ]</a>
     </div>
 
+    <!-- Restored Absolute Overlapping Panes -->
     <main>
         <div id="live-editor" contenteditable="false" class="workspace-pane prose workspace-content" placeholder="Initializing database..." spellcheck="false"></div>
         <textarea id="raw-editor" class="workspace-pane workspace-content hidden" placeholder="Start typing raw markdown here..." spellcheck="false"></textarea>
@@ -138,22 +140,18 @@
         // =========================================================================
 
         async function loadAIModel(modelId, contextLimit) {
-            // THE FIX: Explicitly destroy the old WebGPU worker to free VRAM
+            // FIX: Explicitly destroy the old WebGPU worker to free VRAM
             if (aiEngine) {
                 console.log("Unloading previous model to free VRAM...");
                 aiStatus.innerText = "[ AI: FREEING RAM... ]";
-                try {
-                    await aiEngine.unload();
-                } catch (e) {
-                    console.error("Unload error:", e);
-                }
+                try { await aiEngine.unload(); } catch (e) { console.error("Unload error:", e); }
                 aiEngine = null;
             }
 
             try {
                 aiStatus.innerText = "[ AI: INIT... ]";
                 
-                // THE FIX: Force sliding window so memory stays flat and predictable
+                // FIX: Force sliding window so memory stays flat and predictable
                 const chatOpts = {
                     context_window_size: contextLimit,
                     sliding_window_size: contextLimit 
@@ -204,13 +202,17 @@
             const tagBase = tagTrigger.substring(1).split('.')[0].toLowerCase();
             const tagInstructions = notes['tag-' + tagBase] || "Respond directly to the user's prompt based on context.";
             
+            // OPTIMIZATION: Safeguard Context length to prevent memory overload. 
+            const maxChars = currentContextLimit * 3.5;
+            const safeContext = contextText.length > maxChars ? contextText.slice(-maxChars) : contextText;
+
             // 4. Construct Prompt
             const messages = [
                 { role: "system", content: `You are an integrated AI assistant operating inside a note-taking app. 
 User Profile (#me): ${meProfile}
 Your Directive (${tagTrigger}): ${tagInstructions}
 Rules: Respond concisely, output in markdown format, and follow your directive strictly.` },
-                { role: "user", content: `Context string to process: "${contextText || "Execute directive."}"` }
+                { role: "user", content: `Context string to process: "${safeContext || "Execute directive."}"` }
             ];
 
             try {
@@ -227,8 +229,10 @@ Rules: Respond concisely, output in markdown format, and follow your directive s
                     span.innerText = " \n\n" + fullText; // Add spacing so it formats nicely while streaming
                 }
                 
-                // 6. Finalize output by wrapping in Blockquote (Turndown handles this on save)
-                span.outerHTML = `<blockquote>${DOMPurify.sanitize(marked.parseInline(fullText))}</blockquote><p>&#8203;</p>`;
+                // 6. Finalize output by parsing markdown blocks correctly (paragraphs, lists, etc)
+                const parsedHTML = DOMPurify.sanitize(marked.parse(fullText.trim()));
+                span.outerHTML = `<blockquote>${parsedHTML}</blockquote><p>&#8203;</p>`;
+                
                 flushLiveSave();
                 
             } catch(e) {
@@ -271,6 +275,11 @@ Rules: Respond concisely, output in markdown format, and follow your directive s
             }
         }
 
+        // OPTIMIZATION: Ensure data saves when mobile users swipe away or switch tabs
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') flushLiveSave();
+        });
+
         // --- Core Helpers ---
 
         function parseMD(text) { return DOMPurify.sanitize(marked.parse(text), { ADD_TAGS: ['table', 'th', 'tr', 'td', 'thead', 'tbody'] }); }
@@ -296,6 +305,12 @@ Rules: Respond concisely, output in markdown format, and follow your directive s
         const turndownService = new TurndownService({ headingStyle: 'atx', bulletListMarker: '-', codeBlockStyle: 'fenced' });
         turndownService.addRule('hashtag', { filter: (n) => n.nodeName === 'A' && n.getAttribute('href')?.startsWith('#tag-'), replacement: (c) => c });
         turndownService.addRule('ghostText', { filter: (n) => n.nodeName === 'SPAN' && (n.classList.contains('ghost-text') || n.id?.startsWith('ai-')), replacement: () => '' });
+        
+        // FIX: Tell Turndown to ignore the appended readonly mentions block when saving
+        turndownService.addRule('tagMentionsReadonly', {
+            filter: (n) => n.classList && n.classList.contains('tag-mentions-readonly'),
+            replacement: () => ''
+        });
 
         function getTodayKey() {
             const d = new Date();
@@ -344,7 +359,7 @@ Rules: Respond concisely, output in markdown format, and follow your directive s
                 });
             });
             
-            let tagMarkdown = `\n\n---\n\n`;
+            let tagMarkdown = `\n\n`;
             let hasMentions = false;
             
             if (groups._base.length > 0) {
@@ -375,15 +390,28 @@ Rules: Respond concisely, output in markdown format, and follow your directive s
             let rawMarkdown = notes[currentKey] || '';
 
             if (mode === 'Live') {
-                liveEditor.innerHTML = parseMD(rawMarkdown);
+                let html = parseMD(rawMarkdown);
+                
+                // FIX: Inject the Mentions into the Live Editor directly as a locked, non-editable chunk
+                if (currentKey.startsWith('tag-')) {
+                    const mentionsHtml = parseMD(getDynamicHashtagContent(currentKey.substring(4)));
+                    html += `
+                        <p>&#8203;</p>
+                        <div contenteditable="false" class="tag-mentions-readonly" style="margin-top: 3rem; border-top: 4px dashed var(--fg); padding-top: 2rem; opacity: 0.8; user-select: none;">
+                            ${mentionsHtml}
+                        </div>`;
+                }
+                
+                liveEditor.innerHTML = html;
                 liveEditor.classList.remove('hidden');
                 if (!VIRTUAL_PAGES.includes(currentKey)) liveEditor.focus();
+                
             } else if (mode === 'Raw') {
                 rawEditor.value = rawMarkdown;
                 rawEditor.classList.remove('hidden');
                 if (!VIRTUAL_PAGES.includes(currentKey)) rawEditor.focus();
             } else if (mode === 'Read') {
-                if (currentKey.startsWith('tag-')) rawMarkdown += getDynamicHashtagContent(currentKey.substring(4));
+                if (currentKey.startsWith('tag-')) rawMarkdown += `\n\n---\n\n` + getDynamicHashtagContent(currentKey.substring(4));
                 readPreview.innerHTML = parseMD(rawMarkdown);
                 readPreview.classList.remove('hidden');
             }
@@ -426,7 +454,7 @@ Rules: Respond concisely, output in markdown format, and follow your directive s
             
             // --- MEMORY GUARDRAIL UI ---
             md += `## Memory Guardrail (Context Limit)\n`;
-            md += `*Select how much memory the AI uses to remember text. Lower limits (512 or 1024) prevent mobile browsers like iOS Safari from crashing.*\n\n`;
+            md += `*Select how much memory the AI uses to remember text. Lower limits (256 or 512) prevent mobile browsers like iOS Safari from crashing.*\n\n`;
             
             const limits = [256, 512, 1024, 2048, 4096];
             let limitsText = limits.map(l => {
@@ -460,14 +488,15 @@ Rules: Respond concisely, output in markdown format, and follow your directive s
         function loadNote(key) {
             flushLiveSave(); currentKey = key;
             if (notes[key] === undefined) {
-                notes[key] = key.startsWith('tag-') ? `*Write notes for this tag here.*` : '';
+                notes[key] = key.startsWith('tag-') ? `` : '';
                 saveNoteToDB(key, notes[key]);
             }
             dateTitle.classList.remove('is-root');
             
             if (key.startsWith('tag-')) {
                 dateTitle.innerText = '#' + key.substring(4).toUpperCase();
-                if (currentModeIndex !== 2) currentModeIndex = 2; 
+                // FIX: Instead of forcing Read mode, Tag Pages now default to the Editor (Live)
+                if (currentModeIndex === 2) currentModeIndex = 0; 
             } else {
                 dateTitle.innerText = formatDateDisplay(key);
                 if (currentModeIndex === 2) currentModeIndex = 0; 
