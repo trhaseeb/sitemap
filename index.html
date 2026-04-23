@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -144,8 +144,13 @@
         
         // ML Engine State
         let aiEngine = null;
-        // Ultra-light 1 Billion parameter model, highly compressed (Fits in 1GB RAM)
-        const AI_MODEL = "Llama-3.2-1B-Instruct-q4f16_1-MLC"; 
+        
+        // -------------------------------------------------------------
+        // ULTRA-LIGHT MODEL CONFIGURATION
+        // Qwen2.5-0.5B is heavily quantized. ~350MB total cache size.
+        // Runs incredibly fast and is very unlikely to crash iOS Safari.
+        // -------------------------------------------------------------
+        const AI_MODEL = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC"; 
 
         // =========================================================================
         // 🗄️ DATABASE & STATE LOGIC
@@ -319,7 +324,6 @@
         async function initWebLLM(progressCallback) {
             if (aiEngine) return aiEngine;
             
-            // Validate WebGPU support (Critical for iPhone)
             if (!navigator.gpu) {
                 throw new Error("WebGPU is not enabled. On iOS 17, go to Settings > Safari > Advanced > Feature Flags > WebGPU.");
             }
@@ -327,7 +331,7 @@
             aiEngine = new webllm.MLCEngine();
             aiEngine.setInitProgressCallback(progressCallback);
             
-            // Loads Llama-3.2 1B (approx ~800MB download first time, cached thereafter)
+            // Loads Qwen2.5 0.5B (approx ~350MB download)
             await aiEngine.reload(AI_MODEL);
             return aiEngine;
         }
@@ -427,7 +431,7 @@
                         const placeholderId = 'ai-loading-' + Date.now();
                         const promptHTML = `<blockquote><strong>${commandText}</strong> <a href="#tag-${baseTag}">${tagTrigger}</a></blockquote>
                             <div id="${placeholderId}" contenteditable="false" class="ai-loading-box">
-                                <div class="ai-status-text">Initializing local AI engine... (May take 1-2 mins on first load)</div>
+                                <div class="ai-status-text">Initializing local AI engine (~350MB load)...</div>
                                 <div class="ai-progress-bar"><div class="ai-progress-fill"></div></div>
                             </div><p>&#8203;</p>`;
                         
@@ -527,7 +531,7 @@
                 const res = await db.query(`SELECT COUNT(*) as count FROM notes;`);
                 if (parseInt(res.rows[0].count, 10) === 0) {
                     const todayKey = getTodayKey();
-                    notes[todayKey] = `Welcome to your brutalist, mobile-first agent notebook.\n\n### On-Device WebGPU AI 📱\nYour device runs the AI entirely in Safari using WebLLM. No servers needed. \n\n**Test the AI (Type exactly this, then press space after the slash):**\nSimulate a pricing war #strategy/\n\n*(Note: The very first time you do this, it will download an 800MB model into your browser cache. Make sure you are on Wi-Fi!)*`;
+                    notes[todayKey] = `Welcome to your brutalist, mobile-first agent notebook.\n\n### On-Device WebGPU AI 📱\nYour device runs the AI entirely in Safari using WebLLM. No servers needed. \n\n**Test the AI (Type exactly this, then press space after the slash):**\nSimulate a pricing war #strategy/\n\n*(Note: The very first time you do this, it will download an ultra-light ~350MB model into your browser cache. Make sure you are on Wi-Fi!)*`;
                     await saveNoteToDB(todayKey, notes[todayKey]);
                 } else {
                     const allNotes = await db.query(`SELECT id, content FROM notes;`);
