@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -143,6 +144,12 @@
                 aiEngine = await CreateMLCEngine(modelId, {
                     initProgressCallback: (info) => {
                         aiStatus.innerText = `[ AI: ${Math.round(info.progress * 100)}% ]`;
+                    },
+                    // NEW: Memory optimization for iOS Safari and mobile devices
+                    chatOpts: {
+                        context_window_size: 1024, // Reduces KV Cache RAM footprint dramatically
+                        sliding_window_size: 1024, // Ensures older context falls off
+                        max_new_tokens: 256        // Limits generation length per request
                     }
                 });
                 aiStatus.innerText = `[ AI: READY ]`;
@@ -395,15 +402,15 @@ Rules: Respond concisely, output in markdown format, and follow your directive s
 
         function loadModels() {
             flushLiveSave(); currentKey = 'models';
-            let md = `*Select a local AI model to download and run securely inside your browser.*\\n\\n*Note: Larger models take longer to download and require more device RAM.*\\n\\n`;
+            let md = `*Select a local AI model to download and run securely inside your browser.*\\n\\n*Note: Larger models take longer to download and require more device RAM. Always choose [MOBILE SAFE] models on your iPhone to prevent crashing.*\\n\\n`;
             
             const AI_MODELS = [
-                { id: "Qwen2-0.5B-Instruct-q0f16-MLC", name: "Qwen2 (0.5B)", size: "~400MB", desc: "Super tiny, fast loading. Excellent reasoning for its micro size." },
-                { id: "TinyLlama-1.1B-Chat-v1.0-q4f16_1-MLC", name: "TinyLlama (1.1B)", size: "~600MB", desc: "Great balance of speed and size. Standard small chat model." },
-                { id: "Qwen2-1.5B-Instruct-q4f16_1-MLC", name: "Qwen2 (1.5B)", size: "~1GB", desc: "Highly capable model. Great daily driver." },
-                { id: "gemma-2b-it-q4f16_1-MLC", name: "Gemma (2B)", size: "~1.4GB", desc: "Google's open-weights model." },
-                { id: "Phi-3-mini-4k-instruct-q4f16_1-MLC", name: "Phi-3 Mini", size: "~2.2GB", desc: "Top-tier logic. Highly recommended if your device can handle it." },
-                { id: "Llama-3-8B-Instruct-q4f32_1-MLC", name: "Llama 3 (8B)", size: "~5GB", desc: "Powerful logic, requires 8GB+ RAM/GPU." }
+                { id: "Qwen2-0.5B-Instruct-q0f16-MLC", name: "Qwen2 (0.5B) - [MOBILE SAFE]", size: "~400MB", desc: "Super tiny, fast loading. Excellent reasoning for its micro size. Best choice for iPhone." },
+                { id: "TinyLlama-1.1B-Chat-v1.0-q4f16_1-MLC", name: "TinyLlama (1.1B) - [MOBILE SAFE]", size: "~600MB", desc: "Great balance of speed and size. Standard small chat model." },
+                { id: "Qwen2-1.5B-Instruct-q4f16_1-MLC", name: "Qwen2 (1.5B) - [TABLET / DESKTOP]", size: "~1GB", desc: "Highly capable model. Great daily driver for computers." },
+                { id: "gemma-2b-it-q4f16_1-MLC", name: "Gemma (2B) - [TABLET / DESKTOP]", size: "~1.4GB", desc: "Google's open-weights model." },
+                { id: "Phi-3-mini-4k-instruct-q4f16_1-MLC", name: "Phi-3 Mini - [DESKTOP]", size: "~2.2GB", desc: "Top-tier logic. Highly recommended if your device can handle it." },
+                { id: "Llama-3-8B-Instruct-q4f32_1-MLC", name: "Llama 3 (8B) - [DESKTOP ONLY]", size: "~5GB", desc: "Powerful logic, requires 8GB+ RAM/GPU. **Will crash phones.**" }
             ];
 
             AI_MODELS.forEach(m => { md += `### [${m.name}](#model-${m.id})\n- **Size**: ${m.size}\n- **Info**: ${m.desc}\n\n`; });
