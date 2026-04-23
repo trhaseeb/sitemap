@@ -131,29 +131,39 @@
         let aiEngine = null;
         
         // Memory Guardrail state
-        let currentContextLimit = 1024;
+        let currentContextLimit = 512;
 
         // =========================================================================
         // 🧠 LOCAL AI & WEBGPU ENGINE LOGIC
         // =========================================================================
 
         async function loadAIModel(modelId, contextLimit) {
+            // THE FIX: Explicitly destroy the old WebGPU worker to free VRAM
             if (aiEngine) {
-                // Future cleanup if switching models to free VRAM before loading next
-                console.log("Switching models, overriding previous instance...");
+                console.log("Unloading previous model to free VRAM...");
+                aiStatus.innerText = "[ AI: FREEING RAM... ]";
+                try {
+                    await aiEngine.unload();
+                } catch (e) {
+                    console.error("Unload error:", e);
+                }
+                aiEngine = null;
             }
+
             try {
                 aiStatus.innerText = "[ AI: INIT... ]";
                 
-                // Initialize engine with a context window guardrail 
-                // This prevents the KV cache from bloating and crashing iOS Safari
+                // THE FIX: Force sliding window so memory stays flat and predictable
+                const chatOpts = {
+                    context_window_size: contextLimit,
+                    sliding_window_size: contextLimit 
+                };
+
                 aiEngine = await CreateMLCEngine(modelId, {
                     initProgressCallback: (info) => {
                         aiStatus.innerText = `[ AI: ${Math.round(info.progress * 100)}% ]`;
                     }
-                }, {
-                    context_window_size: contextLimit 
-                });
+                }, chatOpts);
                 
                 aiStatus.innerText = `[ AI: READY ]`;
                 aiStatus.title = `Running ${modelId} (Limit: ${contextLimit} tokens)`;
@@ -161,6 +171,12 @@
                 console.error(err);
                 aiStatus.innerText = "[ AI: ERROR ]";
                 alert(`Failed to load model. Ensure your browser supports WebGPU and you have enough RAM.\n\nError: ${err.message}`);
+                
+                // Cleanup if it failed halfway through loading
+                if (aiEngine) {
+                    try { await aiEngine.unload(); } catch(e){}
+                    aiEngine = null;
+                }
             }
         }
 
@@ -412,7 +428,7 @@ Rules: Respond concisely, output in markdown format, and follow your directive s
             md += `## Memory Guardrail (Context Limit)\n`;
             md += `*Select how much memory the AI uses to remember text. Lower limits (512 or 1024) prevent mobile browsers like iOS Safari from crashing.*\n\n`;
             
-            const limits = [512, 1024, 2048, 4096];
+            const limits = [256, 512, 1024, 2048, 4096];
             let limitsText = limits.map(l => {
                 if (l === currentContextLimit) return `**[ ${l} Tokens ]**`;
                 return `[ ${l} Tokens ](#context-${l})`;
