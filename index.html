@@ -3,7 +3,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Critical for mobile viewport scaling -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BRUTAL NOTES</title>
     
     <!-- Core Markdown Libraries -->
@@ -22,17 +23,18 @@
             background-color: var(--bg); color: var(--fg);
             height: 100vh; width: 100vw;
             display: flex; flex-direction: column; overflow: hidden; line-height: 1.6;
+            -webkit-text-size-adjust: 100%; /* Prevent iOS zoom on input */
         }
 
         ::selection { background-color: var(--fg); color: var(--bg); }
-        ::-webkit-scrollbar { width: 14px; height: 14px; border-left: 4px solid var(--fg); }
+        ::-webkit-scrollbar { width: 10px; height: 10px; border-left: 2px solid var(--fg); }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--fg); }
 
-        header { padding: 1.5rem 1.5rem 0 1.5rem; border-bottom: 6px solid var(--fg); flex-shrink: 0; user-select: none; }
+        header { padding: 1rem 1rem 0 1rem; border-bottom: 4px solid var(--fg); flex-shrink: 0; user-select: none; }
 
         .header-title {
-            font-size: clamp(3rem, 9vw, 7rem); font-weight: 900; text-transform: uppercase;
+            font-size: clamp(2rem, 8vw, 4rem); font-weight: 900; text-transform: uppercase;
             letter-spacing: -0.06em; line-height: 0.8; padding-bottom: 0.5rem;
             cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
             transition: color 0.1s;
@@ -41,7 +43,7 @@
         .header-title.is-root { cursor: default; }
         .header-title.is-root:hover { color: var(--fg); }
 
-        .sub-header { padding: 0.5rem 1.5rem 1.5rem 1.5rem; flex-shrink: 0; user-select: none; display: flex; flex-wrap: wrap; gap: 1rem; }
+        .sub-header { padding: 0.5rem 1rem 1rem 1rem; flex-shrink: 0; user-select: none; display: flex; flex-wrap: wrap; gap: 1rem; }
 
         .mode-link {
             font-family: inherit; font-size: clamp(0.75rem, 1.5vw, 1rem); font-weight: 900;
@@ -53,14 +55,28 @@
         main { flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column; }
 
         .workspace-pane {
-            position: absolute; inset: 0; width: 100%; height: 100%; padding: clamp(1.5rem, 5vw, 3rem);
+            position: absolute; inset: 0; width: 100%; height: 100%; padding: 1rem;
             overflow-y: auto; background: transparent; border: none; color: inherit; font-family: inherit;
-            font-size: clamp(1rem, 2vw, 1.25rem); outline: none; font-weight: 500; resize: none;
+            font-size: 1rem; outline: none; font-weight: 500; resize: none;
+            /* Better scrolling on iOS */
+            -webkit-overflow-scrolling: touch; 
         }
 
-        .workspace-content { max-width: 56rem; margin: 0 auto; width: 100%; min-height: 100%; padding-bottom: 20vh; }
+        .workspace-content { max-width: 56rem; margin: 0 auto; width: 100%; min-height: 100%; padding-bottom: 40vh; }
         .hidden { display: none !important; }
-        .ghost-text { color: #aaaaaa; pointer-events: none; user-select: none; }
+        
+        .ghost-text { color: #aaaaaa; pointer-events: none; user-select: none; font-style: italic; }
+        .ai-loading-box { 
+            border: 2px dashed #aaaaaa; padding: 1rem; margin: 1rem 0; 
+            background: rgba(128, 128, 128, 0.05); color: #888; font-size: 0.9em;
+        }
+        .ai-progress-bar {
+            height: 4px; background: #ddd; margin-top: 0.5rem; border-radius: 2px; overflow: hidden;
+        }
+        .ai-progress-fill {
+            height: 100%; background: var(--fg); width: 0%; transition: width 0.2s;
+        }
+
         .error-log { font-size: 0.85rem; color: #cc0000; background: rgba(204, 0, 0, 0.1); padding: 1rem; border: 2px solid #cc0000; margin-top: 1rem; white-space: pre-wrap; word-break: break-all; }
 
         .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
@@ -68,19 +84,20 @@
             letter-spacing: -0.05em; margin-top: 1.5em; margin-bottom: 0.5em; line-height: 1.1;
         }
         .prose > *:first-child { margin-top: 0; }
-        .prose h1 { font-size: 2.25em; }
-        .prose h2 { font-size: 1.8em; }
-        .prose h3 { font-size: 1.5em; }
+        .prose h1 { font-size: 2em; }
+        .prose h2 { font-size: 1.5em; }
+        .prose h3 { font-size: 1.25em; }
         .prose p, .prose ul, .prose ol { margin-bottom: 1em; }
         .prose ul, .prose ol { padding-left: 1.5em; }
-        .prose a { color: var(--fg); font-weight: 900; text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 4px; cursor: pointer; transition: all 0.2s; }
+        .prose a { color: var(--fg); font-weight: 900; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; cursor: pointer; transition: all 0.2s; }
         .prose a:hover { background-color: var(--fg); color: var(--bg); }
-        .prose blockquote { border-left: 8px solid var(--fg); padding: 0.5em 1.5em; background: rgba(128, 128, 128, 0.1); margin: 0; font-weight: bold; }
+        .prose blockquote { border-left: 6px solid var(--fg); padding: 0.5em 1em; background: rgba(128, 128, 128, 0.1); margin: 0 0 1em 0; font-weight: bold; }
         .prose hr { border: none; border-top: 4px solid var(--fg); margin: 2em 0; }
-        .prose code { border: 2px solid var(--fg); padding: 0.1em 0.3em; font-size: 0.9em; }
-        .prose pre { border: 4px solid var(--fg); padding: 1em; overflow-x: auto; margin-bottom: 1em; }
-        .prose table { width: 100%; border-collapse: collapse; margin-bottom: 1.5em; border: 4px solid var(--fg); }
-        .prose th, .prose td { border: 2px solid var(--fg); padding: 0.75em; text-align: left; }
+        .prose code { border: 1px solid var(--fg); padding: 0.1em 0.3em; font-size: 0.9em; word-break: break-all; }
+        .prose pre { border: 2px solid var(--fg); padding: 1em; overflow-x: auto; margin-bottom: 1em; }
+        .prose pre code { border: none; padding: 0; }
+        .prose table { width: 100%; border-collapse: collapse; margin-bottom: 1.5em; border: 2px solid var(--fg); display: block; overflow-x: auto; }
+        .prose th, .prose td { border: 1px solid var(--fg); padding: 0.5em; text-align: left; }
         .prose th { background-color: var(--fg); color: var(--bg); text-transform: uppercase; font-weight: 900; }
 
         #live-editor:empty:before { content: attr(placeholder); color: #888; pointer-events: none; display: block; }
@@ -97,14 +114,16 @@
     </div>
 
     <main>
-        <div id="live-editor" contenteditable="false" class="workspace-pane prose workspace-content" placeholder="Initializing database..." spellcheck="false"></div>
-        <textarea id="raw-editor" class="workspace-pane workspace-content hidden" placeholder="Start typing raw markdown here..." spellcheck="false"></textarea>
+        <div id="live-editor" contenteditable="false" class="workspace-pane prose workspace-content" placeholder="Initializing database..." spellcheck="false" autocorrect="off" autocapitalize="none"></div>
+        <textarea id="raw-editor" class="workspace-pane workspace-content hidden" placeholder="Start typing raw markdown here..." spellcheck="false" autocorrect="off" autocapitalize="none"></textarea>
         <div id="read-preview" class="workspace-pane prose workspace-content hidden"></div>
     </main>
     
     <script type="module">
         import { PGlite } from "https://cdn.jsdelivr.net/npm/@electric-sql/pglite/dist/index.js";
         import { vector } from "https://cdn.jsdelivr.net/npm/@electric-sql/pglite/dist/vector/index.js";
+        // Import WebLLM natively for on-device inference
+        import * as webllm from "https://esm.run/@mlc-ai/web-llm";
 
         const liveEditor = document.getElementById('live-editor');
         const rawEditor = document.getElementById('raw-editor');
@@ -122,38 +141,11 @@
         let currentGhostSuggestion = null;
         let ghostNode = null;
         let db = null;
-
-        // =========================================================================
-        // 🧠 RAG & LOCAL LLM PREPARATION
-        // =========================================================================
-
-        async function updateNoteEmbedding(id, embeddingArray) {
-            if (!db) return;
-            try {
-                const vectorString = JSON.stringify(embeddingArray);
-                await db.query(`UPDATE notes SET embedding = $1 WHERE id = $2`, [vectorString, id]);
-            } catch(e) {
-                console.error("Failed to update embedding:", e);
-            }
-        }
-
-        async function searchSimilarNotes(embeddingArray, limit = 5) {
-            if (!db) return [];
-            try {
-                const vectorString = JSON.stringify(embeddingArray);
-                const res = await db.query(`
-                    SELECT id, content, 1 - (embedding <=> $1) AS similarity
-                    FROM notes
-                    WHERE embedding IS NOT NULL
-                    ORDER BY embedding <=> $1
-                    LIMIT $2;
-                `, [vectorString, limit]);
-                return res.rows;
-            } catch(e) {
-                console.error("Vector search failed:", e);
-                return [];
-            }
-        }
+        
+        // ML Engine State
+        let aiEngine = null;
+        // Ultra-light 1 Billion parameter model, highly compressed (Fits in 1GB RAM)
+        const AI_MODEL = "Llama-3.2-1B-Instruct-q4f16_1-MLC"; 
 
         // =========================================================================
         // 🗄️ DATABASE & STATE LOGIC
@@ -184,8 +176,6 @@
             }
         }
 
-        // --- Core Helpers ---
-
         function parseMD(text) {
             return DOMPurify.sanitize(marked.parse(text), { ADD_TAGS: ['table', 'th', 'tr', 'td', 'thead', 'tbody'] });
         }
@@ -210,7 +200,7 @@
 
         const turndownService = new TurndownService({ headingStyle: 'atx', bulletListMarker: '-', codeBlockStyle: 'fenced' });
         turndownService.addRule('hashtag', { filter: (n) => n.nodeName === 'A' && n.getAttribute('href')?.startsWith('#tag-'), replacement: (c) => c });
-        turndownService.addRule('ghostText', { filter: (n) => n.nodeName === 'SPAN' && n.classList.contains('ghost-text'), replacement: () => '' });
+        turndownService.addRule('ghostText', { filter: (n) => n.nodeName === 'DIV' && n.classList.contains('ai-loading-box'), replacement: () => '' });
 
         function getTodayKey() {
             const d = new Date();
@@ -219,7 +209,7 @@
 
         function formatDateDisplay(key) {
             const [y, m, d] = key.split('-');
-            return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+            return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         }
 
         function getAllKnownTags() {
@@ -232,7 +222,6 @@
             return Array.from(tagSet).sort();
         }
 
-        // --- TAG AGGREGATION SYSTEM (Restored) ---
         function getDynamicHashtagContent(baseTagName) {
             let groups = { _base: [] };
             const dayKeys = Object.keys(notes).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort().reverse();
@@ -240,25 +229,14 @@
             dayKeys.forEach(day => {
                 const content = notes[day] || '';
                 const blocks = content.split('\n\n');
-                
                 blocks.forEach(block => {
                     const regex = new RegExp(`(?:^|\\s)#${baseTagName}(?:\\.([a-zA-Z0-9_]+))?\\b`, 'gi');
-                    let match;
-                    let matchedSubtags = new Set();
-                    let matchedBase = false;
-                    
+                    let match; let matchedSubtags = new Set(); let matchedBase = false;
                     while ((match = regex.exec(block)) !== null) {
-                        if (match[1]) {
-                            matchedSubtags.add(match[1].toLowerCase());
-                        } else {
-                            matchedBase = true;
-                        }
+                        if (match[1]) matchedSubtags.add(match[1].toLowerCase());
+                        else matchedBase = true;
                     }
-                    
-                    if (matchedBase) {
-                        groups._base.push({ day, text: block });
-                    }
-                    
+                    if (matchedBase) groups._base.push({ day, text: block });
                     matchedSubtags.forEach(sub => {
                         if (!groups[sub]) groups[sub] = [];
                         groups[sub].push({ day, text: block });
@@ -287,7 +265,6 @@
             });
             
             if (!hasMentions) tagMarkdown += "## AGGREGATED MENTIONS\n*No mentions found yet.*";
-            
             return tagMarkdown;
         }
 
@@ -296,9 +273,9 @@
             modeToggle.innerText = `[ Mode: ${mode} ]`;
             
             if (currentKey.startsWith('tag-')) {
-                liveEditor.setAttribute('placeholder', 'Write a definition or notes for this tag here...');
+                liveEditor.setAttribute('placeholder', 'Write persona instructions for this tag here...');
             } else {
-                liveEditor.setAttribute('placeholder', 'Start typing naturally...');
+                liveEditor.setAttribute('placeholder', 'Start typing...');
             }
             
             liveEditor.classList.add('hidden'); 
@@ -316,108 +293,154 @@
                 rawEditor.classList.remove('hidden');
                 if (!VIRTUAL_PAGES.includes(currentKey)) rawEditor.focus();
             } else if (mode === 'Read') {
-                // Dynamically inject the aggregated mentions!
-                if (currentKey.startsWith('tag-')) {
-                    const tagName = currentKey.substring(4);
-                    rawMarkdown += getDynamicHashtagContent(tagName);
-                }
-                
+                if (currentKey.startsWith('tag-')) rawMarkdown += getDynamicHashtagContent(currentKey.substring(4));
                 readPreview.innerHTML = parseMD(rawMarkdown);
                 readPreview.classList.remove('hidden');
             }
         }
 
-        // --- Virtual Pages & Navigation (Restored Title Logic) ---
-
-        function loadIndex() {
-            flushLiveSave(); currentKey = 'index';
-            notes['index'] = `*Root Directory*\n\n- [Diary](#diary)\n- [Tags](#tags)`;
-            dateTitle.innerText = 'Index'; 
-            dateTitle.title = "You are at the root directory";
-            dateTitle.classList.add('is-root');
-            currentModeIndex = 2; updateModeUI();
-        }
-
-        function loadDiary() {
-            flushLiveSave(); currentKey = 'diary';
-            const links = Object.keys(notes).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort().reverse().map(k => `- [${formatDateDisplay(k)}](#${k})`).join('\n');
-            notes['diary'] = `*All daily notes.*\n\n${links || '*No notes yet.*'}`;
-            dateTitle.innerText = 'Diary'; 
-            dateTitle.title = "Click to go up to Index";
-            dateTitle.classList.remove('is-root');
-            currentModeIndex = 2; updateModeUI();
-        }
-
-        function loadTags() {
-            flushLiveSave(); currentKey = 'tags';
-            const tags = new Set();
-            Object.keys(notes).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).forEach(k => {
-                const matches = notes[k].match(/(?:^|\s)#([a-zA-Z0-9_]+)(?:\.[a-zA-Z0-9_]+)?\b/g);
-                if (matches) matches.forEach(m => tags.add(m.trim().substring(1).toLowerCase().split('.')[0]));
-            });
-            const tagLinks = Array.from(tags).sort().map(t => `- [#${t}](#tag-${t})`).join('\n') || "*No hashtags used yet.*";
-            notes['tags'] = `*All tags used across notes.*\n\n${tagLinks}`;
-            dateTitle.innerText = 'Tags'; 
-            dateTitle.title = "Click to go up to Index";
-            dateTitle.classList.remove('is-root');
-            currentModeIndex = 2; updateModeUI();
-        }
-
+        // --- Virtual Pages & Navigation ---
+        function loadIndex() { flushLiveSave(); currentKey = 'index'; notes['index'] = `*Root Directory*\n\n- [Diary](#diary)\n- [Tags](#tags)`; dateTitle.innerText = 'Index'; dateTitle.classList.add('is-root'); currentModeIndex = 2; updateModeUI(); }
+        function loadDiary() { flushLiveSave(); currentKey = 'diary'; const links = Object.keys(notes).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort().reverse().map(k => `- [${formatDateDisplay(k)}](#${k})`).join('\n'); notes['diary'] = `*All daily notes.*\n\n${links || '*No notes yet.*'}`; dateTitle.innerText = 'Diary'; dateTitle.classList.remove('is-root'); currentModeIndex = 2; updateModeUI(); }
+        function loadTags() { flushLiveSave(); currentKey = 'tags'; const tags = new Set(); Object.keys(notes).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).forEach(k => { const matches = notes[k].match(/(?:^|\s)#([a-zA-Z0-9_]+)(?:\.[a-zA-Z0-9_]+)?\b/g); if (matches) matches.forEach(m => tags.add(m.trim().substring(1).toLowerCase().split('.')[0])); }); const tagLinks = Array.from(tags).sort().map(t => `- [#${t}](#tag-${t})`).join('\n') || "*No hashtags used yet.*"; notes['tags'] = `*All tags used across notes.*\n\n${tagLinks}`; dateTitle.innerText = 'Tags'; dateTitle.classList.remove('is-root'); currentModeIndex = 2; updateModeUI(); }
         function loadNote(key) {
             flushLiveSave(); currentKey = key;
-            if (notes[key] === undefined) {
-                notes[key] = key.startsWith('tag-') ? `*Write notes for this tag here.*` : '';
-                saveNoteToDB(key, notes[key]);
-            }
+            if (notes[key] === undefined) { notes[key] = key.startsWith('tag-') ? `*Write notes for this tag here.*` : ''; saveNoteToDB(key, notes[key]); }
             dateTitle.classList.remove('is-root');
-            
-            if (key.startsWith('tag-')) {
-                dateTitle.innerText = '#' + key.substring(4).toUpperCase();
-                dateTitle.title = "Click to go up to Tags Directory";
-                if (currentModeIndex !== 2) currentModeIndex = 2; // Auto-read mode for tags
-            } else {
-                dateTitle.innerText = formatDateDisplay(key);
-                dateTitle.title = "Click to go up to Diary Directory";
-                if (currentModeIndex === 2) currentModeIndex = 0; // Auto-live mode for diary pages
-            }
-            
+            if (key.startsWith('tag-')) { dateTitle.innerText = '#' + key.substring(4).toUpperCase(); if (currentModeIndex !== 2) currentModeIndex = 2; } 
+            else { dateTitle.innerText = formatDateDisplay(key); if (currentModeIndex === 2) currentModeIndex = 0; }
             updateModeUI();
+        }
+
+        // =========================================================================
+        // 🤖 IN-BROWSER AI EXECUTION LOGIC (WebLLM for iOS)
+        // =========================================================================
+
+        async function initWebLLM(progressCallback) {
+            if (aiEngine) return aiEngine;
+            
+            // Validate WebGPU support (Critical for iPhone)
+            if (!navigator.gpu) {
+                throw new Error("WebGPU is not enabled. On iOS 17, go to Settings > Safari > Advanced > Feature Flags > WebGPU.");
+            }
+
+            aiEngine = new webllm.MLCEngine();
+            aiEngine.setInitProgressCallback(progressCallback);
+            
+            // Loads Llama-3.2 1B (approx ~800MB download first time, cached thereafter)
+            await aiEngine.reload(AI_MODEL);
+            return aiEngine;
+        }
+
+        async function executePersona(commandText, tagTrigger, placeholderId) {
+            const baseTag = tagTrigger.substring(1).split('.')[0].toLowerCase();
+            let systemPrompt = notes[`tag-${baseTag}`] || "";
+            systemPrompt = systemPrompt.split('## GENERAL MENTIONS')[0].trim();
+            
+            if (!systemPrompt || systemPrompt.includes('*Write notes for this tag here.*')) {
+                systemPrompt = `You are a concise AI assistant representing the persona of ${tagTrigger}. Respond using Markdown. Do not hallucinate. Format beautifully.`;
+            }
+
+            const placeholderNode = document.getElementById(placeholderId);
+            const textNode = placeholderNode?.querySelector('.ai-status-text');
+            const progressFill = placeholderNode?.querySelector('.ai-progress-fill');
+
+            try {
+                // Initialize engine with progress callback for mobile UX
+                const engine = await initWebLLM((info) => {
+                    if (textNode) {
+                        const pct = Math.round(info.progress * 100);
+                        textNode.innerText = `Loading ML Engine (${pct}%) - ${info.text.split(']')[1] || info.text}`;
+                        if (progressFill) progressFill.style.width = `${pct}%`;
+                    }
+                });
+
+                if (textNode) textNode.innerText = `Generating response...`;
+                if (progressFill) progressFill.style.background = "#4CAF50";
+
+                // Generate response (Streaming for immediate feedback on slow devices)
+                const messages = [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: commandText || "Execute primary function." }
+                ];
+
+                const chunks = await engine.chat.completions.create({ messages, stream: true });
+                
+                let fullResponse = "";
+                // Replace the loading box with a blockquote for the incoming stream
+                placeholderNode.outerHTML = `<blockquote id="${placeholderId}-stream" style="border-left-color: #4CAF50;"></blockquote>`;
+                const streamNode = document.getElementById(`${placeholderId}-stream`);
+
+                for await (const chunk of chunks) {
+                    const delta = chunk.choices[0]?.delta?.content || "";
+                    fullResponse += delta;
+                    if (streamNode) streamNode.innerHTML = parseMD(fullResponse);
+                }
+
+                // Finalize DOM
+                if (streamNode) {
+                    streamNode.outerHTML = parseMD(fullResponse);
+                    flushLiveSave();
+                }
+                
+            } catch (error) {
+                console.error("AI Gen Error:", error);
+                if (placeholderNode) {
+                    placeholderNode.innerHTML = `<span style="color:#cc0000; font-weight:bold;">[AI Request Failed] ${error.message}</span>`;
+                }
+            }
         }
 
         // --- Event Listeners ---
 
         modeToggle.addEventListener('click', (e) => {
-            e.preventDefault(); 
-            flushLiveSave();
-            currentModeIndex = (currentModeIndex + 1) % modes.length;
-            updateModeUI();
+            e.preventDefault(); flushLiveSave(); currentModeIndex = (currentModeIndex + 1) % modes.length; updateModeUI();
         });
 
+        // Use touch events for mobile ghost removal
+        liveEditor.addEventListener('touchstart', removeGhost, {passive: true});
         liveEditor.addEventListener('mousedown', removeGhost);
         liveEditor.addEventListener('blur', removeGhost);
 
         liveEditor.addEventListener('keydown', (e) => {
-            if ((e.key === 'Tab' || e.key === 'ArrowRight') && currentGhostSuggestion) {
-                e.preventDefault();
+            // AI TRIGGER INTERCEPTOR ('/')
+            if (e.key === '/') {
                 const sel = window.getSelection();
                 if (sel.rangeCount > 0 && sel.focusNode.nodeType === Node.TEXT_NODE) {
-                    const node = sel.focusNode;
-                    const match = node.textContent.substring(0, sel.focusOffset).match(/(?:^|\s)(#[a-zA-Z0-9_.]+)$/);
-                    removeGhost(); 
+                    const text = sel.focusNode.textContent.substring(0, sel.focusOffset);
+                    const match = text.match(/(.*?)(#[a-zA-Z0-9_.]+)$/);
+                    
                     if (match) {
+                        e.preventDefault(); removeGhost();
+                        
+                        const fullMatchLength = match[0].length;
+                        const commandText = match[1].trim();
+                        const tagTrigger = match[2];
+                        const baseTag = tagTrigger.substring(1).split('.')[0].toLowerCase();
+                        
                         const range = document.createRange();
-                        range.setStart(node, sel.focusOffset - match[1].length);
-                        range.setEnd(node, sel.focusOffset);
+                        range.setStart(sel.focusNode, sel.focusOffset - fullMatchLength);
+                        range.setEnd(sel.focusNode, sel.focusOffset);
                         sel.removeAllRanges(); sel.addRange(range);
-                        document.execCommand('insertHTML', false, `<a href="#tag-${currentGhostSuggestion.substring(1).split('.')[0].toLowerCase()}">${currentGhostSuggestion}</a>&nbsp;`);
+                        document.execCommand('delete', false, null);
+                        
+                        const placeholderId = 'ai-loading-' + Date.now();
+                        const promptHTML = `<blockquote><strong>${commandText}</strong> <a href="#tag-${baseTag}">${tagTrigger}</a></blockquote>
+                            <div id="${placeholderId}" contenteditable="false" class="ai-loading-box">
+                                <div class="ai-status-text">Initializing local AI engine... (May take 1-2 mins on first load)</div>
+                                <div class="ai-progress-bar"><div class="ai-progress-fill"></div></div>
+                            </div><p>&#8203;</p>`;
+                        
+                        document.execCommand('insertHTML', false, promptHTML);
                         clearTimeout(saveTimeout); saveTimeout = setTimeout(flushLiveSave, 50);
+                        
+                        executePersona(commandText, tagTrigger, placeholderId);
+                        return;
                     }
-                } else removeGhost();
-                return;
+                }
             }
 
-            if (e.key === 'Escape' || e.key.startsWith('Arrow')) removeGhost();
-
+            // AUTO-FORMATTER (Spacebar)
             if (e.key === ' ') {
                 removeGhost();
                 const sel = window.getSelection();
@@ -456,41 +479,7 @@
         });
 
         liveEditor.addEventListener('input', () => {
-            removeGhost();
-            clearTimeout(saveTimeout);
-            saveTimeout = setTimeout(flushLiveSave, 500);
-
-            const sel = window.getSelection();
-            if (!sel || sel.rangeCount === 0 || sel.focusNode.nodeType !== Node.TEXT_NODE) return;
-
-            const match = sel.focusNode.textContent.substring(0, sel.focusOffset).match(/(?:^|\s)(#[a-zA-Z0-9_.]+)$/);
-            if (match && match[1].length >= 2) {
-                const typingTag = match[1];
-                const suggestion = getAllKnownTags().find(t => t.toLowerCase().startsWith(typingTag.toLowerCase()) && t.length > typingTag.length);
-                if (suggestion) {
-                    currentGhostSuggestion = typingTag + suggestion.substring(typingTag.length); 
-                    ghostNode = document.createElement('span');
-                    ghostNode.className = 'ghost-text';
-                    ghostNode.textContent = suggestion.substring(typingTag.length);
-                    ghostNode.contentEditable = 'false';
-                    
-                    const range = sel.getRangeAt(0);
-                    range.insertNode(ghostNode);
-                    range.setStartBefore(ghostNode);
-                    range.collapse(true);
-                    sel.removeAllRanges(); sel.addRange(range);
-                }
-            }
-        });
-
-        rawEditor.addEventListener('input', () => {
-            if (!VIRTUAL_PAGES.includes(currentKey)) {
-                notes[currentKey] = rawEditor.value;
-                clearTimeout(saveTimeout);
-                saveTimeout = setTimeout(() => {
-                    if (db) saveNoteToDB(currentKey, rawEditor.value);
-                }, 500);
-            }
+            clearTimeout(saveTimeout); saveTimeout = setTimeout(flushLiveSave, 500);
         });
 
         function handleLinkClick(e) {
@@ -510,35 +499,20 @@
         liveEditor.addEventListener('click', handleLinkClick);
         readPreview.addEventListener('click', handleLinkClick);
 
-        // Header click router ("Up-leveling" logic Restored)
         dateTitle.addEventListener('click', () => {
-            if (currentKey === 'index') {
-                return; 
-            } else if (currentKey === 'diary' || currentKey === 'tags') {
-                loadIndex(); 
-            } else if (currentKey.startsWith('tag-')) {
-                loadTags(); 
-            } else if (/^\d{4}-\d{2}-\d{2}$/.test(currentKey)) {
-                loadDiary(); 
-            }
-        });
-
-        // Focus editor when clicking blank space
-        document.querySelector('.workspace-pane').addEventListener('click', (e) => {
-            if(e.target === liveEditor && currentModeIndex === 0) {
-                liveEditor.focus();
-            }
+            if (currentKey === 'index') return; 
+            else if (currentKey === 'diary' || currentKey === 'tags') loadIndex(); 
+            else if (currentKey.startsWith('tag-')) loadTags(); 
+            else if (/^\d{4}-\d{2}-\d{2}$/.test(currentKey)) loadDiary(); 
         });
 
         // =========================================================================
-        // 🚀 BOOTSTRAPPER (Initialization & Migration)
+        // 🚀 BOOTSTRAPPER 
         // =========================================================================
 
         async function initApp() {
             try {
-                db = new PGlite('idb://brutal-notes-db', {
-                    extensions: { vector }
-                });
+                db = new PGlite('idb://brutal-notes-db', { extensions: { vector } });
 
                 await db.exec(`
                     CREATE EXTENSION IF NOT EXISTS vector;
@@ -551,40 +525,20 @@
                 `);
 
                 const res = await db.query(`SELECT COUNT(*) as count FROM notes;`);
-                const count = parseInt(res.rows[0].count, 10);
-
-                if (count === 0) {
-                    const saved = localStorage.getItem('brutalNotes');
-                    if (saved) {
-                        const parsedData = JSON.parse(saved);
-                        for (const [id, content] of Object.entries(parsedData)) {
-                            await saveNoteToDB(id, content);
-                            notes[id] = content;
-                        }
-                    } else {
-                        const todayKey = getTodayKey();
-                        notes[todayKey] = `Welcome to your brutalist notebook.\n\nWe have successfully initialized the **PGLite** vector database and restored tag aggregation!\n\n### Quick Start\n- Type \`#\` followed by a word to create a tag (e.g., #todo.groceries).\n- Type \`-\` and press space for a bulleted list.\n- Click on a tag link to view all blocks that mention it across your notebook.`;
-                        await saveNoteToDB(todayKey, notes[todayKey]);
-                    }
+                if (parseInt(res.rows[0].count, 10) === 0) {
+                    const todayKey = getTodayKey();
+                    notes[todayKey] = `Welcome to your brutalist, mobile-first agent notebook.\n\n### On-Device WebGPU AI 📱\nYour device runs the AI entirely in Safari using WebLLM. No servers needed. \n\n**Test the AI (Type exactly this, then press space after the slash):**\nSimulate a pricing war #strategy/\n\n*(Note: The very first time you do this, it will download an 800MB model into your browser cache. Make sure you are on Wi-Fi!)*`;
+                    await saveNoteToDB(todayKey, notes[todayKey]);
                 } else {
                     const allNotes = await db.query(`SELECT id, content FROM notes;`);
-                    allNotes.rows.forEach(row => {
-                        notes[row.id] = row.content;
-                    });
+                    allNotes.rows.forEach(row => notes[row.id] = row.content);
                 }
 
                 liveEditor.setAttribute('contenteditable', 'true');
-                const todayKey = getTodayKey();
-                loadNote(todayKey);
+                loadNote(getTodayKey());
 
             } catch (error) {
-                console.error("Database initialization failed:", error);
-                dateTitle.innerText = "DB Error";
-                liveEditor.innerHTML = `
-                    <h2 style="color: #cc0000;">Database Initialization Failed</h2>
-                    <p style="font-weight: bold;">If you are seeing this on GitHub Pages, we need to know the exact error to fix the import.</p>
-                    <div class="error-log">${error.message}\n\n${error.stack}</div>
-                `;
+                liveEditor.innerHTML = `<h2 style="color: #cc0000;">DB Error</h2><div class="error-log">${error.message}</div>`;
             }
         }
 
