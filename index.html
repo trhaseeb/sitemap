@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -40,7 +41,7 @@
         .header-title.is-root { cursor: default; }
         .header-title.is-root:hover { color: var(--fg); }
 
-        .sub-header { padding: 0.5rem 1.5rem 1.5rem 1.5rem; flex-shrink: 0; user-select: none; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem; }
+        .sub-header { padding: 0.5rem 1.5rem 1.5rem 1.5rem; flex-shrink: 0; user-select: none; display: flex; flex-wrap: wrap; gap: 1rem; }
 
         .mode-link {
             font-family: inherit; font-size: clamp(0.75rem, 1.5vw, 1rem); font-weight: 900;
@@ -82,8 +83,6 @@
         .prose th, .prose td { border: 2px solid var(--fg); padding: 0.75em; text-align: left; }
         .prose th { background-color: var(--fg); color: var(--bg); text-transform: uppercase; font-weight: 900; }
 
-        @keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
-
         #live-editor:empty:before { content: attr(placeholder); color: #888; pointer-events: none; display: block; }
         .prose p:empty:before, .prose h1:empty:before, .prose h2:empty:before, .prose h3:empty:before { content: "\200B"; }
     </style>
@@ -94,8 +93,7 @@
         <h1 id="date-title" class="header-title">Loading DB...</h1>
     </header>
     <div class="sub-header">
-        <a href="#" id="mode-toggle" class="mode-link">[ Mode: Live ]</a>
-        <a href="#models" id="ai-status" class="mode-link">[ AI: OFF ]</a>
+        <a href="#" id="mode-toggle" class="mode-link">Mode: Live</a>
     </div>
 
     <main>
@@ -107,15 +105,11 @@
     <script type="module">
         import { PGlite } from "https://cdn.jsdelivr.net/npm/@electric-sql/pglite/dist/index.js";
         import { vector } from "https://cdn.jsdelivr.net/npm/@electric-sql/pglite/dist/vector/index.js";
-        
-        // Locked to highly stable 0.2.66 release to bypass breaking tokenizer CDN changes in newest versions
-        import { CreateMLCEngine } from "https://esm.run/@mlc-ai/web-llm@0.2.66";
 
         const liveEditor = document.getElementById('live-editor');
         const rawEditor = document.getElementById('raw-editor');
         const readPreview = document.getElementById('read-preview');
         const modeToggle = document.getElementById('mode-toggle');
-        const aiStatus = document.getElementById('ai-status');
         const dateTitle = document.getElementById('date-title');
         
         const modes = ['Live', 'Raw', 'Read'];
@@ -123,96 +117,41 @@
         let notes = {};
         let currentKey = '';
         let saveTimeout;
-        const VIRTUAL_PAGES = ['index', 'diary', 'tags', 'models'];
+        const VIRTUAL_PAGES = ['index', 'diary', 'tags'];
 
         let currentGhostSuggestion = null;
         let ghostNode = null;
         let db = null;
-        let aiEngine = null;
 
         // =========================================================================
-        // 🧠 LOCAL AI & WEBGPU ENGINE LOGIC
+        // 🧠 RAG & LOCAL LLM PREPARATION
         // =========================================================================
 
-        async function loadAIModel(modelId) {
-            if (aiEngine) {
-                // Future cleanup if switching models
-            }
+        async function updateNoteEmbedding(id, embeddingArray) {
+            if (!db) return;
             try {
-                aiStatus.innerText = "[ AI: INIT... ]";
-                aiEngine = await CreateMLCEngine(modelId, {
-                    initProgressCallback: (info) => {
-                        aiStatus.innerText = `[ AI: ${Math.round(info.progress * 100)}% ]`;
-                    }
-                });
-                aiStatus.innerText = `[ AI: READY ]`;
-                aiStatus.title = `Running ${modelId}`;
-            } catch (err) {
-                console.error(err);
-                aiStatus.innerText = "[ AI: ERROR ]";
-                alert(`Failed to load model. Ensure your browser supports WebGPU and you have enough RAM.\n\nError: ${err.message}`);
+                const vectorString = JSON.stringify(embeddingArray);
+                await db.query(`UPDATE notes SET embedding = $1 WHERE id = $2`, [vectorString, id]);
+            } catch(e) {
+                console.error("Failed to update embedding:", e);
             }
         }
 
-        async function executeAICommand(contextText, tagTrigger, textNode, cursorOffset) {
-            if (!aiEngine) {
-                alert("Please initialize an AI model from the Index -> Models directory first.");
-                return;
-            }
-            
-            // 1. Visually remove the trigger tag
-            const sel = window.getSelection();
-            const range = document.createRange();
-            range.setStart(textNode, cursorOffset - tagTrigger.length - 1); // -1 accounts for the '/'
-            range.setEnd(textNode, cursorOffset);
-            sel.removeAllRanges();
-            sel.addRange(range);
-            document.execCommand('delete', false, null); 
-            
-            // 2. Inject loading state
-            const processingId = 'ai-' + Date.now();
-            document.execCommand('insertHTML', false, `<span id="${processingId}" style="color: #888; animation: pulse 1.5s infinite;"> [ AI is thinking... ] </span>&nbsp;`);
-            
-            // 3. Retrieve DB context
-            const meProfile = notes['tag-me'] || "No personal profile defined.";
-            const tagBase = tagTrigger.substring(1).split('.')[0].toLowerCase();
-            const tagInstructions = notes['tag-' + tagBase] || "Respond directly to the user's prompt based on context.";
-            
-            // 4. Construct Prompt
-            const messages = [
-                { role: "system", content: `You are an integrated AI assistant operating inside a note-taking app. 
-User Profile (#me): ${meProfile}
-Your Directive (${tagTrigger}): ${tagInstructions}
-Rules: Respond concisely, output in markdown format, and follow your directive strictly.` },
-                { role: "user", content: `Context string to process: "${contextText || "Execute directive."}"` }
-            ];
-
+        async function searchSimilarNotes(embeddingArray, limit = 5) {
+            if (!db) return [];
             try {
-                // 5. Stream the response directly into the DOM
-                const chunks = await aiEngine.chat.completions.create({ messages, stream: true });
-                let fullText = "";
-                const span = document.getElementById(processingId);
-                
-                span.style.animation = 'none';
-                span.style.color = 'var(--fg)';
-                
-                for await (const chunk of chunks) {
-                    fullText += chunk.choices[0]?.delta?.content || "";
-                    span.innerText = " \n\n" + fullText; // Add spacing so it formats nicely while streaming
-                }
-                
-                // 6. Finalize output by wrapping in Blockquote (Turndown handles this on save)
-                span.outerHTML = `<blockquote>${DOMPurify.sanitize(marked.parseInline(fullText))}</blockquote><p>&#8203;</p>`;
-                flushLiveSave();
-                
+                const vectorString = JSON.stringify(embeddingArray);
+                const res = await db.query(`
+                    SELECT id, content, 1 - (embedding <=> $1) AS similarity
+                    FROM notes
+                    WHERE embedding IS NOT NULL
+                    ORDER BY embedding <=> $1
+                    LIMIT $2;
+                `, [vectorString, limit]);
+                return res.rows;
             } catch(e) {
-                console.error(e);
-                const span = document.getElementById(processingId);
-                if (span) {
-                    span.style.animation = 'none';
-                    span.style.color = '#cc0000';
-                    span.innerText = " [ AI Generation Error ] ";
-                }
+                console.error("Vector search failed:", e);
+                return [];
             }
         }
 
@@ -247,7 +186,9 @@ Rules: Respond concisely, output in markdown format, and follow your directive s
 
         // --- Core Helpers ---
 
-        function parseMD(text) { return DOMPurify.sanitize(marked.parse(text), { ADD_TAGS: ['table', 'th', 'tr', 'td', 'thead', 'tbody'] }); }
+        function parseMD(text) {
+            return DOMPurify.sanitize(marked.parse(text), { ADD_TAGS: ['table', 'th', 'tr', 'td', 'thead', 'tbody'] });
+        }
 
         function removeGhost() {
             if (ghostNode && ghostNode.parentNode) ghostNode.parentNode.removeChild(ghostNode);
@@ -269,7 +210,7 @@ Rules: Respond concisely, output in markdown format, and follow your directive s
 
         const turndownService = new TurndownService({ headingStyle: 'atx', bulletListMarker: '-', codeBlockStyle: 'fenced' });
         turndownService.addRule('hashtag', { filter: (n) => n.nodeName === 'A' && n.getAttribute('href')?.startsWith('#tag-'), replacement: (c) => c });
-        turndownService.addRule('ghostText', { filter: (n) => n.nodeName === 'SPAN' && (n.classList.contains('ghost-text') || n.id?.startsWith('ai-')), replacement: () => '' });
+        turndownService.addRule('ghostText', { filter: (n) => n.nodeName === 'SPAN' && n.classList.contains('ghost-text'), replacement: () => '' });
 
         function getTodayKey() {
             const d = new Date();
@@ -291,6 +232,7 @@ Rules: Respond concisely, output in markdown format, and follow your directive s
             return Array.from(tagSet).sort();
         }
 
+        // --- TAG AGGREGATION SYSTEM (Restored) ---
         function getDynamicHashtagContent(baseTagName) {
             let groups = { _base: [] };
             const dayKeys = Object.keys(notes).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort().reverse();
@@ -306,11 +248,17 @@ Rules: Respond concisely, output in markdown format, and follow your directive s
                     let matchedBase = false;
                     
                     while ((match = regex.exec(block)) !== null) {
-                        if (match[1]) matchedSubtags.add(match[1].toLowerCase());
-                        else matchedBase = true;
+                        if (match[1]) {
+                            matchedSubtags.add(match[1].toLowerCase());
+                        } else {
+                            matchedBase = true;
+                        }
                     }
                     
-                    if (matchedBase) groups._base.push({ day, text: block });
+                    if (matchedBase) {
+                        groups._base.push({ day, text: block });
+                    }
+                    
                     matchedSubtags.forEach(sub => {
                         if (!groups[sub]) groups[sub] = [];
                         groups[sub].push({ day, text: block });
@@ -324,17 +272,22 @@ Rules: Respond concisely, output in markdown format, and follow your directive s
             if (groups._base.length > 0) {
                 hasMentions = true;
                 tagMarkdown += `## GENERAL MENTIONS\n\n`;
-                groups._base.forEach(item => { tagMarkdown += `### [${formatDateDisplay(item.day)}](#${item.day})\n\n> ${item.text.replace(/\n/g, '\n> ')}\n\n`; });
+                groups._base.forEach(item => {
+                    tagMarkdown += `### [${formatDateDisplay(item.day)}](#${item.day})\n\n> ${item.text.replace(/\n/g, '\n> ')}\n\n`;
+                });
             }
             
             const subKeys = Object.keys(groups).filter(k => k !== '_base').sort();
             subKeys.forEach(sub => {
                 hasMentions = true;
                 tagMarkdown += `## ${sub.toUpperCase()}\n\n`;
-                groups[sub].forEach(item => { tagMarkdown += `### [${formatDateDisplay(item.day)}](#${item.day})\n\n> ${item.text.replace(/\n/g, '\n> ')}\n\n`; });
+                groups[sub].forEach(item => {
+                    tagMarkdown += `### [${formatDateDisplay(item.day)}](#${item.day})\n\n> ${item.text.replace(/\n/g, '\n> ')}\n\n`;
+                });
             });
             
             if (!hasMentions) tagMarkdown += "## AGGREGATED MENTIONS\n*No mentions found yet.*";
+            
             return tagMarkdown;
         }
 
@@ -342,10 +295,16 @@ Rules: Respond concisely, output in markdown format, and follow your directive s
             const mode = modes[currentModeIndex];
             modeToggle.innerText = `[ Mode: ${mode} ]`;
             
-            if (currentKey.startsWith('tag-')) liveEditor.setAttribute('placeholder', 'Write a definition or instructions for this AI tag here...');
-            else liveEditor.setAttribute('placeholder', 'Start typing naturally...');
+            if (currentKey.startsWith('tag-')) {
+                liveEditor.setAttribute('placeholder', 'Write a definition or notes for this tag here...');
+            } else {
+                liveEditor.setAttribute('placeholder', 'Start typing naturally...');
+            }
             
-            liveEditor.classList.add('hidden'); rawEditor.classList.add('hidden'); readPreview.classList.add('hidden');
+            liveEditor.classList.add('hidden'); 
+            rawEditor.classList.add('hidden'); 
+            readPreview.classList.add('hidden');
+            
             let rawMarkdown = notes[currentKey] || '';
 
             if (mode === 'Live') {
@@ -357,18 +316,25 @@ Rules: Respond concisely, output in markdown format, and follow your directive s
                 rawEditor.classList.remove('hidden');
                 if (!VIRTUAL_PAGES.includes(currentKey)) rawEditor.focus();
             } else if (mode === 'Read') {
-                if (currentKey.startsWith('tag-')) rawMarkdown += getDynamicHashtagContent(currentKey.substring(4));
+                // Dynamically inject the aggregated mentions!
+                if (currentKey.startsWith('tag-')) {
+                    const tagName = currentKey.substring(4);
+                    rawMarkdown += getDynamicHashtagContent(tagName);
+                }
+                
                 readPreview.innerHTML = parseMD(rawMarkdown);
                 readPreview.classList.remove('hidden');
             }
         }
 
-        // --- Virtual Pages & Navigation ---
+        // --- Virtual Pages & Navigation (Restored Title Logic) ---
 
         function loadIndex() {
             flushLiveSave(); currentKey = 'index';
-            notes['index'] = `*Root Directory*\n\n- [Diary](#diary)\n- [Tags](#tags)\n- [AI Models](#models)`;
-            dateTitle.innerText = 'Index'; dateTitle.classList.add('is-root');
+            notes['index'] = `*Root Directory*\n\n- [Diary](#diary)\n- [Tags](#tags)`;
+            dateTitle.innerText = 'Index'; 
+            dateTitle.title = "You are at the root directory";
+            dateTitle.classList.add('is-root');
             currentModeIndex = 2; updateModeUI();
         }
 
@@ -376,7 +342,9 @@ Rules: Respond concisely, output in markdown format, and follow your directive s
             flushLiveSave(); currentKey = 'diary';
             const links = Object.keys(notes).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort().reverse().map(k => `- [${formatDateDisplay(k)}](#${k})`).join('\n');
             notes['diary'] = `*All daily notes.*\n\n${links || '*No notes yet.*'}`;
-            dateTitle.innerText = 'Diary'; dateTitle.classList.remove('is-root');
+            dateTitle.innerText = 'Diary'; 
+            dateTitle.title = "Click to go up to Index";
+            dateTitle.classList.remove('is-root');
             currentModeIndex = 2; updateModeUI();
         }
 
@@ -389,27 +357,9 @@ Rules: Respond concisely, output in markdown format, and follow your directive s
             });
             const tagLinks = Array.from(tags).sort().map(t => `- [#${t}](#tag-${t})`).join('\n') || "*No hashtags used yet.*";
             notes['tags'] = `*All tags used across notes.*\n\n${tagLinks}`;
-            dateTitle.innerText = 'Tags'; dateTitle.classList.remove('is-root');
-            currentModeIndex = 2; updateModeUI();
-        }
-
-        function loadModels() {
-            flushLiveSave(); currentKey = 'models';
-            let md = `*Select a local AI model to download and run securely inside your browser.*\\n\\n*Note: Larger models take longer to download and require more device RAM.*\\n\\n`;
-            
-            const AI_MODELS = [
-                { id: "Qwen2-0.5B-Instruct-q0f16-MLC", name: "Qwen2 (0.5B)", size: "~400MB", desc: "Super tiny, fast loading. Excellent reasoning for its micro size." },
-                { id: "TinyLlama-1.1B-Chat-v1.0-q4f16_1-MLC", name: "TinyLlama (1.1B)", size: "~600MB", desc: "Great balance of speed and size. Standard small chat model." },
-                { id: "Qwen2-1.5B-Instruct-q4f16_1-MLC", name: "Qwen2 (1.5B)", size: "~1GB", desc: "Highly capable model. Great daily driver." },
-                { id: "gemma-2b-it-q4f16_1-MLC", name: "Gemma (2B)", size: "~1.4GB", desc: "Google's open-weights model." },
-                { id: "Phi-3-mini-4k-instruct-q4f16_1-MLC", name: "Phi-3 Mini", size: "~2.2GB", desc: "Top-tier logic. Highly recommended if your device can handle it." },
-                { id: "Llama-3-8B-Instruct-q4f32_1-MLC", name: "Llama 3 (8B)", size: "~5GB", desc: "Powerful logic, requires 8GB+ RAM/GPU." }
-            ];
-
-            AI_MODELS.forEach(m => { md += `### [${m.name}](#model-${m.id})\n- **Size**: ${m.size}\n- **Info**: ${m.desc}\n\n`; });
-            
-            notes['models'] = md;
-            dateTitle.innerText = 'Models'; dateTitle.classList.remove('is-root');
+            dateTitle.innerText = 'Tags'; 
+            dateTitle.title = "Click to go up to Index";
+            dateTitle.classList.remove('is-root');
             currentModeIndex = 2; updateModeUI();
         }
 
@@ -423,11 +373,14 @@ Rules: Respond concisely, output in markdown format, and follow your directive s
             
             if (key.startsWith('tag-')) {
                 dateTitle.innerText = '#' + key.substring(4).toUpperCase();
-                if (currentModeIndex !== 2) currentModeIndex = 2; 
+                dateTitle.title = "Click to go up to Tags Directory";
+                if (currentModeIndex !== 2) currentModeIndex = 2; // Auto-read mode for tags
             } else {
                 dateTitle.innerText = formatDateDisplay(key);
-                if (currentModeIndex === 2) currentModeIndex = 0; 
+                dateTitle.title = "Click to go up to Diary Directory";
+                if (currentModeIndex === 2) currentModeIndex = 0; // Auto-live mode for diary pages
             }
+            
             updateModeUI();
         }
 
@@ -444,25 +397,6 @@ Rules: Respond concisely, output in markdown format, and follow your directive s
         liveEditor.addEventListener('blur', removeGhost);
 
         liveEditor.addEventListener('keydown', (e) => {
-            // AI Trigger Key -> '/'
-            if (e.key === '/') {
-                const sel = window.getSelection();
-                if (sel.rangeCount > 0 && sel.focusNode.nodeType === Node.TEXT_NODE) {
-                    const text = sel.focusNode.textContent.substring(0, sel.focusOffset);
-                    // Matches "Any text here #tagname" right before the cursor
-                    const match = text.match(/(.*?)(?:^|\s)(#[a-zA-Z0-9_.]+)$/);
-                    
-                    if (match) {
-                        e.preventDefault(); // Stop the '/' from rendering
-                        removeGhost();
-                        const contextText = match[1].trim(); 
-                        const tagTrigger = match[2]; 
-                        executeAICommand(contextText, tagTrigger, sel.focusNode, sel.focusOffset);
-                        return;
-                    }
-                }
-            }
-
             if ((e.key === 'Tab' || e.key === 'ArrowRight') && currentGhostSuggestion) {
                 e.preventDefault();
                 const sel = window.getSelection();
@@ -489,6 +423,7 @@ Rules: Respond concisely, output in markdown format, and follow your directive s
                 const sel = window.getSelection();
                 if (sel.rangeCount > 0 && sel.focusNode.nodeType === Node.TEXT_NODE) {
                     const text = sel.focusNode.textContent.substring(0, sel.focusOffset);
+                    
                     const tagMatch = text.match(/(?:^|\s)(#[a-zA-Z0-9_.]+)$/);
                     if (tagMatch) {
                         e.preventDefault();
@@ -508,10 +443,12 @@ Rules: Respond concisely, output in markdown format, and follow your directive s
                         range.setStart(sel.focusNode, 0); range.setEnd(sel.focusNode, sel.focusOffset);
                         sel.removeAllRanges(); sel.addRange(range);
                         document.execCommand('delete', false, null);
+                        
                         if (hMatch) document.execCommand('formatBlock', false, `<H${hMatch[1].length}>`);
                         else if (text === '>') document.execCommand('formatBlock', false, `<BLOCKQUOTE>`);
                         else if (text === '-') document.execCommand('insertUnorderedList', false, null);
                         else document.execCommand('insertOrderedList', false, null);
+                        
                         clearTimeout(saveTimeout); saveTimeout = setTimeout(flushLiveSave, 50);
                     }
                 }
@@ -536,6 +473,7 @@ Rules: Respond concisely, output in markdown format, and follow your directive s
                     ghostNode.className = 'ghost-text';
                     ghostNode.textContent = suggestion.substring(typingTag.length);
                     ghostNode.contentEditable = 'false';
+                    
                     const range = sel.getRangeAt(0);
                     range.insertNode(ghostNode);
                     range.setStartBefore(ghostNode);
@@ -549,7 +487,9 @@ Rules: Respond concisely, output in markdown format, and follow your directive s
             if (!VIRTUAL_PAGES.includes(currentKey)) {
                 notes[currentKey] = rawEditor.value;
                 clearTimeout(saveTimeout);
-                saveTimeout = setTimeout(() => { if (db) saveNoteToDB(currentKey, rawEditor.value); }, 500);
+                saveTimeout = setTimeout(() => {
+                    if (db) saveNoteToDB(currentKey, rawEditor.value);
+                }, 500);
             }
         });
 
@@ -560,9 +500,7 @@ Rules: Respond concisely, output in markdown format, and follow your directive s
                 const href = target.getAttribute('href');
                 if (href) {
                     e.preventDefault();
-                    if (href.startsWith('#model-')) loadAIModel(href.substring(7));
-                    else if (href === '#models') loadModels();
-                    else if (href === '#diary') loadDiary();
+                    if (href === '#diary') loadDiary();
                     else if (href === '#tags') loadTags();
                     else loadNote(href.substring(1));
                 }
@@ -572,24 +510,35 @@ Rules: Respond concisely, output in markdown format, and follow your directive s
         liveEditor.addEventListener('click', handleLinkClick);
         readPreview.addEventListener('click', handleLinkClick);
 
+        // Header click router ("Up-leveling" logic Restored)
         dateTitle.addEventListener('click', () => {
-            if (currentKey === 'index') return; 
-            else if (VIRTUAL_PAGES.includes(currentKey)) loadIndex(); 
-            else if (currentKey.startsWith('tag-')) loadTags(); 
-            else if (/^\d{4}-\d{2}-\d{2}$/.test(currentKey)) loadDiary(); 
+            if (currentKey === 'index') {
+                return; 
+            } else if (currentKey === 'diary' || currentKey === 'tags') {
+                loadIndex(); 
+            } else if (currentKey.startsWith('tag-')) {
+                loadTags(); 
+            } else if (/^\d{4}-\d{2}-\d{2}$/.test(currentKey)) {
+                loadDiary(); 
+            }
         });
 
+        // Focus editor when clicking blank space
         document.querySelector('.workspace-pane').addEventListener('click', (e) => {
-            if(e.target === liveEditor && currentModeIndex === 0) liveEditor.focus();
+            if(e.target === liveEditor && currentModeIndex === 0) {
+                liveEditor.focus();
+            }
         });
 
         // =========================================================================
-        // 🚀 BOOTSTRAPPER 
+        // 🚀 BOOTSTRAPPER (Initialization & Migration)
         // =========================================================================
 
         async function initApp() {
             try {
-                db = new PGlite('idb://brutal-notes-db', { extensions: { vector } });
+                db = new PGlite('idb://brutal-notes-db', {
+                    extensions: { vector }
+                });
 
                 await db.exec(`
                     CREATE EXTENSION IF NOT EXISTS vector;
@@ -614,16 +563,14 @@ Rules: Respond concisely, output in markdown format, and follow your directive s
                         }
                     } else {
                         const todayKey = getTodayKey();
-                        notes[todayKey] = `Welcome to your brutalist notebook.\n\nWe are AI ready.\n\n### AI Quick Start\n1. Click the date at the top and select **AI Models**.\n2. Click a model to download it to your browser.\n3. Create a tag like #me and write your profile inside it.\n4. Create a tag like #rewrite and write instructions inside it (e.g. "Rewrite this to be professional").\n5. Go to your daily note, type a sentence, end it with your tag and hit the slash \`/\` key (e.g., \`This is my sentence #rewrite/\`)`;
+                        notes[todayKey] = `Welcome to your brutalist notebook.\n\nWe have successfully initialized the **PGLite** vector database and restored tag aggregation!\n\n### Quick Start\n- Type \`#\` followed by a word to create a tag (e.g., #todo.groceries).\n- Type \`-\` and press space for a bulleted list.\n- Click on a tag link to view all blocks that mention it across your notebook.`;
                         await saveNoteToDB(todayKey, notes[todayKey]);
-                        notes['tag-me'] = "I am a user testing a local AI model in my browser.";
-                        await saveNoteToDB('tag-me', notes['tag-me']);
-                        notes['tag-rewrite'] = "Rewrite the provided context to be highly professional and concise.";
-                        await saveNoteToDB('tag-rewrite', notes['tag-rewrite']);
                     }
                 } else {
                     const allNotes = await db.query(`SELECT id, content FROM notes;`);
-                    allNotes.rows.forEach(row => { notes[row.id] = row.content; });
+                    allNotes.rows.forEach(row => {
+                        notes[row.id] = row.content;
+                    });
                 }
 
                 liveEditor.setAttribute('contenteditable', 'true');
@@ -633,7 +580,11 @@ Rules: Respond concisely, output in markdown format, and follow your directive s
             } catch (error) {
                 console.error("Database initialization failed:", error);
                 dateTitle.innerText = "DB Error";
-                liveEditor.innerHTML = `<h2 style="color: #cc0000;">Database Initialization Failed</h2><div class="error-log">${error.message}\n\n${error.stack}</div>`;
+                liveEditor.innerHTML = `
+                    <h2 style="color: #cc0000;">Database Initialization Failed</h2>
+                    <p style="font-weight: bold;">If you are seeing this on GitHub Pages, we need to know the exact error to fix the import.</p>
+                    <div class="error-log">${error.message}\n\n${error.stack}</div>
+                `;
             }
         }
 
