@@ -376,12 +376,35 @@
         /* Ghost Autocomplete Text Styling */
         .ghost-text {
             color: var(--muted-text);
-            /* pointer-events: none; REMOVED so it can be tapped on mobile */
             user-select: none;
             opacity: 0.6;
             cursor: pointer;
-            /* Added a dashed border to make it look tappable */
             border-bottom: 1px dashed var(--muted-text);
+        }
+
+        /* Sliders for AI Control */
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: var(--text-color);
+            cursor: pointer;
+            margin-top: -8px; 
+        }
+
+        input[type="range"]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: rgba(128, 128, 128, 0.3);
+            border-radius: 2px;
         }
     </style>
 </head>
@@ -412,7 +435,7 @@
         import * as webllm from "https://esm.run/@mlc-ai/web-llm";
 
         // ============================================================================
-        // STATE & VIRTUAL PAGES
+        // STATE & SYSTEM OPTIMIZATIONS
         // ============================================================================
         const modes = ['Live', 'Raw', 'Read'];
         let currentModeIndex = 0;
@@ -421,6 +444,12 @@
         let saveTimeout;
         const VIRTUAL_PAGES = ['index', 'days', 'personas', 'models'];
         let db = null;
+
+        // SYSTEM OPTIMIZATION: Cache validation state.
+        // Prevents endless CPU loops reading and re-reading the database
+        let dataIsDirty = true; 
+        let knownTagsCache = null;
+        let dynamicHashtagCache = {};
 
         // Autocomplete State
         let currentGhostSuggestion = null;
@@ -434,7 +463,6 @@
             currentGhostSuggestion = null;
         }
 
-        // Extracted auto-complete acceptance logic so it can be called by Tab AND Tap
         function acceptGhostSuggestion() {
             if (!currentGhostSuggestion) return;
             const suggestion = currentGhostSuggestion;
@@ -448,7 +476,7 @@
                     const textBefore = node.textContent.substring(0, offset);
                     const match = textBefore.match(/(?:^|\s)(#[a-zA-Z0-9_.]+)$/);
                     
-                    removeGhost(); // Removes the span safely
+                    removeGhost();
                     
                     if (match) {
                         const partial = match[1];
@@ -459,11 +487,10 @@
                         sel.addRange(range);
                         
                         const baseTag = suggestion.substring(1).split('.')[0].toLowerCase();
-                        // Inject HTML link and a non-breaking space so user can keep typing
                         document.execCommand('insertHTML', false, `<a href="#tag-${baseTag}">${suggestion}</a>&nbsp;`);
                         
                         clearTimeout(saveTimeout);
-                        saveTimeout = setTimeout(flushLiveSave, 50);
+                        saveTimeout = setTimeout(flushLiveSave, 1500); // 1.5s Optimized save trigger
                     }
                 } else {
                     removeGhost();
@@ -473,9 +500,12 @@
             }
         }
 
-        // ML Engine State
+        // ML Engine State & User Settings
         let aiEngine = null;
         let aiState = 'off'; // off, loading, ready
+
+        let aiMaxContext = parseInt(localStorage.getItem('aiMaxContext')) || 1024;
+        let aiMaxTokens = parseInt(localStorage.getItem('aiMaxTokens')) || 256;
 
         const AI_MODELS = [
             { id: "Qwen2.5-0.5B-Instruct-q4f16_1-MLC", name: "Qwen2.5 (0.5B)", size: "~350MB", desc: "Super tiny, fast loading. Excellent reasoning for its micro size." },
@@ -509,7 +539,12 @@
 
         const todayStr = getLocalYYYYMMDD(new Date());
 
+        // CPU OPTIMIZATION 1: Tag Cache
         function getAllKnownTags() {
+            if (!dataIsDirty && knownTagsCache !== null) {
+                return knownTagsCache; // Return cached list instantly instead of running loop
+            }
+
             let tagSet = new Set();
             for (let k in notes) {
                 if (VIRTUAL_PAGES.includes(k)) continue;
@@ -520,7 +555,8 @@
                     matches.forEach(m => tagSet.add(m.trim()));
                 }
             }
-            return Array.from(tagSet).sort();
+            knownTagsCache = Array.from(tagSet).sort();
+            return knownTagsCache;
         }
 
         // ============================================================================
@@ -562,7 +598,6 @@
         const turndownService = new TurndownService({ headingStyle: 'atx', bulletListMarker: '-', codeBlockStyle: 'fenced' });
         turndownService.addRule('hashtag', { filter: (n) => n.nodeName === 'A' && n.getAttribute('href')?.startsWith('#tag-'), replacement: (c) => c });
         
-        // Ensure ghost autocomplete spans are strictly ignored on save
         turndownService.addRule('ghostText', {
             filter: function (node, options) {
                 return node.nodeName === 'SPAN' && node.classList.contains('ghost-text');
@@ -574,12 +609,17 @@
 
         function parseMD(text) {
             return DOMPurify.sanitize(marked.parse(text), {
-                ADD_TAGS: ['table', 'th', 'tr', 'td', 'thead', 'tbody', 'input'],
-                ADD_ATTR: ['type', 'checked', 'disabled']
+                ADD_TAGS: ['table', 'th', 'tr', 'td', 'thead', 'tbody', 'input', 'label', 'span'],
+                ADD_ATTR: ['type', 'checked', 'disabled', 'id', 'min', 'max', 'step', 'value', 'style']
             });
         }
 
+        // CPU OPTIMIZATION 2: Regex Aggregation Cache
         function getDynamicHashtagContent(baseTagName) {
+            if (!dataIsDirty && dynamicHashtagCache[baseTagName]) {
+                return dynamicHashtagCache[baseTagName]; // Skip full database scan if nothing changed
+            }
+
             let groups = { _base: [] };
             const dayKeys = Object.keys(notes).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort().reverse();
 
@@ -622,6 +662,8 @@
             });
 
             if (!hasMentions) tagMarkdown += "## AGGREGATED MENTIONS\n*No mentions found yet.*";
+            
+            dynamicHashtagCache[baseTagName] = tagMarkdown;
             return tagMarkdown;
         }
 
@@ -642,11 +684,20 @@
         async function flushLiveSave() {
             if (modes[currentModeIndex] !== 'Live' || VIRTUAL_PAGES.includes(currentKey)) return;
             const keyToSave = currentKey;
+            
+            // This line is highly expensive on the CPU for large notes
             let markdown = turndownService.turndown(liveEditor.innerHTML).replace(/\u00A0/g, ' ');
             if (!markdown.trim() || markdown === '\\') markdown = '';
+            
             if (notes[keyToSave] === markdown) return; // no-op if unchanged
+            
             statusEl.textContent = 'db.saving';
             notes[keyToSave] = markdown;
+
+            // MARK DATA AS DIRTY SO CACHES WILL REBUILD NEXT TIME
+            dataIsDirty = true; 
+            dynamicHashtagCache = {}; 
+
             await saveNoteToDB(keyToSave, markdown);
             statusEl.textContent = 'db.saved';
             resetStatus();
@@ -688,8 +739,10 @@
         function loadDays() {
             flushLiveSave();
             currentKey = 'days';
-            const links = Object.keys(notes).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort().reverse().map(k => `- [${formatDateDisplay(k)}](#${k})`).join('\n');
-            notes['days'] = `*All daily notes.*\n\n${links || '*No notes yet.*'}`;
+            if (dataIsDirty || !notes['days']) {
+                const links = Object.keys(notes).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort().reverse().map(k => `- [${formatDateDisplay(k)}](#${k})`).join('\n');
+                notes['days'] = `*All daily notes.*\n\n${links || '*No notes yet.*'}`;
+            }
             dateTitle.innerText = 'DAYS';
             dateTitle.classList.remove('is-root');
             currentModeIndex = 2;
@@ -699,13 +752,15 @@
         function loadPersonas() {
             flushLiveSave();
             currentKey = 'personas';
-            const tags = new Set();
-            Object.keys(notes).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).forEach(k => {
-                const matches = notes[k].match(/(?:^|\s)#([a-zA-Z0-9_]+)(?:\.[a-zA-Z0-9_]+)?\b/g);
-                if (matches) matches.forEach(m => tags.add(m.trim().substring(1).toLowerCase().split('.')[0]));
-            });
-            const tagLinks = Array.from(tags).sort().map(t => `- [#${t}](#tag-${t})`).join('\n') || "*No personas used yet.*";
-            notes['personas'] = `*All personas used across notes.*\n\n${tagLinks}`;
+            if (dataIsDirty || !notes['personas']) {
+                const tags = new Set();
+                Object.keys(notes).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).forEach(k => {
+                    const matches = notes[k].match(/(?:^|\s)#([a-zA-Z0-9_]+)(?:\.[a-zA-Z0-9_]+)?\b/g);
+                    if (matches) matches.forEach(m => tags.add(m.trim().substring(1).toLowerCase().split('.')[0]));
+                });
+                const tagLinks = Array.from(tags).sort().map(t => `- [#${t}](#tag-${t})`).join('\n') || "*No personas used yet.*";
+                notes['personas'] = `*All personas used across notes.*\n\n${tagLinks}`;
+            }
             dateTitle.innerText = 'PERSONAS';
             dateTitle.classList.remove('is-root');
             currentModeIndex = 2;
@@ -714,17 +769,39 @@
 
         function loadModels() {
             flushLiveSave(); currentKey = 'models';
-            let md = `*Select a local AI model to download and run securely inside your browser.*\n\n*Note: Larger models take longer to download and require more device RAM.*\n\n`;
+            let md = `*Select a local AI model to download and run securely inside your browser.*\n\n`;
 
             AI_MODELS.forEach(m => {
                 const isSelected = m.id === selectedModel ? " **(Active)**" : "";
                 md += `### [${m.name}](#model-${m.id})${isSelected}\n- **Size**: ${m.size}\n- **Info**: ${m.desc}\n\n`;
             });
 
+            md += `\n\n---\n\n## 🛡️ AI Mobile Guardrails\n*Phones aggressively close tabs that use too much memory. Lower these settings if your browser crashes frequently.*\n\n`;
+            md += `<label style="font-weight:600; font-size: 0.9em;">Max Context Window (Memory Limit): <span id="ctx-val">${aiMaxContext}</span></label><br>\n`;
+            md += `<input type="range" id="ai-setting-ctx" min="256" max="4096" step="256" value="${aiMaxContext}" style="margin-bottom: 1.5em;"><br>\n\n`;
+            md += `<label style="font-weight:600; font-size: 0.9em;">Max Output Generation: <span id="out-val">${aiMaxTokens}</span> tokens</label><br>\n`;
+            md += `<input type="range" id="ai-setting-out" min="64" max="1024" step="64" value="${aiMaxTokens}">\n`;
+
             notes['models'] = md;
             dateTitle.innerText = 'MODELS'; dateTitle.classList.remove('is-root');
             currentModeIndex = 2; updateModeUI();
         }
+
+        document.addEventListener('input', (e) => {
+            if (e.target.id === 'ai-setting-ctx') {
+                aiMaxContext = parseInt(e.target.value);
+                localStorage.setItem('aiMaxContext', aiMaxContext);
+                const valDisplay = document.getElementById('ctx-val');
+                if (valDisplay) valDisplay.innerText = aiMaxContext;
+                if (aiState === 'ready') turnOffAI(); 
+            }
+            if (e.target.id === 'ai-setting-out') {
+                aiMaxTokens = parseInt(e.target.value);
+                localStorage.setItem('aiMaxTokens', aiMaxTokens);
+                const valDisplay = document.getElementById('out-val');
+                if (valDisplay) valDisplay.innerText = aiMaxTokens;
+            }
+        });
 
         function loadNote(key) {
             flushLiveSave();
@@ -744,6 +821,11 @@
                 dateTitle.innerText = formatDateDisplay(key);
                 if (currentModeIndex === 2) currentModeIndex = 0;
             }
+            
+            // We successfully navigated. Now that we've used our dirty state to rebuild, reset it.
+            // Note: we do this here so navigation finishes before resetting the flag.
+            dataIsDirty = false;
+            
             updateModeUI();
         }
 
@@ -769,12 +851,17 @@
                 aiEngine.setInitProgressCallback((info) => {
                     updateAIBadge(`loading ${Math.round(info.progress * 100)}%`, 'loading');
                 });
-                await aiEngine.reload(selectedModel);
+                
+                const chatOpts = {
+                    context_window_size: aiMaxContext
+                };
+                await aiEngine.reload(selectedModel, chatOpts);
+                
                 updateAIBadge('ready', 'ready');
             } catch (err) {
                 console.error(err);
                 updateAIBadge('error', 'off');
-                alert("Failed to load AI model. Check console.");
+                alert(`Failed to load AI model. If it crashed, try lowering the Context Window setting in Models.\n\nError: ${err.message}`);
             }
         }
 
@@ -786,16 +873,10 @@
             updateAIBadge('off', 'off');
         }
 
-        // --- Prompt Building Helpers ---
-
-        // Build the system prompt for a persona — just the raw persona note, nothing more.
         function buildPersonaContext(tag) {
             const raw = notes[`tag-${tag}`] || '';
-            // Strip anything after the '---' separator (mention aggregation view)
             return raw.split(/\n---\n/)[0].trim();
         }
-
-        // --- AI Execution ---
 
         async function executePersona(commandText, tagTrigger, placeholderId) {
             const tag = tagTrigger.substring(1).split('.')[0].toLowerCase();
@@ -816,7 +897,12 @@
                     { role: "user", content: commandText }
                 ];
 
-                const chunks = await aiEngine.chat.completions.create({ messages, stream: true });
+                const chunks = await aiEngine.chat.completions.create({ 
+                    messages, 
+                    stream: true,
+                    max_tokens: aiMaxTokens
+                });
+                
                 let fullResponse = "";
                 placeholderNode.outerHTML = `<div id="${placeholderId}-stream"></div>`;
                 const streamNode = document.getElementById(`${placeholderId}-stream`);
@@ -831,7 +917,7 @@
                         lastRender = now;
                     }
                 }
-                if (streamNode) streamNode.innerHTML = parseMD(fullResponse); // final render
+                if (streamNode) streamNode.innerHTML = parseMD(fullResponse); 
 
                 if (streamNode) { streamNode.outerHTML = parseMD(fullResponse); flushLiveSave(); }
                 updateAIBadge('ready', 'ready');
@@ -839,7 +925,7 @@
             } catch (error) {
                 console.error("AI Gen Error:", error);
                 if (placeholderNode) {
-                    placeholderNode.innerHTML = `<span style="color:#cc0000; font-weight:bold;">[AI Request Failed] ${error.message}</span>`;
+                    placeholderNode.innerHTML = `<span style="color:#cc0000; font-weight:bold;">[AI Request Failed] ${error.message}<br><br><small>Tip: Try lowering the Context Window in the models page.</small></span>`;
                 }
                 updateAIBadge('error', 'ready');
             }
@@ -874,11 +960,9 @@
             }
         });
 
-        // TAPPING LOGIC FOR MOBILE:
-        // Intercept touches/clicks on the editor to handle ghost taps gracefully
         function handleEditorTap(e) {
             if (e.target && e.target.classList.contains('ghost-text')) {
-                e.preventDefault(); // Stop cursor from moving elsewhere
+                e.preventDefault(); 
                 e.stopPropagation();
                 acceptGhostSuggestion();
             } else {
@@ -888,22 +972,23 @@
 
         liveEditor.addEventListener('mousedown', handleEditorTap);
         liveEditor.addEventListener('touchstart', handleEditorTap, { passive: false });
-        liveEditor.addEventListener('blur', removeGhost);
+        liveEditor.addEventListener('blur', () => {
+            removeGhost();
+            // CPU OPTIMIZATION: Ensure final save runs when leaving editor
+            flushLiveSave();
+        });
 
         liveEditor.addEventListener('keydown', (e) => {
-            // --- 1. Ghost Tab Completion (Desktop) ---
             if ((e.key === 'Tab' || e.key === 'ArrowRight') && currentGhostSuggestion) {
                 e.preventDefault();
                 acceptGhostSuggestion();
                 return;
             }
 
-            // Clean up ghost on any non-typing keystroke
             if (e.key === 'Escape' || e.key.startsWith('Arrow')) {
                 removeGhost();
             }
 
-            // AI TRIGGER INTERCEPTOR ('/')
             if (e.key === '/') {
                 removeGhost();
                 const sel = window.getSelection();
@@ -955,7 +1040,9 @@
                         range.setEnd(sel.focusNode, sel.focusOffset);
                         sel.removeAllRanges(); sel.addRange(range);
                         document.execCommand('insertHTML', false, `<a href="#tag-${tagMatch[1].substring(1).split('.')[0].toLowerCase()}">${tagMatch[1]}</a>&nbsp;`);
-                        clearTimeout(saveTimeout); saveTimeout = setTimeout(flushLiveSave, 50);
+                        
+                        // Wait slightly longer after a space save to let typing resume smoothly
+                        clearTimeout(saveTimeout); saveTimeout = setTimeout(flushLiveSave, 1500);
                         return;
                     }
 
@@ -972,17 +1059,19 @@
                         else if (text === '-') document.execCommand('insertUnorderedList', false, null);
                         else document.execCommand('insertOrderedList', false, null);
 
-                        clearTimeout(saveTimeout); saveTimeout = setTimeout(flushLiveSave, 50);
+                        clearTimeout(saveTimeout); saveTimeout = setTimeout(flushLiveSave, 1500);
                     }
                 }
             }
         });
 
         liveEditor.addEventListener('input', () => {
-            removeGhost(); // Clear old ghost text
+            removeGhost(); 
 
+            // CPU OPTIMIZATION: Debounce increased from 500ms to 1500ms.
+            // The heavy `turndown()` function will no longer freeze the browser while typing continuously.
             clearTimeout(saveTimeout);
-            saveTimeout = setTimeout(flushLiveSave, 500);
+            saveTimeout = setTimeout(flushLiveSave, 1500);
 
             const sel = window.getSelection();
             if (!sel || sel.rangeCount === 0) return;
@@ -994,8 +1083,6 @@
             
             if (match) {
                 const typingTag = match[1];
-                
-                // Only autocomplete if they've typed '#' + at least one letter
                 if (typingTag.length < 2) return;
 
                 const allTags = getAllKnownTags();
@@ -1005,7 +1092,6 @@
                     const remainder = suggestion.substring(typingTag.length);
                     currentGhostSuggestion = typingTag + remainder; 
                     
-                    // Inject invisible span
                     ghostNode = document.createElement('span');
                     ghostNode.className = 'ghost-text';
                     ghostNode.textContent = remainder;
@@ -1028,10 +1114,12 @@
             clearTimeout(saveTimeout);
             saveTimeout = setTimeout(async () => {
                 statusEl.textContent = 'db.saving';
+                dataIsDirty = true;
+                dynamicHashtagCache = {};
                 await saveNoteToDB(currentKey, notes[currentKey]);
                 statusEl.textContent = 'db.saved';
                 resetStatus();
-            }, 500);
+            }, 1500);
         });
 
         function handleLinkClick(e) {
@@ -1045,9 +1133,9 @@
                         selectedModel = href.substring(7);
                         localStorage.setItem('selectedModel', selectedModel);
                         if (aiState !== 'off') {
-                            turnOnAI(); // reload with new model
+                            turnOnAI(); 
                         }
-                        loadModels(); // refresh UI
+                        loadModels(); 
                     }
                     else if (href === '#models') loadModels();
                     else if (href === '#days') loadDays();
@@ -1091,8 +1179,6 @@
                 allNotes.rows.forEach(row => {
                     notes[row.id] = row.content;
                 });
-
-                // No default personas seeded — each persona is defined by the user in its tag note.
 
                 liveEditor.setAttribute('contenteditable', 'true');
                 loadNote(todayStr);
