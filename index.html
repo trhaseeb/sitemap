@@ -376,9 +376,12 @@
         /* Ghost Autocomplete Text Styling */
         .ghost-text {
             color: var(--muted-text);
-            pointer-events: none;
+            /* pointer-events: none; REMOVED so it can be tapped on mobile */
             user-select: none;
             opacity: 0.6;
+            cursor: pointer;
+            /* Added a dashed border to make it look tappable */
+            border-bottom: 1px dashed var(--muted-text);
         }
     </style>
 </head>
@@ -429,6 +432,45 @@
             }
             ghostNode = null;
             currentGhostSuggestion = null;
+        }
+
+        // Extracted auto-complete acceptance logic so it can be called by Tab AND Tap
+        function acceptGhostSuggestion() {
+            if (!currentGhostSuggestion) return;
+            const suggestion = currentGhostSuggestion;
+            
+            const sel = window.getSelection();
+            if (sel.rangeCount > 0) {
+                const node = sel.focusNode;
+                const offset = sel.focusOffset;
+                
+                if (node && node.nodeType === Node.TEXT_NODE) {
+                    const textBefore = node.textContent.substring(0, offset);
+                    const match = textBefore.match(/(?:^|\s)(#[a-zA-Z0-9_.]+)$/);
+                    
+                    removeGhost(); // Removes the span safely
+                    
+                    if (match) {
+                        const partial = match[1];
+                        const range = document.createRange();
+                        range.setStart(node, offset - partial.length);
+                        range.setEnd(node, offset);
+                        sel.removeAllRanges();
+                        sel.addRange(range);
+                        
+                        const baseTag = suggestion.substring(1).split('.')[0].toLowerCase();
+                        // Inject HTML link and a non-breaking space so user can keep typing
+                        document.execCommand('insertHTML', false, `<a href="#tag-${baseTag}">${suggestion}</a>&nbsp;`);
+                        
+                        clearTimeout(saveTimeout);
+                        saveTimeout = setTimeout(flushLiveSave, 50);
+                    }
+                } else {
+                    removeGhost();
+                }
+            } else {
+                removeGhost();
+            }
         }
 
         // ML Engine State
@@ -832,48 +874,27 @@
             }
         });
 
-        // Clear ghosts on focus loss
-        liveEditor.addEventListener('mousedown', removeGhost);
+        // TAPPING LOGIC FOR MOBILE:
+        // Intercept touches/clicks on the editor to handle ghost taps gracefully
+        function handleEditorTap(e) {
+            if (e.target && e.target.classList.contains('ghost-text')) {
+                e.preventDefault(); // Stop cursor from moving elsewhere
+                e.stopPropagation();
+                acceptGhostSuggestion();
+            } else {
+                removeGhost();
+            }
+        }
+
+        liveEditor.addEventListener('mousedown', handleEditorTap);
+        liveEditor.addEventListener('touchstart', handleEditorTap, { passive: false });
         liveEditor.addEventListener('blur', removeGhost);
 
         liveEditor.addEventListener('keydown', (e) => {
-            // --- 1. Ghost Tab Completion ---
+            // --- 1. Ghost Tab Completion (Desktop) ---
             if ((e.key === 'Tab' || e.key === 'ArrowRight') && currentGhostSuggestion) {
                 e.preventDefault();
-                const suggestion = currentGhostSuggestion;
-                
-                const sel = window.getSelection();
-                if (sel.rangeCount > 0) {
-                    const node = sel.focusNode;
-                    const offset = sel.focusOffset;
-                    
-                    if (node && node.nodeType === Node.TEXT_NODE) {
-                        const textBefore = node.textContent.substring(0, offset);
-                        const match = textBefore.match(/(?:^|\s)(#[a-zA-Z0-9_.]+)$/);
-                        
-                        removeGhost(); // Strip out the ghost span safely
-                        
-                        if (match) {
-                            const partial = match[1];
-                            const range = document.createRange();
-                            range.setStart(node, offset - partial.length);
-                            range.setEnd(node, offset);
-                            sel.removeAllRanges();
-                            sel.addRange(range);
-                            
-                            const baseTag = suggestion.substring(1).split('.')[0].toLowerCase();
-                            // Inject HTML link and a non-breaking space so user can keep typing
-                            document.execCommand('insertHTML', false, `<a href="#tag-${baseTag}">${suggestion}</a>&nbsp;`);
-                            
-                            clearTimeout(saveTimeout);
-                            saveTimeout = setTimeout(flushLiveSave, 50);
-                        }
-                    } else {
-                        removeGhost();
-                    }
-                } else {
-                    removeGhost();
-                }
+                acceptGhostSuggestion();
                 return;
             }
 
