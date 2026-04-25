@@ -1440,6 +1440,56 @@
         };
 
         // ============================================================================
+        // PERSONAS DIRECTORY INDEX PAGE
+        // ============================================================================
+        function renderPersonasIndex() {
+            const container = document.getElementById('editor-container');
+            container.innerHTML = '';
+            
+            const searchWrapper = createEl('div', '', { style: 'margin-bottom: 24px;' });
+            const searchBox = createEl('input', 'flat-input', { 
+                type: 'text', 
+                placeholder: 'SEARCH PERSONAS...',
+                style: 'font-size: 2em; font-weight: 900; border-bottom: 4px solid var(--text-color); padding-bottom: 8px; text-transform: uppercase; border-radius: 0;'
+            });
+            searchWrapper.appendChild(searchBox);
+            
+            const grid = createEl('div', '', { style: 'display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px;' });
+            
+            // Extract root tags only
+            const rawTags = getAllTags().filter(t => t.toLowerCase() !== '#personas'); 
+            const rootTagsSet = new Set();
+            rawTags.forEach(t => rootTagsSet.add(t.split('.')[0]));
+            const tags = Array.from(rootTagsSet).sort();
+            
+            const renderGrid = (query) => {
+                grid.innerHTML = '';
+                const q = query.toLowerCase();
+                const filtered = tags.filter(t => t.toLowerCase().includes(q));
+                
+                if (filtered.length === 0) {
+                    grid.appendChild(createEl('div', '', { textContent: 'NO PERSONAS FOUND.', style: 'color: var(--muted-text); font-weight: bold;' }));
+                    return;
+                }
+
+                filtered.forEach(t => {
+                    const tagBtn = createEl('button', 'flat-btn', { 
+                        textContent: t,
+                        style: 'justify-content: flex-start; text-transform: uppercase; font-family: monospace; font-size: 16px; padding: 16px;'
+                    });
+                    tagBtn.onclick = () => window.loadVirtualPage('tag-' + t.replace('#', '').toLowerCase());
+                    grid.appendChild(tagBtn);
+                });
+            };
+            
+            searchBox.addEventListener('input', (e) => renderGrid(e.target.value));
+            
+            container.append(searchWrapper, grid);
+            renderGrid('');
+            setTimeout(() => searchBox.focus(), 50);
+        }
+
+        // ============================================================================
         // CORE BLOCK MANAGER & MENUS (Slash + Tags)
         // ============================================================================
         class BlockManager {
@@ -1694,6 +1744,18 @@
         
         document.getElementById('date-header').onclick = () => {
             scheduleSave(true); 
+            
+            // Navigate to Personas Directory from Tag page, or Home from Directory
+            if (window.currentDateStr === 'tag-personas') {
+                window.loadVirtualPage(getLocalYYYYMMDD(new Date()));
+                return;
+            }
+            if (window.currentDateStr.startsWith('tag-')) {
+                window.loadVirtualPage('tag-personas');
+                return;
+            }
+            
+            // Open Datepicker for date notes
             let dateToOpen = new Date();
             if (/^\d{4}-\d{2}-\d{2}$/.test(window.currentDateStr)) { const [y, m, d] = window.currentDateStr.split('-').map(Number); dateToOpen = new Date(y, m - 1, d); }
             DatePicker.open(dateToOpen, (selectedDate) => {
@@ -1718,18 +1780,26 @@
             const dateHeader = document.getElementById('date-header');
             
             if (/^\d{4}-\d{2}-\d{2}$/.test(storageKey)) dateHeader.innerHTML = getDisplayDate(storageKey);
+            else if (storageKey === 'tag-personas') dateHeader.innerHTML = '#PERSONAS';
             else if (storageKey.startsWith('tag-')) dateHeader.innerHTML = '#' + tagParts[0].toUpperCase();
             else dateHeader.innerHTML = storageKey.toUpperCase();
 
-            await initEditor(storageKey, oldStorageKey, tagParts);
-            
-            if (tagParts.length > 1) {
-                setTimeout(() => {
-                    const targetName = tagParts[tagParts.length - 1].toUpperCase();
-                    const headers = Array.from(document.querySelectorAll('.native-header-' + tagParts.length));
-                    const targetEl = headers.find(h => h.textContent.trim().toUpperCase().startsWith(targetName));
-                    if (targetEl) targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }, 150);
+            // Render custom directory if we hit the 'personas' tag page
+            if (storageKey === 'tag-personas') {
+                if (window.editor) { await executeSave(oldStorageKey); window.editor.destroy(); window.editor = null; }
+                renderPersonasIndex();
+            } else {
+                await initEditor(storageKey, oldStorageKey, tagParts);
+                
+                // Deep scroll into specific sub-persona heading (e.g. #project.todo)
+                if (tagParts.length > 1) {
+                    setTimeout(() => {
+                        const targetName = tagParts[tagParts.length - 1].toUpperCase();
+                        const headers = Array.from(document.querySelectorAll('.native-header-' + tagParts.length));
+                        const targetEl = headers.find(h => h.textContent.trim().toUpperCase().startsWith(targetName));
+                        if (targetEl) targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 150);
+                }
             }
         };
 
