@@ -53,8 +53,7 @@
         .header-status-row { display: flex; align-items: center; margin: 0 0 30px 0; user-select: none; font-size: 12px; font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase; flex-wrap: wrap; gap: 12px; cursor: default; }
         .save-indicator { color: var(--muted-text); opacity: 0; transition: opacity 0.3s; }
         .save-indicator.visible { opacity: 1; }
-        .storage-warning { color: #ef4444; display: none; border: 1px solid #ef4444; padding: 2px 6px; }
-        .ai-indicator { color: var(--text-color); display: none; border: 1px solid var(--text-color); padding: 2px 6px; background: var(--bg-color); }
+        .storage-warning { color: #ef4444; display: none; }
 
         /* --- NAVIGATION ACTIONS --- */
         .v-link { cursor: pointer; transition: all 0.1s; }
@@ -90,8 +89,8 @@
         .native-text-block { outline: none; line-height: 1.6; font-size: 16px; min-height: 24px; word-break: break-word; }
         .native-text-block[data-placeholder]:empty::before { content: attr(data-placeholder); color: var(--muted-text); pointer-events: none; }
         .native-header-1 { font-size: 2.2em; font-weight: 900; margin-top: 0.8em; text-transform: uppercase; letter-spacing: -1px; line-height: 1.1; }
-        .native-header-2 { font-size: 1.5em; font-weight: bold; margin-top: 0.8em; border-bottom: 2px solid var(--text-color); padding-bottom: 4px; display: inline-block; line-height: 1.2; }
-        .native-header-3 { font-size: 1.2em; font-weight: bold; margin-top: 0.8em; text-decoration: underline; line-height: 1.3; }
+        .native-header-2 { font-size: 1.6em; font-weight: 900; margin-top: 0.8em; text-transform: uppercase; letter-spacing: -0.5px; line-height: 1.2; }
+        .native-header-3 { font-size: 1.3em; font-weight: 900; margin-top: 0.8em; text-transform: uppercase; line-height: 1.3; }
         .native-quote { border-left: 4px solid var(--text-color); padding-left: 14px; margin: 8px 0; font-style: italic; color: var(--muted-text); background: var(--muted-bg); padding-top: 8px; padding-bottom: 8px; }
         .native-table-wrapper { overflow-x: auto; margin: 8px 0; border: 1px solid var(--border-color); cursor: default; }
         .native-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
@@ -123,12 +122,10 @@
         /* --- SPECIFIC TOOL OVERRIDES --- */
         .compute-code { font-family: monospace; font-weight: bold; border: none; }
         .compute-output { font-family: monospace; padding: 12px; background: var(--muted-bg); min-height: 30px; border-top: 1px dashed var(--border-color); }
-        .recall-dropdown { display: none; border-top: 1px solid var(--text-color); max-height: 300px; overflow-y: auto; }
+        .recall-dropdown { display: none; border-top: 1px solid var(--text-color); max-height: 200px; overflow-y: auto; }
         .recall-dropdown.active { display: block; }
-        .recall-item { padding: 12px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; flex-direction: column; gap: 4px;}
+        .recall-item { padding: 12px; border-bottom: 1px solid var(--border-color); cursor: pointer; }
         .recall-item:hover { background: var(--text-color); color: var(--bg-color); }
-        .sim-score { font-size: 9px; font-family: monospace; color: var(--muted-text); align-self: flex-end; }
-        .recall-item:hover .sim-score { color: var(--bg-color); opacity: 0.8; }
 
         .leaflet-container { z-index: 1 !important; width: 100%; height: 400px; background: var(--bg-color) !important; touch-action: auto; cursor: crosshair; }
 
@@ -147,8 +144,7 @@
     <div class="app-container" id="app-wrapper">
         <div id="date-header"></div>
         <div class="header-status-row">
-            <span id="storage-warning" class="storage-warning"></span>
-            <span id="ai-status" class="ai-indicator">INIT MODEL...</span>
+            <span id="storage-warning" class="storage-warning">LOCAL ONLY</span>
             <span id="save-indicator" class="save-indicator">SYNCED</span>
         </div>
         
@@ -179,53 +175,7 @@
         </div>
     </div>
 
-    <!-- Application Logic -->
     <script type="module">
-        import { PGlite } from "https://cdn.jsdelivr.net/npm/@electric-sql/pglite@0.2.0/dist/index.js";
-        import { vector } from "https://cdn.jsdelivr.net/npm/@electric-sql/pglite@0.2.0/dist/vector/index.js";
-        import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js";
-
-        // Prevent transformers from trying to load local path files
-        env.allowLocalModels = false;
-        
-        // ============================================================================
-        // 🧠 LOCAL AI EMBEDDING ENGINE
-        // ============================================================================
-        let extractorPipeline = null;
-        const aiIndicator = document.getElementById('ai-status');
-
-        async function getExtractor() {
-            if (!extractorPipeline) {
-                aiIndicator.style.display = 'inline-block';
-                aiIndicator.textContent = 'LOADING AI MODEL...';
-                try {
-                    extractorPipeline = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
-                    aiIndicator.style.display = 'none';
-                } catch (e) {
-                    console.error("AI Model failed to load:", e);
-                    aiIndicator.textContent = 'AI OFFLINE';
-                    setTimeout(() => aiIndicator.style.display = 'none', 3000);
-                    return null;
-                }
-            }
-            return extractorPipeline;
-        }
-
-        async function generateEmbedding(text) {
-            if (!text || text.trim() === '') return null;
-            const fn = await getExtractor();
-            if (!fn) return null;
-            try {
-                // Generate embeddings and mean pool them
-                const output = await fn(text, { pooling: 'mean', normalize: true });
-                return Array.from(output.data);
-            } catch (e) {
-                console.error("Embedding generation failed:", e);
-                return null;
-            }
-        }
-
-
         // ============================================================================
         // ⚙️ APP CONFIGURATION & SVG ICONS
         // ============================================================================
@@ -249,13 +199,14 @@
             compute: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 10 14 13 8 18 8"></polyline><circle cx="20" cy="8" r="2"></circle><circle cx="2" cy="14" r="2"></circle></svg>'
         };
 
+        // FIX: Ensure event handlers (starting with 'on') are assigned as object properties, not string attributes.
         function createEl(tag, classNames = '', attributes = {}, children = []) {
             const el = document.createElement(tag); if (classNames) el.className = classNames;
             for (const [k, v] of Object.entries(attributes)) { 
                 if (k === 'innerHTML') el.innerHTML = v; 
                 else if (k === 'textContent') el.textContent = v; 
                 else if (k === 'style') el.style.cssText = v; 
-                else if (k.startsWith('on') && typeof v === 'function') el[k] = v; 
+                else if (k.startsWith('on') && typeof v === 'function') el[k] = v; // Properly binds onclick events!
                 else el.setAttribute(k, v); 
             }
             children.forEach(c => c && el.append(c)); return el;
@@ -273,153 +224,50 @@
 
         function getLocalYYYYMMDD(date) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; }
 
-        function extractBlockText(block) {
-            let text = block.type + " ";
-            if (block.data.text) text += block.data.text + " ";
-            if (block.data.title) text += block.data.title + " ";
-            if (block.data.items) text += block.data.items.map(i => i.content || i.text || '').join(' ') + " ";
-            return text.replace(/<[^>]*>?/gm, ' ').trim();
-        }
-
         // ============================================================================
-        // 💾 PGLITE DATABASE ADAPTER (Relational Storage with pgvector)
+        // 💾 ROBUST, ASYNCHRONOUS STORAGE ADAPTER
         // ============================================================================
-        class PGliteAdapter {
-            constructor() { 
-                this.db = null; 
-                this.isMemoryOnly = false; 
-                this.saveQueue = Promise.resolve(); 
-            }
-            
-            async init() {
-                try {
-                    this.db = await PGlite.create({
-                        dataDir: 'idb://infinite-notes-pglite',
-                        extensions: { vector }
-                    });
-                    await this.setupSchema();
-                } catch(e) { 
-                    console.warn("PGlite IndexedDB persistence failed, falling back to Memory-only DB.", e);
-                    await this.enableFallback(); 
-                }
-            }
-
-            async enableFallback() {
-                this.isMemoryOnly = true; 
-                const warningEl = document.getElementById('storage-warning');
-                warningEl.style.display = 'inline-block'; 
-                warningEl.textContent = 'MEMORY DB ONLY (NO PERSISTENCE)';
-                this.db = await PGlite.create({ extensions: { vector } }); 
-                await this.setupSchema();
-            }
-
-            async setupSchema() {
-                await this.db.exec(`
-                    CREATE EXTENSION IF NOT EXISTS vector;
-                    
-                    CREATE TABLE IF NOT EXISTS pages (
-                        id TEXT PRIMARY KEY,
-                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    );
-                    
-                    CREATE TABLE IF NOT EXISTS blocks (
-                        id TEXT PRIMARY KEY,
-                        page_id TEXT REFERENCES pages(id) ON DELETE CASCADE,
-                        type TEXT NOT NULL,
-                        content TEXT,
-                        data JSONB,
-                        position INTEGER,
-                        created_at BIGINT,
-                        embedding vector(384)
-                    );
-                    
-                    CREATE INDEX IF NOT EXISTS idx_blocks_page_id ON blocks(page_id);
-                `);
-            }
-
-            async savePage(pageId, blocks, timestamps) {
-                if (!this.db) return;
-                
-                const existingData = await this.loadPage(pageId);
-                const existingMap = new Map(existingData.blocks.map(b => [b.id, b]));
-
-                // Prepare blocks and generate embeddings ONLY for modified content
-                const blocksToSave = await Promise.all(blocks.map(async b => {
-                    const contentText = extractBlockText(b);
-                    const existing = existingMap.get(b.id);
-                    
-                    let emb = null;
-                    if (existing && existing.content === contentText && existing.embedding) {
-                        emb = existing.embedding; // Reuse
-                    } else if (contentText.trim().length > 2) {
-                        // Background generation
-                        emb = await generateEmbedding(contentText);
-                    }
-                    return { ...b, content: contentText, embedding: emb };
-                }));
-
-                this.saveQueue = this.saveQueue.then(async () => {
+        class IndexedDBAdapter {
+            constructor() { this.dbName = 'InfiniteNotesDB'; this.storeName = 'daily_notes'; this.cache = {}; this.isMemoryOnly = false; this.saveQueue = Promise.resolve(); }
+            init() {
+                return new Promise((resolve) => {
                     try {
-                        await this.db.query("BEGIN;");
-                        await this.db.query(
-                            "INSERT INTO pages (id, updated_at) VALUES ($1, CURRENT_TIMESTAMP) ON CONFLICT (id) DO UPDATE SET updated_at = CURRENT_TIMESTAMP;", 
-                            [pageId]
-                        );
-                        await this.db.query("DELETE FROM blocks WHERE page_id = $1;", [pageId]);
-                        
-                        for (let i = 0; i < blocksToSave.length; i++) {
-                            const b = blocksToSave[i];
-                            const ts = timestamps[b.id] || Date.now();
-                            const embStr = b.embedding ? JSON.stringify(b.embedding) : null;
-                            
-                            await this.db.query(
-                                "INSERT INTO blocks (id, page_id, type, content, data, position, created_at, embedding) VALUES ($1, $2, $3, $4, $5, $6, $7, $8);",
-                                [b.id, pageId, b.type, b.content, JSON.stringify(b.data), i, ts, embStr]
-                            );
-                        }
-                        await this.db.query("COMMIT;");
-                    } catch (e) {
-                        await this.db.query("ROLLBACK;");
-                        console.error("PGlite Save Error:", e);
-                    }
+                        const req = indexedDB.open(this.dbName, 1);
+                        req.onupgradeneeded = (e) => { if (!e.target.result.objectStoreNames.contains(this.storeName)) e.target.result.createObjectStore(this.storeName); };
+                        req.onsuccess = (e) => { this.db = e.target.result; this.loadAll().then(data => { this.cache = data; resolve(); }); };
+                        req.onerror = () => { this.enableFallback(resolve); };
+                    } catch(e) { this.enableFallback(resolve); }
                 });
+            }
+            enableFallback(resolve) { this.isMemoryOnly = true; document.getElementById('storage-warning').style.display = 'inline-block'; resolve(); }
+            save(keyStr, data) {
+                this.cache[keyStr] = data;
+                if (this.isMemoryOnly || !this.db) return Promise.resolve();
+                this.saveQueue = this.saveQueue.then(() => new Promise((res, rej) => {
+                    const req = this.db.transaction(this.storeName, 'readwrite').objectStore(this.storeName).put(data, keyStr);
+                    req.onsuccess = res; req.onerror = () => rej(req.error);
+                })).catch(err => console.error("IDB Save Error:", err));
                 return this.saveQueue;
             }
-
-            async loadPage(pageId) {
-                if (!this.db) return { blocks: [], timestamps: {} };
-                try {
-                    const res = await this.db.query("SELECT * FROM blocks WHERE page_id = $1 ORDER BY position ASC;", [pageId]);
-                    const blocks = [];
-                    const timestamps = {};
-                    res.rows.forEach(row => {
-                        blocks.push({ id: row.id, type: row.type, data: row.data, content: row.content, embedding: row.embedding });
-                        if (row.created_at) timestamps[row.id] = Number(row.created_at);
-                    });
-                    return { blocks, timestamps };
-                } catch (e) {
-                    console.error("PGlite Load Error:", e);
-                    return { blocks: [], timestamps: {} };
-                }
-            }
-            
-            async getAllPageIds() {
-                if (!this.db) return new Set();
-                try {
-                    const res = await this.db.query("SELECT id FROM pages;");
-                    return new Set(res.rows.map(r => r.id));
-                } catch (e) {
-                    return new Set();
-                }
+            loadAll() {
+                return new Promise(resolve => {
+                    if (this.isMemoryOnly || !this.db) return resolve({});
+                    try {
+                        const tx = this.db.transaction(this.storeName, 'readonly'); const store = tx.objectStore(this.storeName);
+                        const valReq = store.getAll(); const keyReq = store.getAllKeys();
+                        tx.oncomplete = () => { const result = {}; if (keyReq.result && valReq.result) keyReq.result.forEach((k, i) => result[k] = valReq.result[i]); resolve(result); };
+                        tx.onerror = () => resolve({});
+                    } catch(e) { resolve({}); }
+                });
             }
         }
-        let appDB = new PGliteAdapter();
+        let appDB = new IndexedDBAdapter();
 
         // ============================================================================
         // GLOBAL UI: DATE PICKER MODAL
         // ============================================================================
         const DatePicker = (function() {
-            let activeDate, viewDate, onConfirm, config, activePagesSet;
+            let activeDate, viewDate, onConfirm, config;
             const modal = document.getElementById('global-calendar-modal');
             const elements = { grid: document.getElementById('dp-grid'), label: document.getElementById('dp-month-label'), timeSec: document.getElementById('dp-time-section'), timeInput: document.getElementById('dp-time-input') };
 
@@ -441,17 +289,12 @@
                     if (year === activeDate.getFullYear() && month === activeDate.getMonth() && i === activeDate.getDate()) dayEl.classList.add('active');
                     if (cellStr === todayStr) { dayEl.style.borderBottom = "4px solid var(--text-color)"; }
 
-                    let isMuted = (config.disableFuture && cellStr > todayStr) || 
-                                  (config.disablePast && cellStr < todayStr) || 
-                                  (config.onlyNotes && cellStr !== todayStr && !activePagesSet.has(cellStr));
+                    let isMuted = (config.disableFuture && cellStr > todayStr) || (config.disablePast && cellStr < todayStr) || (config.onlyNotes && cellStr !== todayStr && (!appDB.cache[cellStr] || !appDB.cache[cellStr].blocks?.length));
                     
                     if (isMuted) dayEl.classList.add('muted'); 
                     else {
                         dayEl.onclick = () => { activeDate.setFullYear(year, month, i); render(); };
-                        if (!config.showTime && activePagesSet.has(cellStr) && cellStr !== todayStr) { 
-                            dayEl.style.textDecoration = "underline"; 
-                            dayEl.style.fontWeight = "bold"; 
-                        }
+                        if (!config.showTime && appDB.cache[cellStr]?.blocks?.length > 0 && cellStr !== todayStr) { dayEl.style.textDecoration = "underline"; dayEl.style.fontWeight = "bold"; }
                     }
                     elements.grid.appendChild(dayEl);
                 }
@@ -468,16 +311,21 @@
             };
             modal.addEventListener('click', (e) => { if (e.target.id === 'global-calendar-modal') { modal.classList.remove('show'); setTimeout(() => modal.style.display = 'none', 200); } });
 
-            return { open: function(initialDateObj, loadedPagesSet, callback, options = {}) { 
-                activeDate = new Date(initialDateObj); viewDate = new Date(activeDate); activePagesSet = loadedPagesSet; onConfirm = callback; config = options; 
-                render(); modal.style.display = 'flex'; void modal.offsetWidth; modal.classList.add('show'); 
-            }};
+            return { open: function(initialDateObj, callback, options = {}) { activeDate = new Date(initialDateObj); viewDate = new Date(activeDate); onConfirm = callback; config = options; render(); modal.style.display = 'flex'; void modal.offsetWidth; modal.classList.add('show'); } };
         })();
 
         // ============================================================================
         // TEXT PARSERS, TAGS (PERSONAS) & UTILS
         // ============================================================================
+        function extractBlockText(block) {
+            let text = block.type + " ";
+            if (block.data.text) text += block.data.text + " ";
+            if (block.data.title) text += block.data.title + " ";
+            if (block.data.items) text += block.data.items.map(i => i.content || i.text || '').join(' ') + " ";
+            return text.replace(/<[^>]*>?/gm, ' ').trim();
+        }
 
+        // --- CARET & SELECTION HELPERS FOR SEAMLESS TYPING ---
         function getCaretCoordinates() {
             const sel = window.getSelection();
             if (sel.rangeCount === 0) return null;
@@ -517,24 +365,17 @@
             const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
         }
 
-        async function getAllTags() {
+        // --- TAG EXTRACTION FOR AUTOCOMPLETE ---
+        function getAllTags() {
             const tags = new Set();
             const regex = /(?:^|\s)(#[a-zA-Z0-9_]+(?:\.[a-zA-Z0-9_]+)*)/g;
-            
-            try {
-                const res = await appDB.db.query("SELECT content FROM blocks WHERE content LIKE '%#%';");
-                res.rows.forEach(row => {
-                    let match; regex.lastIndex = 0; 
-                    while ((match = regex.exec(row.content)) !== null) tags.add(match[1]);
-                });
-            } catch (e) { console.error(e); }
-
             const scanText = (text) => { let match; regex.lastIndex = 0; while ((match = regex.exec(text)) !== null) tags.add(match[1]); };
+            Object.values(appDB.cache).forEach(day => { if (!day.blocks) return; day.blocks.forEach(b => scanText(extractBlockText(b))); });
             if (window.editor) { window.editor.blocks.forEach(b => { if (b.instance && b.instance.el) scanText(b.instance.el.textContent || ''); else scanText(extractBlockText({ type: b.type, data: typeof b.instance.save === 'function' ? b.instance.save() : {} })); }); }
-            
             return Array.from(tags).sort();
         }
 
+        // --- LINKIFICATION ENGINE ---
         function linkifyTextNode(el) {
             if (!el) return false;
             const html = el.innerHTML;
@@ -572,7 +413,8 @@
             return changed;
         }
 
-        async function handleTextInteraction(e, el, api, blockInstance) {
+        // --- UNIFIED TEXT INTERACTION HANDLER (Autocomplete & Spacing) ---
+        function handleTextInteraction(e, el, api, blockInstance) {
             if (e.type === 'input') {
                 if (e.data === ' ' || (e.inputType === 'insertText' && e.data === ' ')) {
                     api.hideTagMenu();
@@ -590,7 +432,7 @@
                         if (match) {
                             const query = match[1];
                             const rect = getCaretCoordinates() || el.getBoundingClientRect();
-                            await api.showTagMenu(blockInstance, rect, query, (selectedTag) => {
+                            api.showTagMenu(blockInstance, rect, query, (selectedTag) => {
                                 node.nodeValue = textBeforeCaret.substring(0, textBeforeCaret.length - query.length) + selectedTag + ' ' + node.nodeValue.substring(sel.focusOffset);
                                 const newOffset = textBeforeCaret.length - query.length + selectedTag.length + 1;
                                 const newRange = document.createRange(); newRange.setStart(node, newOffset); newRange.collapse(true);
@@ -615,11 +457,13 @@
             return false;
         }
 
+
         document.addEventListener('click', (e) => {
             const link = e.target.closest('.v-link');
             if (link) { e.preventDefault(); const target = link.getAttribute('data-target'); if (target) window.loadVirtualPage(target); }
         });
 
+        // Click outside blocks to focus/create new block at the end (Universal Escapement Mechanism)
         document.getElementById('app-wrapper').addEventListener('click', (e) => {
             if ((e.target.id === 'app-wrapper' || e.target.id === 'editor-container') && window.editor && !window.editor.readOnly) {
                 const count = window.editor.blocks.length;
@@ -847,8 +691,15 @@
                         td.addEventListener('blur', () => { setTimeout(() => this.api.hideTagMenu(), 150); if(linkifyTextNode(td)) { this.rows[rowIndex][colIndex] = td.innerHTML; this.api.onChange(); } });
                         td.addEventListener('keydown', (e) => {
                             if (handleTagMenuKeydown(e, this.api)) return;
-                            if (e.key === 'ArrowUp' && rowIndex === 0) { e.preventDefault(); this.api.focusPrev(this); }
-                            if (e.key === 'ArrowDown' && rowIndex === this.rows.length - 1) { e.preventDefault(); this.api.focusNext(this); }
+                            
+                            if (e.key === 'ArrowUp' && rowIndex === 0) { 
+                                e.preventDefault(); this.api.focusPrev(this); 
+                            }
+                            if (e.key === 'ArrowDown' && rowIndex === this.rows.length - 1) { 
+                                e.preventDefault(); this.api.focusNext(this); 
+                            }
+                            
+                            // Delete empty 1x1 table completely with backspace
                             if (e.key === 'Backspace' && td.innerText.replace(/[\u200B-\u200D\uFEFF]/g, '').trim() === '' && this.rows.length === 1 && this.rows[0].length === 1) { 
                                 e.preventDefault(); const idx = this.api.getIndex(this); this.api.deleteBlock(idx); if (idx > 0) this.api.focusPrev(this); 
                             }
@@ -858,7 +709,14 @@
                     this.table.appendChild(tr);
                 });
             }
-            focus(atEnd = false) { const cells = this.table.querySelectorAll('td'); if (cells.length) { const cell = atEnd ? cells[cells.length - 1] : cells[0]; cell.focus(); if (atEnd) moveCaretToEnd(cell); } }
+            focus(atEnd = false) { 
+                const cells = this.table.querySelectorAll('td'); 
+                if (cells.length) { 
+                    const cell = atEnd ? cells[cells.length - 1] : cells[0];
+                    cell.focus();
+                    if (atEnd) moveCaretToEnd(cell);
+                } 
+            }
             save() { return { rows: this.rows }; }
         }
 
@@ -1028,7 +886,7 @@
                 const iconContainer = createEl('div', '', { innerHTML: `<div style="padding: 4px; color: var(--muted-text); margin-right: 4px;">${ICONS.compute}</div>` });
                 this.wrapper.appendChild(this.buildHeader([iconContainer]));
                 
-                this.input = createEl('textarea', 'flat-input compute-code', { placeholder: 'Type logic: await sum("groceries") * 0.2', value: this.data.code, style: 'padding: 12px; resize: vertical;' });
+                this.input = createEl('textarea', 'flat-input compute-code', { placeholder: 'Type logic: 10 * 4...', value: this.data.code, style: 'padding: 12px; resize: vertical;' });
                 if (this.readOnly) this.input.readOnly = true;
                 this.output = createEl('div', 'compute-output', { innerHTML: this.data.output });
                 
@@ -1047,35 +905,23 @@
             
             async evaluateLogic() {
                 if (!this.data.code.trim()) { this.output.innerHTML = ''; this.data.output = ''; this.api.onChange(); return; }
-                
-                const find = async (query) => {
-                    if (!appDB.db) return [];
-                    const emb = await generateEmbedding(query);
-                    if(!emb) return [];
-                    
-                    // Semantic search using pgvector cosine distance!
-                    const res = await appDB.db.query(
-                        "SELECT content FROM blocks WHERE type NOT IN ('compute', 'recall') AND embedding IS NOT NULL ORDER BY embedding <=> $1 LIMIT 10;", 
-                        [JSON.stringify(emb)]
-                    );
-                    return res.rows.map(r => r.content);
+                const find = (query) => {
+                    let results = []; const q = query.toLowerCase();
+                    Object.values(appDB.cache).forEach(day => {
+                        if (!day.blocks) return;
+                        day.blocks.forEach(b => {
+                            if (b.type === 'compute' || b.type === 'recall') return; 
+                            const text = extractBlockText(b).toLowerCase();
+                            if (text.includes(q)) results.push(text);
+                        });
+                    }); return results;
                 };
-                const nums = async (query) => { 
-                    let texts = await find(query); 
-                    let numbers = []; 
-                    texts.forEach(t => { 
-                        let matches = t.match(/-?\d+(\.\d+)?/g); 
-                        if (matches) numbers.push(...matches.map(Number)); 
-                    }); 
-                    return numbers; 
-                };
-                const sum = async (query) => { let n = await nums(query); return n.reduce((a,b)=>a+b, 0); };
-                const avg = async (query) => { let n = await nums(query); return n.length ? (n.reduce((a,b)=>a+b, 0))/n.length : 0; };
+                const nums = (query) => { let texts = find(query); let numbers = []; texts.forEach(t => { let matches = t.match(/-?\d+(\.\d+)?/g); if (matches) numbers.push(...matches.map(Number)); }); return numbers; };
+                const sum = (query) => nums(query).reduce((a,b)=>a+b, 0); const avg = (query) => { let n = nums(query); return n.length ? sum(query)/n.length : 0; };
                 const allowed = { Math, Date, Number, String, Array, sum, avg, nums, find };
                 const ctx = new Proxy({}, { has: () => true, get: (target, prop) => { if (prop === Symbol.unscopables) return undefined; if (prop in allowed) return allowed[prop]; if (typeof prop === 'string') return sum(prop.toLowerCase()); return undefined; } });
 
                 try {
-                    // Safe execution of user math script
                     const fn = new (Object.getPrototypeOf(async function(){}).constructor)('ctx', `with (ctx) { return eval(${JSON.stringify(this.data.code)}); }`);
                     const result = await fn(ctx);
                     if (result === undefined || result === null || Number.isNaN(result)) { this.output.innerHTML = ''; this.data.output = ''; } 
@@ -1126,12 +972,7 @@
                 const displayBtn = createEl('button', 'flat-btn', {style: 'width: 100%; justify-content: flex-start; background: var(--muted-bg); border: none;'}, [this.displayTxt]);
                 
                 if (!this.readOnly) {
-                    displayBtn.onclick = async () => { 
-                        const activePagesSet = await appDB.getAllPageIds();
-                        DatePicker.open(new Date(this.data.datetime), activePagesSet, (newDate) => { 
-                            this.data.datetime = newDate.toISOString(); this.data.notified = false; this.render(); NotificationEngine.schedule(this.id, this.data.datetime, this.data.title); this.api.onChange(); 
-                        }, { showTime: true, disablePast: true }); 
-                    };
+                    displayBtn.onclick = () => { DatePicker.open(new Date(this.data.datetime), (newDate) => { this.data.datetime = newDate.toISOString(); this.data.notified = false; this.render(); NotificationEngine.schedule(this.id, this.data.datetime, this.data.title); this.api.onChange(); }, { showTime: true, disablePast: true }); };
                 } else { displayBtn.style.pointerEvents = 'none'; }
                 body.appendChild(displayBtn);
 
@@ -1202,67 +1043,43 @@
                 this.wrapper.appendChild(body);
                 return this.wrapper;
             }
-            
             renderSearchState() {
                 const searchWrapper = createEl('div');
                 const row = createEl('div', 'flat-row', {style: 'padding: 12px; gap: 8px;'});
                 const input = createEl('input', 'flat-input', { type: 'text', placeholder: 'Recall from the past...' });
                 const dropdown = createEl('div', 'recall-dropdown');
 
-                let searchTimeout;
                 input.addEventListener('input', (e) => {
-                    clearTimeout(searchTimeout);
-                    searchTimeout = setTimeout(async () => {
-                        const query = e.target.value.trim(); dropdown.innerHTML = '';
-                        if (!query || !appDB.db) { dropdown.classList.remove('active'); return; }
-                        
-                        dropdown.innerHTML = '<div class="recall-item" style="color: var(--muted-text);">Searching vectors...</div>';
-                        dropdown.classList.add('active');
-
-                        try {
-                            const queryEmbedding = await generateEmbedding(query);
-                            if (!queryEmbedding) { dropdown.innerHTML = '<div class="recall-item">Search failed.</div>'; return; }
+                    const query = e.target.value.toLowerCase().trim(); dropdown.innerHTML = '';
+                    if (!query) { dropdown.classList.remove('active'); return; }
+                    let results = [];
+                    Object.entries(appDB.cache).forEach(([dateStr, dayData]) => {
+                        if (!dayData.blocks) return;
+                        dayData.blocks.forEach(block => {
+                            if (block.type === 'recall') return; 
+                            if (extractBlockText(block).toLowerCase().includes(query)) { 
+                                results.push({ date: dateStr, block: block, timestamp: dayData.timestamps?.[block.id] }); 
+                            }
+                        });
+                    });
+                    results.sort((a, b) => { const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime(); if (dateDiff !== 0) return dateDiff; return (b.timestamp || 0) - (a.timestamp || 0); });
+                    if (results.length > 0) {
+                        results.forEach(res => {
+                            const item = createEl('div', 'recall-item');
+                            const displayDate = new Date(res.date + 'T00:00:00').toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'});
+                            let snippet = extractBlockText(res.block);
+                            if (snippet.length === 0) snippet = "📄 " + res.block.type.toUpperCase();
                             
-                            // Semantic Vector Search using pgvector's cosine distance operator (<=>)
-                            const res = await appDB.db.query(
-                                `SELECT page_id, id, type, data, created_at, content, 
-                                 1 - (embedding <=> $1) AS similarity 
-                                 FROM blocks 
-                                 WHERE type != 'recall' AND embedding IS NOT NULL 
-                                 ORDER BY embedding <=> $1 LIMIT 10;`,
-                                [JSON.stringify(queryEmbedding)]
-                            );
-
-                            dropdown.innerHTML = '';
-                            if (res.rows.length > 0) {
-                                res.rows.forEach(row => {
-                                    // Skip very low relevance returns
-                                    if (row.similarity < 0.15) return; 
-                                    
-                                    const item = createEl('div', 'recall-item');
-                                    let displayDate = row.page_id;
-                                    if (/^\d{4}-\d{2}-\d{2}$/.test(row.page_id)) {
-                                        displayDate = new Date(row.page_id + 'T00:00:00').toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'});
-                                    }
-                                    
-                                    let snippet = row.data.text || row.data.title || "📄 " + row.type.toUpperCase();
-                                    
-                                    item.appendChild(createEl('div', '', {textContent: `${displayDate}`, style: 'font-size: 10px; font-weight: bold;'}));
-                                    item.appendChild(createEl('div', '', {textContent: snippet.substring(0, 80) + '...', style: 'font-size: 14px;'}));
-                                    item.appendChild(createEl('div', 'sim-score', {textContent: `SIMILARITY: ${Math.round(row.similarity * 100)}%`}));
-                                    
-                                    item.onclick = () => { 
-                                        this.data = { recalled: true, sourceDate: row.page_id, sourceTime: Number(row.created_at), sourceBlock: { id: row.id, type: row.type, data: row.data }, title: this.data.title }; 
-                                        this.render(); this.api.onChange(); 
-                                    };
-                                    dropdown.appendChild(item);
-                                });
-                                if(dropdown.innerHTML === '') dropdown.appendChild(createEl('div', 'recall-item', {textContent: 'No highly relevant matches'}));
-                            } else { dropdown.appendChild(createEl('div', 'recall-item', {textContent: 'No matches found'})); }
-                        } catch (err) {
-                            console.error("Recall Error:", err);
-                        }
-                    }, 400); // Debounce
+                            item.appendChild(createEl('div', '', {textContent: `${displayDate}`, style: 'font-size: 10px; font-weight: bold;'}));
+                            item.appendChild(createEl('div', '', {textContent: snippet.substring(0, 50) + '...', style: 'font-size: 14px;'}));
+                            item.onclick = () => { 
+                                this.data = { recalled: true, sourceDate: res.date, sourceTime: res.timestamp, sourceBlock: JSON.parse(JSON.stringify(res.block)), title: this.data.title }; 
+                                this.render(); this.api.onChange(); 
+                            };
+                            dropdown.appendChild(item);
+                        });
+                        dropdown.classList.add('active');
+                    } else { dropdown.appendChild(createEl('div', 'recall-item', {textContent: 'No matches found'})); dropdown.classList.add('active'); }
                 });
                 
                 input.addEventListener('keydown', (e) => {
@@ -1272,13 +1089,9 @@
 
                 row.append(createEl('div', '', {innerHTML: ICONS.search}), input); searchWrapper.append(row, dropdown); setTimeout(() => input.focus(), 50); return searchWrapper;
             }
-            
             renderRecalledState() {
                 const container = createEl('div');
-                let displayDate = this.data.sourceDate;
-                if (/^\d{4}-\d{2}-\d{2}$/.test(this.data.sourceDate)) {
-                    displayDate = new Date(this.data.sourceDate + 'T00:00:00').toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'});
-                }
+                const displayDate = new Date(this.data.sourceDate + 'T00:00:00').toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'});
                 const meta = createEl('div', 'flat-row', {style: 'padding: 8px 12px; background: var(--text-color); color: var(--bg-color); font-size: 10px; font-weight: bold;'});
                 meta.appendChild(createEl('div', '', {innerHTML: ICONS.recall, style: 'color: var(--bg-color);'})); meta.appendChild(createEl('span', '', {textContent: `RECALLED FROM ${displayDate}`})); container.appendChild(meta);
 
@@ -1546,6 +1359,7 @@
                     deleteBlock: (index) => this.deleteBlock(index),
                     focus: (index) => this.focus(index),
 
+                    // Unified Safe Navigation
                     focusNext: (instance) => {
                         const idx = this.createBlockAPI().getIndex(instance);
                         if (idx === this.blocks.length - 1) {
@@ -1563,13 +1377,15 @@
                         }
                     },
                     
+                    // Slash commands
                     showSlashMenu: (block, rect, query) => this.showSlashMenu(block, rect, query),
                     hideSlashMenu: () => this.hideSlashMenu(),
                     isSlashMenuVisible: () => this.slashMenuEl.classList.contains('active'),
                     slashNavigate: (dir) => this.slashNavigate(dir),
                     slashExecute: (block) => this.slashExecute(block),
 
-                    showTagMenu: async (block, rect, query, cb) => await this.showTagMenu(block, rect, query, cb),
+                    // Tag/Persona commands
+                    showTagMenu: (block, rect, query, cb) => this.showTagMenu(block, rect, query, cb),
                     hideTagMenu: () => this.hideTagMenu(),
                     isTagMenuVisible: () => this.tagMenuEl.classList.contains('active'),
                     tagNavigate: (dir) => this.tagNavigate(dir),
@@ -1609,13 +1425,14 @@
                 }
             }
 
-            async showTagMenu(blockInstance, rect, query, cb) {
+            // Tag/Persona Menu Logic
+            showTagMenu(blockInstance, rect, query, cb) {
                 this.tagActiveBlock = blockInstance;
                 this.tagCallback = cb;
                 this.tagMenuEl.style.top = `${rect.bottom + window.scrollY + 5}px`;
                 this.tagMenuEl.style.left = `${Math.max(rect.left, 16)}px`;
                 
-                const allTags = await getAllTags();
+                const allTags = getAllTags();
                 this.tagFiltered = allTags.filter(t => t.toLowerCase().includes(query.toLowerCase()) && t !== query);
                 
                 if (this.tagFiltered.length === 0) { this.hideTagMenu(); return; }
@@ -1714,14 +1531,13 @@
 
         function getDisplayDate(dateStr) { const [y, m, d] = dateStr.split('-'); const date = new Date(y, m - 1, d); return `${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}<br>${date.toLocaleDateString(undefined, { weekday: 'long' })}`; }
 
-        async function executeSave(targetKey = window.currentDateStr) {
+        function executeSave(targetKey = window.currentDateStr) {
             if (!window.editor) return Promise.resolve();
-            const outputData = await window.editor.save(); 
-            const timestampsToSave = { ...window.timestamps };
-            
             activeSavePromise = activeSavePromise.then(async () => {
+                if (!window.editor) return; 
                 try {
-                    await appDB.savePage(targetKey, outputData.blocks, timestampsToSave);
+                    const outputData = await window.editor.save(); outputData.timestamps = { ...window.timestamps };
+                    await appDB.save(targetKey, outputData);
                     const indicator = document.getElementById('save-indicator');
                     if (indicator && !appDB.isMemoryOnly) { indicator.classList.add('visible'); setTimeout(() => indicator.classList.remove('visible'), 1500); }
                 } catch(e) { console.error("Save Error:", e); }
@@ -1739,14 +1555,11 @@
         document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') scheduleSave(true); }); 
         window.addEventListener('pagehide', () => scheduleSave(true));
         
-        document.getElementById('date-header').onclick = async () => {
+        document.getElementById('date-header').onclick = () => {
             scheduleSave(true); 
             let dateToOpen = new Date();
             if (/^\d{4}-\d{2}-\d{2}$/.test(window.currentDateStr)) { const [y, m, d] = window.currentDateStr.split('-').map(Number); dateToOpen = new Date(y, m - 1, d); }
-            
-            const activePagesSet = await appDB.getAllPageIds();
-
-            DatePicker.open(dateToOpen, activePagesSet, (selectedDate) => {
+            DatePicker.open(dateToOpen, (selectedDate) => {
                 const selectedStr = getLocalYYYYMMDD(selectedDate);
                 if (window.currentDateStr !== selectedStr) window.loadVirtualPage(selectedStr);
             }, { showTime: false, disableFuture: true, onlyNotes: false }); 
@@ -1784,17 +1597,13 @@
         };
 
         async function initEditor(newStorageKey, oldStorageKey, tagParts = []) {
-            if (window.editor) { 
-                await executeSave(oldStorageKey); 
-                window.editor.destroy(); 
-                window.editor = null; 
-            }
+            if (window.editor) { await executeSave(oldStorageKey); window.editor.destroy(); window.editor = null; }
             
             const isEditable = /^\d{4}-\d{2}-\d{2}$/.test(newStorageKey) ? newStorageKey === todayStr : true; 
+            let cachedData = appDB.cache[newStorageKey];
+            let editorData = cachedData ? { blocks: JSON.parse(JSON.stringify(cachedData.blocks)), timestamps: {...cachedData.timestamps} } : { blocks: [] };
             
-            const loadedData = await appDB.loadPage(newStorageKey);
-            let editorData = { blocks: loadedData.blocks || [] };
-            window.timestamps = loadedData.timestamps || {};
+            window.timestamps = editorData.timestamps || {};
 
             if (newStorageKey.startsWith('tag-')) {
                 const baseTag = tagParts[0] || newStorageKey.substring(4);
@@ -1802,24 +1611,20 @@
                 const regex = new RegExp(`(?:^|\\s)#${safeBaseTag}((?:\\.[a-zA-Z0-9_]+)*)\\b`, 'gi');
                 let mentionsByPath = { '': [] };
                 
-                try {
-                    const res = await appDB.db.query("SELECT * FROM blocks WHERE content ILIKE $1 ORDER BY created_at DESC;", [`%#${baseTag}%`]);
-                    res.rows.forEach(row => {
-                        const cleanText = row.content;
+                Object.keys(appDB.cache).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort().reverse().forEach(day => {
+                    const dayData = appDB.cache[day];
+                    if (!dayData.blocks) return;
+                    dayData.blocks.forEach(b => {
+                        let match; let matchedPaths = new Set();
+                        const cleanText = extractBlockText(b);
                         regex.lastIndex = 0;
-                        let match;
-                        let matchedPaths = new Set();
-                        while ((match = regex.exec(cleanText)) !== null) {
-                            matchedPaths.add(match[1] ? match[1].substring(1).toLowerCase() : '');
-                        }
-                        
-                        const b = { id: row.id, type: row.type, data: row.data };
+                        while ((match = regex.exec(cleanText)) !== null) matchedPaths.add(match[1] ? match[1].substring(1).toLowerCase() : '');
                         matchedPaths.forEach(path => {
                             if (!mentionsByPath[path]) mentionsByPath[path] = [];
-                            mentionsByPath[path].push({ day: row.page_id, block: b, timestamp: Number(row.created_at) });
+                            if (!mentionsByPath[path].some(m => m.block.id === b.id)) mentionsByPath[path].push({ day, block: b, timestamp: dayData.timestamps?.[b.id] });
                         });
                     });
-                } catch (e) { console.error("Tag Fetch Error:", e); }
+                });
 
                 if (editorData.blocks.length === 0) editorData.blocks.push({ type: 'paragraph', data: {}, id: crypto.randomUUID() });
 
@@ -1862,11 +1667,7 @@
             window.editor = new BlockManager('editor-container', { readOnly: !isEditable, data: editorData, onChange: () => { if (isEditable) scheduleSave(); } });
         }
 
-        // Initialize App & trigger lazy model load on startup
-        appDB.init().then(() => { 
-            window.loadVirtualPage(window.currentDateStr); 
-            getExtractor(); // Pre-warm the AI cache in the background
-        });
+        appDB.init().then(() => { window.loadVirtualPage(window.currentDateStr); });
     </script>
 </body>
 </html>
