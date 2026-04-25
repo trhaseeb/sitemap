@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
-    <title>Infinite Notes AI</title>
+    <title>Infinite Notes</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="Notes AI">
+    <meta name="apple-mobile-web-app-title" content="Notes">
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#121212">
 
@@ -20,7 +20,6 @@
         :root {
             --bg-color: #ffffff; --text-color: #000000; --border-color: #d0d0d0;
             --muted-bg: #f9f9f9; --muted-text: #666666;
-            --ai-color: #3b82f6; 
             --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             --safe-area-top: env(safe-area-inset-top, 0px);
         }
@@ -59,7 +58,6 @@
         .save-indicator { color: var(--muted-text); opacity: 0; transition: opacity 0.3s; }
         .save-indicator.visible { opacity: 1; }
         .storage-warning { color: #ef4444; display: none; }
-        .ai-indicator { color: var(--ai-color); transition: opacity 0.3s; }
 
         /* --- NAVIGATION ACTIONS --- */
         .v-link { cursor: pointer; transition: all 0.1s; }
@@ -168,7 +166,7 @@
         <div class="header-status-row">
             <span id="storage-warning" class="storage-warning">LOCAL IDB ONLY (PGLITE FAILED)</span>
             <span id="save-indicator" class="save-indicator">SYNCED</span>
-            <span id="ai-status" class="ai-indicator">AI INITIALIZING...</span>
+            <span id="ai-status" class="save-indicator visible">ENGINE STARTING...</span>
         </div>
         
         <div id="editor-container"></div>
@@ -276,7 +274,7 @@
         };
 
         // ============================================================================
-        // 🧠 LOCAL AI EMBEDDING ENGINE & UNIFIED SEARCH
+        // ⚙️ LOCAL EMBEDDING ENGINE & UNIFIED SEARCH
         // ============================================================================
         env.allowLocalModels = false; 
         env.useBrowserCache = true;
@@ -288,13 +286,12 @@
                 this.statusEl = document.getElementById('ai-status');
                 try {
                     this.extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
-                    this.statusEl.textContent = 'AI READY';
-                    this.statusEl.style.opacity = '0';
-                    setTimeout(() => this.statusEl.style.display = 'none', 1000);
+                    this.statusEl.textContent = 'ENGINE READY';
+                    setTimeout(() => this.statusEl.classList.remove('visible'), 1000);
                     EmbeddingQueue.process(); // Process backlog if any
                 } catch(e) {
                     console.error("Transformers.js failed:", e);
-                    this.statusEl.textContent = 'AI OFFLINE';
+                    this.statusEl.textContent = 'ENGINE OFFLINE';
                     this.statusEl.style.color = '#ef4444';
                 }
             },
@@ -305,7 +302,7 @@
             },
             // Unified API for all vector searches across the app
             semanticSearch: async function(query, options = {}) {
-                if (!this.extractor || !appDB.db || appDB.isMemoryOnly) throw new Error("AI Engine offline");
+                if (!this.extractor || !appDB.db || appDB.isMemoryOnly) throw new Error("Engine offline");
                 
                 const limit = options.limit || 5;
                 const threshold = options.threshold || 0.35;
@@ -392,7 +389,7 @@
         
         let appDB = new PGLiteAdapter();
 
-        // 🧠 NON-BLOCKING EMBEDDING QUEUE (Yields to main UI thread)
+        // ⚙️ NON-BLOCKING EMBEDDING QUEUE (Yields to main UI thread)
         const EmbeddingQueue = {
             queue: [], isProcessing: false,
             add: function(id, dateStr, type, content, rawBlock) { this.queue.push({ id, dateStr, type, content, rawBlock }); this.process(); },
@@ -749,7 +746,6 @@
                 }
                 if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.api.insertBlock('paragraph', {}, this.api.getIndex(this) + 1, true); return; }
                 
-                // Unified Arrow Navigation
                 if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
                     const sel = window.getSelection();
                     if (sel.rangeCount > 0) {
@@ -765,7 +761,6 @@
                     }
                 }
                 
-                // Unified Backspace
                 if (e.key === 'Backspace') {
                     const sel = window.getSelection();
                     if (sel.rangeCount > 0) {
@@ -1195,7 +1190,7 @@
         }
 
         // ============================================================================
-        // 🧠 AI RAG RECALL WIDGET (POWERED BY PGVECTOR)
+        // 🧠 RECALL WIDGET (POWERED BY PGVECTOR)
         // ============================================================================
         class RecallTool extends BaseWidgetTool {
             getDefaultData(data) { return data && data.recalled ? data : { recalled: false, sourceDate: null, sourceTime: null, sourceBlock: null, title: data?.title || '' }; }
@@ -1216,14 +1211,14 @@
             renderSearchState() {
                 const searchWrapper = createEl('div');
                 const row = createEl('div', 'flat-row', {style: 'padding: 12px; gap: 8px;'});
-                const input = createEl('input', 'flat-input', { type: 'text', placeholder: 'Ask AI to recall concepts...' });
+                const input = createEl('input', 'flat-input', { type: 'text', placeholder: 'Search by concept or meaning...' });
                 const dropdown = createEl('div', 'recall-dropdown');
 
                 input.addEventListener('input', debounce(async (e) => {
                     const query = e.target.value.trim(); 
                     if (!query) { dropdown.classList.remove('active'); return; }
                     
-                    dropdown.innerHTML = '<div class="recall-item" style="color: var(--ai-color); font-weight: bold;">Vector Querying DB...</div>';
+                    dropdown.innerHTML = '<div class="recall-item" style="color: var(--text-color); font-weight: bold;">Querying semantic index...</div>';
                     dropdown.classList.add('active');
 
                     try {
@@ -1458,17 +1453,17 @@
         function renderPersonasIndex() {
             const container = document.getElementById('editor-container'); container.innerHTML = '';
             
-            const ragWrapper = createEl('div', 'tool-box', { style: 'padding: 16px; margin-bottom: 24px; border-color: var(--ai-color);' });
-            ragWrapper.innerHTML = `<div style="font-weight: 900; font-size: 12px; margin-bottom: 8px; color: var(--ai-color);">🧠 AI PERSONA KNOWLEDGE RETRIEVAL</div>`;
+            const ragWrapper = createEl('div', 'tool-box', { style: 'padding: 16px; margin-bottom: 24px; border-color: var(--text-color);' });
+            ragWrapper.innerHTML = `<div style="font-weight: 900; font-size: 12px; margin-bottom: 8px; color: var(--text-color);">SEMANTIC DIRECTORY SEARCH</div>`;
             
-            const ragInput = createEl('input', 'flat-input', { placeholder: 'Ask a question across your personas...', style: 'font-size: 18px; border-bottom: 2px solid var(--ai-color); padding-bottom: 8px;' });
+            const ragInput = createEl('input', 'flat-input', { placeholder: 'Query semantic knowledge base...', style: 'font-size: 18px; border-bottom: 4px solid var(--text-color); padding-bottom: 8px;' });
             const ragResults = createEl('div', '', { style: 'margin-top: 16px; display: flex; flex-direction: column; gap: 8px;' });
             
             ragInput.addEventListener('input', debounce(async (e) => {
                 const query = e.target.value.trim();
                 if (!query) { ragResults.innerHTML = ''; return; }
                 
-                ragResults.innerHTML = '<div style="color: var(--ai-color); font-size: 12px; font-weight: bold;">VECTOR QUERYING DB...</div>';
+                ragResults.innerHTML = '<div style="color: var(--text-color); font-size: 12px; font-weight: bold;">QUERYING INDEX...</div>';
                 
                 try {
                     const scored = await AIEngine.semanticSearch(query, { limit: 5, threshold: 0.35, requireTag: true });
@@ -1482,7 +1477,7 @@
                     const tagRegex = /#[a-zA-Z0-9_.]+/;
                     scored.forEach(res => {
                         const matchTag = res.content.match(tagRegex)?.[0] || 'Unknown';
-                        const item = createEl('div', 'tool-box', { style: 'padding: 12px; cursor: pointer; border-left: 4px solid var(--ai-color); transition: background 0.1s;' });
+                        const item = createEl('div', 'tool-box', { style: 'padding: 12px; cursor: pointer; border-left: 4px solid var(--text-color); transition: background 0.1s;' });
                         item.onmouseover = () => item.style.background = 'var(--muted-bg)'; item.onmouseout = () => item.style.background = 'transparent';
                         
                         item.innerHTML = `
@@ -1545,7 +1540,7 @@
                     {id: 'compute', icon: ICONS.compute, name: 'Compute Logic', keywords: 'math calc logic sum code function'},
                     {id: 'calendar', icon: ICONS.calendar, name: 'Event', keywords: 'date time schedule notify reminder'},
                     {id: 'voice', icon: ICONS.mic, name: 'Voice Memo', keywords: 'audio record memo dictation sound'},
-                    {id: 'recall', icon: ICONS.recall, name: 'RAG Knowledge DB', keywords: 'search find past ai query historical'},
+                    {id: 'recall', icon: ICONS.recall, name: 'Recall Database', keywords: 'search find past semantic query historical'},
                     {id: 'table', icon: ICONS.canvas, name: 'Table', keywords: 'table grid columns rows'}
                 ];
                 this.slashFiltered = [...this.slashOptions];
