@@ -62,7 +62,7 @@
             background: var(--text-color); color: var(--bg-color); padding: 2px 6px; 
             font-weight: bold; font-family: monospace; text-transform: uppercase; 
             letter-spacing: 1px; border-radius: 0; text-decoration: none; 
-            display: inline-block; user-select: none;
+            display: inline-block;
         }
         .persona-link:hover { opacity: 0.8; }
 
@@ -393,8 +393,9 @@
             
             nodesToReplace.forEach(node => {
                 const span = document.createElement('span');
+                // Added contenteditable="false" so tags act as an atomic block when deleting
                 span.innerHTML = node.nodeValue.replace(/(^|\s)(#[a-zA-Z0-9_]+(?:\.[a-zA-Z0-9_]+)*)/g, (match, space, tag) => {
-                    return `${space}<a class="v-link persona-link" data-target="tag-${tag.replace('#', '').toLowerCase()}">${tag}</a>`;
+                    return `${space}<a class="v-link persona-link" contenteditable="false" data-target="tag-${tag.replace('#', '').toLowerCase()}">${tag}</a>`;
                 });
                 const parent = node.parentNode;
                 parent.replaceChild(span, node);
