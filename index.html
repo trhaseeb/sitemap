@@ -274,7 +274,7 @@
         };
 
         // ============================================================================
-        // ⚙️ LOCAL EMBEDDING ENGINE & UNIFIED SEARCH
+        // ⚙️ LOCAL EMBEDDING ENGINE & UNIFIED HYBRID SEARCH
         // ============================================================================
         env.allowLocalModels = false; 
         env.useBrowserCache = true;
@@ -288,27 +288,45 @@
                     this.extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
                     this.statusEl.textContent = 'ENGINE READY';
                     setTimeout(() => this.statusEl.classList.remove('visible'), 1000);
-                    EmbeddingQueue.process(); // Process backlog if any
+                    EmbeddingQueue.process(); 
                 } catch(e) {
-                    console.error("Transformers.js failed:", e);
+                    console.warn("Transformers.js fallback triggered:", e);
                     this.statusEl.textContent = 'ENGINE OFFLINE';
                     this.statusEl.style.color = '#ef4444';
                 }
             },
             getEmbedding: async function(text) {
-                if (!this.extractor || !text.trim()) return null;
-                const output = await this.extractor(text, { pooling: 'mean', normalize: true });
-                return Array.from(output.data);
+                if (!this.extractor || !text || !text.trim()) return null;
+                try {
+                    const output = await this.extractor(text, { pooling: 'mean', normalize: true });
+                    return Array.from(output.data);
+                } catch (e) { return null; }
             },
-            // Unified API for all vector searches across the app
+            // Highly stable hybrid search: Drops down to exact text match if DB or AI is offline
             semanticSearch: async function(query, options = {}) {
-                if (!this.extractor || !appDB.db || appDB.isMemoryOnly) throw new Error("Engine offline");
-                
-                const limit = options.limit || 5;
+                const limit = options.limit || 10;
                 const threshold = options.threshold || 0.35;
                 const requireTag = options.requireTag || false;
+
+                // Fallback: Memory Text Search (Guarantees app never crashes if AI/DB fails)
+                if (!this.extractor || !appDB.db || appDB.isMemoryOnly) {
+                    let results = [];
+                    const q = query.toLowerCase();
+                    Object.entries(appDB.cache).forEach(([dateStr, dayData]) => {
+                        if (!dayData.blocks) return;
+                        dayData.blocks.forEach(b => {
+                            if (requireTag && !/(?:^|\s)#[a-zA-Z0-9_.]+/.test(b.content || b.data?.text || '')) return;
+                            const text = extractBlockText(b).toLowerCase();
+                            if (text.includes(q)) results.push({ date_str: dateStr, raw_block: b, content: text, score: 1 });
+                        });
+                    });
+                    return results.slice(0, limit);
+                }
                 
+                // Primary: PGVector Semantic Search
                 const qEmb = await this.getEmbedding(query);
+                if (!qEmb) return []; 
+                
                 const vectorString = `[${qEmb.join(',')}]`;
                 const filterClause = requireTag ? "AND content LIKE '%#%'" : "";
                 
@@ -344,7 +362,7 @@
                     `);
                     await this.loadAll();
                 } catch(e) { 
-                    console.error("PGlite init failed:", e);
+                    console.warn("PGlite init failed, entering fallback:", e);
                     this.enableFallback(); 
                 }
             }
@@ -409,7 +427,6 @@
                         if (embedding) await appDB.saveBlockEmbedding(task.id, task.dateStr, task.type, task.content, task.rawBlock, embedding);
                     } catch(e) { console.warn("Task processing error", e); }
                     
-                    // Yield to main thread to prevent UI freezing during bulk processing
                     await new Promise(resolve => requestAnimationFrame(resolve));
                 }
                 this.isProcessing = false;
@@ -559,9 +576,11 @@
         // ============================================================================
         function extractBlockText(block) {
             let text = block.type + " ";
-            if (block.data.text) text += block.data.text + " ";
-            if (block.data.title) text += block.data.title + " ";
-            if (block.data.items) text += block.data.items.map(i => i.content || i.text || '').join(' ') + " ";
+            if (block.data) {
+                if (block.data.text) text += block.data.text + " ";
+                if (block.data.title) text += block.data.title + " ";
+                if (block.data.items) text += block.data.items.map(i => i.content || i.text || '').join(' ') + " ";
+            }
             return text.replace(/<[^>]*>?/gm, ' ').trim();
         }
 
@@ -664,34 +683,27 @@
         // ============================================================================
         
         class BaseTextBlock {
-            constructor({ data, api, readOnly, tag = 'div', className = 'native-text-block', placeholder = '', blockType = 'paragraph' }) {
-                this.data = data; this.api = api; this.readOnly = readOnly; 
+            constructor({ data = {}, api, readOnly, tag = 'div', className = 'native-text-block', placeholder = '', blockType = 'paragraph' }) {
+                this.data = data || {}; this.api = api; this.readOnly = readOnly; 
                 this.tag = tag; this.className = className; this.placeholder = placeholder; this.blockType = blockType;
-                this.level = data.level || 2; 
+                this.level = this.data.level || 2; 
             }
             
             render() {
                 const extraClass = this.blockType === 'header' ? ` native-header-${this.level}` : (this.blockType === 'quote' ? ' native-quote' : '');
-                this.el = createEl(this.tag, this.className + extraClass, { 
-                    contentEditable: !this.readOnly, 
-                    innerHTML: this.data.text || '', 
-                    'data-placeholder': this.placeholder 
-                });
-                
+                this.el = createEl(this.tag, this.className + extraClass, { contentEditable: !this.readOnly, innerHTML: this.data.text || '', 'data-placeholder': this.placeholder });
                 this.el.addEventListener('keydown', this.handleKeydown.bind(this));
                 this.el.addEventListener('input', this.handleInput.bind(this));
-                this.el.addEventListener('blur', () => { 
-                    setTimeout(() => { this.api.hideSlashMenu(); this.api.hideTagMenu(); }, 150); 
-                    if (linkifyTextNode(this.el)) this.api.onChange(); 
-                });
+                this.el.addEventListener('blur', () => { setTimeout(() => { this.api.hideSlashMenu(); this.api.hideTagMenu(); }, 150); if (linkifyTextNode(this.el)) this.api.onChange(); });
                 return this.el;
             }
             
             handleInput(e) {
+                let spaceTriggered = false;
                 if (e.type === 'input') {
                     if (e.data === ' ' || (e.inputType === 'insertText' && e.data === ' ')) {
                         this.api.hideTagMenu(); if (linkifyAndPreserveCaret(this.el)) this.api.onChange();
-                        return;
+                        spaceTriggered = true; // Track space but continue to parse markdown!
                     }
                     const sel = window.getSelection();
                     if (sel.rangeCount > 0 && sel.focusNode && sel.focusNode.nodeType === 3) {
@@ -719,16 +731,18 @@
                     if (rawText.startsWith('/')) { this.api.showSlashMenu(this, this.el.getBoundingClientRect(), rawText.slice(1).trim().toLowerCase()); this.api.onChange(); return; } 
                     else this.api.hideSlashMenu();
 
-                    if (!isTagPage) {
+                    if (spaceTriggered && !isTagPage) {
                         if (rawText === '# ') { this.transformTo('header', { level: 1 }); return; }
                         if (rawText === '## ') { this.transformTo('header', { level: 2 }); return; }
                         if (rawText === '### ') { this.transformTo('header', { level: 3 }); return; }
                     }
-                    if (rawText === '- ' || rawText === '* ') { this.transformTo('list', { style: 'unordered' }); return; }
-                    if (rawText === '1. ') { this.transformTo('list', { style: 'ordered' }); return; }
-                    if (rawText === '[] ' || rawText === '[ ] ' || rawText === '- [ ] ' || rawText === '- [] ') { this.transformTo('checklist', {}); return; }
-                    if (rawText === '> ') { this.transformTo('quote', {}); return; }
-                    if (rawText === '| ') { this.transformTo('table', {}); return; }
+                    if (spaceTriggered) {
+                        if (rawText === '- ' || rawText === '* ') { this.transformTo('list', { style: 'unordered' }); return; }
+                        if (rawText === '1. ') { this.transformTo('list', { style: 'ordered' }); return; }
+                        if (rawText === '[] ' || rawText === '[ ] ' || rawText === '- [ ] ' || rawText === '- [] ') { this.transformTo('checklist', {}); return; }
+                        if (rawText === '> ') { this.transformTo('quote', {}); return; }
+                        if (rawText === '| ') { this.transformTo('table', {}); return; }
+                    }
                 }
                 this.api.onChange();
             }
@@ -801,7 +815,7 @@
         }
 
         class ParagraphBlock extends BaseTextBlock { constructor(args) { super({...args, blockType: 'paragraph', placeholder: "Type '/' for widgets, or use markdown..."}); } }
-        class HeaderBlock extends BaseTextBlock { constructor(args) { super({...args, blockType: 'header', placeholder: `HEADING ${args.data.level || 2}...`}); } }
+        class HeaderBlock extends BaseTextBlock { constructor(args) { super({...args, blockType: 'header', placeholder: `HEADING ${args.data?.level || 2}...`}); } }
         class QuoteBlock extends BaseTextBlock { constructor(args) { super({...args, blockType: 'quote', tag: 'blockquote', placeholder: 'Quote...'}); } }
 
         // ============================================================================
@@ -809,10 +823,10 @@
         // ============================================================================
 
         class BaseListBlock {
-            constructor({ data, api, readOnly, isChecklist = false }) { 
-                this.data = data; this.api = api; this.readOnly = readOnly; this.isChecklist = isChecklist;
-                this.items = data.items || (isChecklist ? [{ text: '', checked: false }] : [{ content: '' }]); 
-                this.style = data.style || 'unordered'; 
+            constructor({ data = {}, api, readOnly, isChecklist = false }) { 
+                this.data = data || {}; this.api = api; this.readOnly = readOnly; this.isChecklist = isChecklist;
+                this.items = this.data.items || (isChecklist ? [{ text: '', checked: false }] : [{ content: '' }]); 
+                this.style = this.data.style || 'unordered'; 
             }
             
             render() { 
@@ -916,7 +930,7 @@
         class ListBlock extends BaseListBlock { constructor(args) { super({...args, isChecklist: false}); } }
 
         class TableBlock {
-            constructor({ data, api, readOnly }) { this.data = data; this.api = api; this.readOnly = readOnly; this.rows = data.rows || [['', ''], ['', '']]; }
+            constructor({ data = {}, api, readOnly }) { this.data = data || {}; this.api = api; this.readOnly = readOnly; this.rows = this.data.rows || [['', ''], ['', '']]; }
             render() {
                 this.wrapper = createEl('div', 'native-table-wrapper'); this.table = createEl('table', 'native-table');
                 this.renderRows(); this.wrapper.appendChild(this.table);
@@ -973,7 +987,9 @@
                 
                 this.titleInput.addEventListener('input', e => { this.data.title = e.target.value; this.api.onChange(); });
                 this.titleInput.addEventListener('keydown', e => {
-                    if (e.key === 'Backspace' && this.titleInput.value === '') { e.preventDefault(); const idx = this.api.getIndex(this); this.api.deleteBlock(idx); if (idx > 0) this.api.focusPrev(this); }
+                    if (e.key === 'Backspace' && this.titleInput.value === '') { 
+                        e.preventDefault(); const idx = this.api.getIndex(this); this.api.deleteBlock(idx); if (idx > 0) this.api.focus(idx - 1); 
+                    }
                     if (e.key === 'ArrowDown') { e.preventDefault(); this.api.focusNext(this); }
                     if (e.key === 'ArrowUp') { e.preventDefault(); this.api.focusPrev(this); }
                 });
@@ -1218,7 +1234,7 @@
                     const query = e.target.value.trim(); 
                     if (!query) { dropdown.classList.remove('active'); return; }
                     
-                    dropdown.innerHTML = '<div class="recall-item" style="color: var(--text-color); font-weight: bold;">Querying semantic index...</div>';
+                    dropdown.innerHTML = '<div class="recall-item" style="color: var(--text-color); font-weight: bold;">Querying index...</div>';
                     dropdown.classList.add('active');
 
                     try {
@@ -1448,7 +1464,7 @@
         };
 
         // ============================================================================
-        // 🧠 PERSONAS DIRECTORY WITH AI KNOWLEDGE RAG HUB (PGVECTOR NATIVE)
+        // 🧠 PERSONAS DIRECTORY WITH KNOWLEDGE SEARCH (PGVECTOR)
         // ============================================================================
         function renderPersonasIndex() {
             const container = document.getElementById('editor-container'); container.innerHTML = '';
@@ -1574,7 +1590,7 @@
                     focusNext: (instance) => {
                         const idx = this.createBlockAPI().getIndex(instance);
                         if (idx === this.blocks.length - 1) this.insertBlock('paragraph', {}, idx + 1, true);
-                        else { const nextBlock = this.blocks[idx + 1]; if (typeof nextBlock.instance.focus === 'function') nextBlock.instance.focus(false); }
+                        else if (idx !== -1) { const nextBlock = this.blocks[idx + 1]; if (typeof nextBlock.instance.focus === 'function') nextBlock.instance.focus(false); }
                     },
                     focusPrev: (instance) => {
                         const idx = this.createBlockAPI().getIndex(instance);
