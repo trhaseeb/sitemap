@@ -241,6 +241,8 @@
             compute: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 10 14 13 8 18 8"></polyline><circle cx="20" cy="8" r="2"></circle><circle cx="2" cy="14" r="2"></circle></svg>'
         };
 
+        const TEXT_BLOCK_TYPES = ['paragraph', 'header', 'quote', 'list', 'checklist', 'table'];
+
         function createEl(tag, classNames = '', attributes = {}, children = []) {
             const el = document.createElement(tag); if (classNames) el.className = classNames;
             for (const [k, v] of Object.entries(attributes)) { 
@@ -266,11 +268,20 @@
         const NotificationEngine = {
             timers: new Map(),
             schedule: function(id, dt, title) {
-                this.cancel(id); if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+                this.cancel(id); 
+                if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+                
                 const delay = new Date(dt).getTime() - Date.now();
-                if (delay > 0) this.timers.set(id, setTimeout(() => { new Notification('Note Reminder', { body: title || 'Scheduled Event' }); this.timers.delete(id); }, delay));
+                if (delay > 0) {
+                    this.timers.set(id, setTimeout(() => { 
+                        new Notification('Calendar Event', { body: title || 'Scheduled event reminder.' }); 
+                        this.timers.delete(id); 
+                    }, delay));
+                }
             },
-            cancel: function(id) { if (this.timers.has(id)) { clearTimeout(this.timers.get(id)); this.timers.delete(id); } }
+            cancel: function(id) { 
+                if (this.timers.has(id)) { clearTimeout(this.timers.get(id)); this.timers.delete(id); } 
+            }
         };
 
         // ============================================================================
@@ -302,21 +313,21 @@
                     return Array.from(output.data);
                 } catch (e) { return null; }
             },
-            // Highly stable hybrid search: Drops down to exact text match if DB or AI is offline
             semanticSearch: async function(query, options = {}) {
                 const limit = options.limit || 10;
                 const threshold = options.threshold || 0.35;
                 const requireTag = options.requireTag || false;
 
-                // Fallback: Memory Text Search (Guarantees app never crashes if AI/DB fails)
+                // Fallback: Memory Text Search
                 if (!this.extractor || !appDB.db || appDB.isMemoryOnly) {
                     let results = [];
                     const q = query.toLowerCase();
                     Object.entries(appDB.cache).forEach(([dateStr, dayData]) => {
                         if (!dayData.blocks) return;
                         dayData.blocks.forEach(b => {
-                            if (requireTag && !/(?:^|\s)#[a-zA-Z0-9_.]+/.test(b.content || b.data?.text || '')) return;
+                            if (!TEXT_BLOCK_TYPES.includes(b.type)) return;
                             const text = extractBlockText(b).toLowerCase();
+                            if (requireTag && !/(?:^|\s)#[a-zA-Z0-9_.]+/.test(text)) return;
                             if (text.includes(q)) results.push({ date_str: dateStr, raw_block: b, content: text, score: 1 });
                         });
                     });
@@ -442,6 +453,8 @@
                 Object.entries(appDB.cache).forEach(([day, dayData]) => {
                     if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !dayData.blocks) return; 
                     dayData.blocks.forEach(b => {
+                        if (!TEXT_BLOCK_TYPES.includes(b.type)) return;
+                        
                         const text = extractBlockText(b); let match; regex.lastIndex = 0;
                         while ((match = regex.exec(text)) !== null) {
                             const fullTag = match[1]; this.tags.add(fullTag);
@@ -461,7 +474,9 @@
                 if (window.editor && !window.editor.readOnly) {
                     const regex = /(?:^|\s)(#[a-zA-Z0-9_]+(?:\.[a-zA-Z0-9_]+)*)/g;
                     window.editor.blocks.forEach(b => {
-                        const text = b.instance.el ? b.instance.el.textContent : ''; let match; regex.lastIndex = 0;
+                        if (!TEXT_BLOCK_TYPES.includes(b.type)) return;
+                        const text = b.instance.el ? b.instance.el.textContent : (b.instance.wrapper ? b.instance.wrapper.textContent : ''); 
+                        let match; regex.lastIndex = 0;
                         while ((match = regex.exec(text)) !== null) activeTags.add(match[1]);
                     });
                 }
@@ -580,6 +595,7 @@
                 if (block.data.text) text += block.data.text + " ";
                 if (block.data.title) text += block.data.title + " ";
                 if (block.data.items) text += block.data.items.map(i => i.content || i.text || '').join(' ') + " ";
+                if (block.data.rows) text += block.data.rows.map(r => r.join(' ')).join(' ') + " ";
             }
             return text.replace(/<[^>]*>?/gm, ' ').trim();
         }
@@ -703,7 +719,7 @@
                 if (e.type === 'input') {
                     if (e.data === ' ' || (e.inputType === 'insertText' && e.data === ' ')) {
                         this.api.hideTagMenu(); if (linkifyAndPreserveCaret(this.el)) this.api.onChange();
-                        spaceTriggered = true; // Track space but continue to parse markdown!
+                        spaceTriggered = true; 
                     }
                     const sel = window.getSelection();
                     if (sel.rangeCount > 0 && sel.focusNode && sel.focusNode.nodeType === 3) {
@@ -787,7 +803,7 @@
                             if (isEmpty) {
                                 if (idx > 0) {
                                     const prevBlock = this.api.getBlock(idx - 1);
-                                    if (prevBlock && !['paragraph', 'header', 'list', 'checklist', 'quote', 'table'].includes(prevBlock.type)) this.api.deleteBlock(idx - 1);
+                                    if (prevBlock && !TEXT_BLOCK_TYPES.includes(prevBlock.type)) this.api.deleteBlock(idx - 1);
                                     else { this.api.deleteBlock(idx); this.api.focus(idx - 1, true); }
                                 } else if (this.blockType !== 'paragraph') { this.api.deleteBlock(0); this.api.insertBlock('paragraph', {}, 0, true); }
                             } else {
@@ -1094,7 +1110,7 @@
                     Object.values(appDB.cache).forEach(day => {
                         if (!day.blocks) return;
                         day.blocks.forEach(b => {
-                            if (b.type === 'compute' || b.type === 'recall') return; 
+                            if (!TEXT_BLOCK_TYPES.includes(b.type)) return; 
                             const text = extractBlockText(b).toLowerCase();
                             if (text.includes(q)) results.push(text);
                         });
@@ -1125,7 +1141,9 @@
             getPlaceholder() { return 'EVENT TITLE...'; }
             constructor(args) {
                 super(args); this.id = crypto.randomUUID();
-                if (!this.data.notified && !this.readOnly && new Date(this.data.datetime) > new Date()) NotificationEngine.schedule(this.id, this.data.datetime, this.data.title);
+                if (this.data.notified && !this.readOnly && new Date(this.data.datetime) > new Date()) {
+                    NotificationEngine.schedule(this.id, this.data.datetime, this.data.title);
+                }
             }
             render() {
                 this.wrapper.innerHTML = ''; let controls = [];
@@ -1137,10 +1155,28 @@
                         const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([icsContent], { type: 'text/calendar;charset=utf-8' })); a.download = `${this.data.title ? this.data.title.replace(/\s+/g, '_') : 'event'}.ics`; a.click();
                     };
                     
-                    const isGranted = typeof Notification !== 'undefined' && Notification.permission === 'granted';
-                    this.notifyBtn = createEl('button', 'tool-icon-btn', { innerHTML: ICONS.bell, title: 'Notify' });
-                    if (isGranted) this.notifyBtn.classList.add('active');
-                    this.notifyBtn.onclick = async () => { if (!('Notification' in window)) return alert('Notifications not supported.'); if (await Notification.requestPermission() === 'granted') { this.notifyBtn.classList.add('active'); NotificationEngine.schedule(this.id, this.data.datetime, this.data.title); } };
+                    this.notifyBtn = createEl('button', 'tool-icon-btn', { innerHTML: ICONS.bell, title: 'Toggle Notification' });
+                    if (this.data.notified) this.notifyBtn.classList.add('active');
+                    
+                    this.notifyBtn.onclick = async () => { 
+                        if (!('Notification' in window)) return alert('Notifications not supported in this browser.'); 
+                        let perm = Notification.permission;
+                        if (perm !== 'granted') perm = await Notification.requestPermission();
+                        
+                        if (perm === 'granted') { 
+                            this.data.notified = !this.data.notified;
+                            if (this.data.notified) {
+                                this.notifyBtn.classList.add('active'); 
+                                NotificationEngine.schedule(this.id, this.data.datetime, this.data.title); 
+                            } else {
+                                this.notifyBtn.classList.remove('active'); 
+                                NotificationEngine.cancel(this.id); 
+                            }
+                            this.api.onChange();
+                        } else {
+                            alert('Notification permission denied.');
+                        }
+                    };
                     
                     controls.push(this.notifyBtn, exportBtn);
                 }
@@ -1234,7 +1270,7 @@
                     const query = e.target.value.trim(); 
                     if (!query) { dropdown.classList.remove('active'); return; }
                     
-                    dropdown.innerHTML = '<div class="recall-item" style="color: var(--text-color); font-weight: bold;">Querying index...</div>';
+                    dropdown.innerHTML = '<div class="recall-item" style="color: var(--text-color); font-weight: bold;">Querying semantic index...</div>';
                     dropdown.classList.add('active');
 
                     try {
@@ -1259,7 +1295,7 @@
                                 };
                                 dropdown.appendChild(item);
                             });
-                        } else dropdown.appendChild(createEl('div', 'recall-item', {textContent: 'No semantic matches found'}));
+                        } else dropdown.appendChild(createEl('div', 'recall-item', {textContent: 'No matches found'}));
                     } catch(err) {
                         dropdown.innerHTML = `<div class="recall-item" style="color: #ef4444;">Search Failed: ${err.message}</div>`;
                     }
@@ -1548,6 +1584,8 @@
                 this.blocks = []; 
                 
                 this.slashMenuEl = document.getElementById('slash-menu'); this.slashActiveBlock = null; this.slashSelectedIndex = 0;
+                
+                // Excluded 'table' - restricted to text activation via '| '
                 this.slashOptions = [
                     {id: 'map', icon: ICONS.map, name: 'Map Location', keywords: 'map location geography'},
                     {id: 'photo', icon: ICONS.image, name: 'Photo Annotation', keywords: 'photo image picture paint draw'},
@@ -1556,8 +1594,7 @@
                     {id: 'compute', icon: ICONS.compute, name: 'Compute Logic', keywords: 'math calc logic sum code function'},
                     {id: 'calendar', icon: ICONS.calendar, name: 'Event', keywords: 'date time schedule notify reminder'},
                     {id: 'voice', icon: ICONS.mic, name: 'Voice Memo', keywords: 'audio record memo dictation sound'},
-                    {id: 'recall', icon: ICONS.recall, name: 'Recall Database', keywords: 'search find past semantic query historical'},
-                    {id: 'table', icon: ICONS.canvas, name: 'Table', keywords: 'table grid columns rows'}
+                    {id: 'recall', icon: ICONS.recall, name: 'Recall Database', keywords: 'search find past semantic query historical'}
                 ];
                 this.slashFiltered = [...this.slashOptions];
 
@@ -1582,7 +1619,7 @@
                     getBlockCount: () => this.blocks.length,
                     insertBlock: (type, data, index, focus) => {
                         const block = this.insertBlock(type, data, index, focus);
-                        if (!['paragraph', 'header', 'list', 'checklist', 'quote', 'table'].includes(type) && !this.readOnly) this.insertBlock('paragraph', {}, index + 1, false);
+                        if (TEXT_BLOCK_TYPES.includes(type) && !this.readOnly) this.insertBlock('paragraph', {}, index + 1, false);
                         return block;
                     },
                     deleteBlock: (index) => this.deleteBlock(index),
@@ -1705,8 +1742,10 @@
                     await appDB.save(targetKey, outputData);
                     
                     outputData.blocks.forEach(b => {
-                        const text = extractBlockText(b);
-                        if (text.trim() && !b.dynamicInfo) EmbeddingQueue.add(b.id, targetKey, b.type, text, b);
+                        if (TEXT_BLOCK_TYPES.includes(b.type) && !b.dynamicInfo) {
+                            const text = extractBlockText(b);
+                            if (text.trim()) EmbeddingQueue.add(b.id, targetKey, b.type, text, b);
+                        }
                     });
 
                     const indicator = document.getElementById('save-indicator');
