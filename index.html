@@ -157,6 +157,10 @@
         .cp-day:hover:not(.muted) { background: var(--text-color); color: var(--bg-color); }
         .cp-day.active { background: var(--text-color); color: var(--bg-color); font-weight: bold; }
         .cp-day.muted { opacity: 0.3; pointer-events: none; }
+        
+        /* --- FULLSCREEN WIDGET MODIFIER --- */
+        .widget-fullscreen { position: fixed !important; top: 0; left: 0; right: 0; bottom: 0; width: 100vw !important; height: 100vh !important; z-index: 100000 !important; margin: 0 !important; padding: env(safe-area-inset-top) 0 0 0 !important; background: var(--bg-color) !important; border-radius: 0 !important; display: flex !important; flex-direction: column !important; }
+        .widget-fullscreen .canvas-wrapper { height: auto !important; flex: 1 1 auto !important; }
     </style>
 </head>
 <body>
@@ -238,7 +242,14 @@
             search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>',
             recall: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline><polyline points="12 7 12 12 15 15"></polyline></svg>',
             scan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h3"></path><path d="M20 7V4h-3"></path><path d="M4 17v3h3"></path><path d="M20 17v3h-3"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>',
-            compute: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 10 14 13 8 18 8"></polyline><circle cx="20" cy="8" r="2"></circle><circle cx="2" cy="14" r="2"></circle></svg>'
+            compute: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 10 14 13 8 18 8"></polyline><circle cx="20" cy="8" r="2"></circle><circle cx="2" cy="14" r="2"></circle></svg>',
+            textTool: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>',
+            rectTool: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>',
+            circleTool: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg>',
+            undo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg>',
+            maximize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>',
+            minimize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path></svg>',
+            trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>'
         };
 
         const TEXT_BLOCK_TYPES = ['paragraph', 'header', 'quote', 'list', 'checklist', 'table'];
@@ -255,10 +266,38 @@
             children.forEach(c => c && el.append(c)); return el;
         }
 
+        // Downscale image to prevent massive PGLite payloads
+        function compressImage(file, maxWidth = 1200, maxHeight = 1200, quality = 0.8) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (re) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > height) {
+                            if (width > maxWidth) { height *= maxWidth / width; width = maxWidth; }
+                        } else {
+                            if (height > maxHeight) { width *= maxHeight / height; height = maxHeight; }
+                        }
+
+                        canvas.width = width; canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        resolve({ dataUrl: canvas.toDataURL('image/jpeg', quality), width, height });
+                    };
+                    img.src = re.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
         function debounce(func, wait) {
             let timeout;
             return function executedFunction(...args) {
-                const later = () => { clearTimeout(timeout); func(...args); };
+                const later = () => { clearTimeout(timeout); func.apply(this, args); };
                 clearTimeout(timeout); timeout = setTimeout(later, wait);
             };
         }
@@ -296,6 +335,7 @@
             init: async function() {
                 this.statusEl = document.getElementById('ai-status');
                 try {
+                    // Loading the model dynamically inside the module
                     this.extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
                     this.statusEl.textContent = 'ENGINE READY';
                     setTimeout(() => this.statusEl.classList.remove('visible'), 1000);
@@ -1032,7 +1072,10 @@
                     const rescanBtn = createEl('button', 'tool-icon-btn', { innerHTML: ICONS.scan });
                     const fileInput = createEl('input', '', { type: 'file', accept: 'image/*', capture: 'environment', style: 'display: none;' });
                     rescanBtn.onclick = () => fileInput.click();
-                    fileInput.onchange = (e) => { this.handleScan(e.target.files[0]); e.target.value = ''; };
+                    fileInput.onchange = async (e) => { 
+                        if(e.target.files[0]) await this.handleScan(e.target.files[0]); 
+                        e.target.value = ''; 
+                    };
                     controls.push(rescanBtn, fileInput);
                 }
                 this.wrapper.appendChild(this.buildHeader(controls));
@@ -1062,16 +1105,23 @@
                 this.wrapper.appendChild(body);
             }
             adjustHeight() { if (this.input) { this.input.style.height = 'auto'; this.input.style.height = (this.input.scrollHeight) + 'px'; } }
+            
             async handleScan(file) {
                 if (!file) return;
-                this.isScanning = true; this.scanProgress = 'INIT OCR...'; this.buildUI();
+                this.isScanning = true; this.scanProgress = 'COMPRESSING...'; this.buildUI();
+                
                 try {
+                    // Downscale image drastically for OCR to improve performance
+                    const compressed = await compressImage(file, 1600, 1600, 0.9);
+                    
+                    this.scanProgress = 'INIT OCR...'; if(this.statusEl) this.statusEl.textContent = this.scanProgress;
                     if (typeof Tesseract === 'undefined') {
                         this.scanProgress = 'LOADING ENGINE...'; if (this.statusEl) this.statusEl.textContent = this.scanProgress;
                         await new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
                     }
                     const worker = await Tesseract.createWorker('eng', 1, { logger: m => { if(m.status === 'recognizing text') { this.scanProgress = `ANALYZING: ${Math.round(m.progress * 100)}%`; if (this.statusEl) this.statusEl.textContent = this.scanProgress; } } });
-                    const { data: { text } } = await worker.recognize(file); await worker.terminate();
+                    const { data: { text } } = await worker.recognize(compressed.dataUrl); 
+                    await worker.terminate();
                     this.data.text = text.trim(); 
                 } catch(e) { alert('Scan failed: ' + e.message); } 
                 finally { this.isScanning = false; this.buildUI(); this.api.onChange(); }
@@ -1118,12 +1168,19 @@
                 };
                 const nums = (query) => { let texts = find(query); let numbers = []; texts.forEach(t => { let matches = t.match(/-?\d+(\.\d+)?/g); if (matches) numbers.push(...matches.map(Number)); }); return numbers; };
                 const sum = (query) => nums(query).reduce((a,b)=>a+b, 0); const avg = (query) => { let n = nums(query); return n.length ? sum(query)/n.length : 0; };
+                
                 const allowed = { Math, Date, Number, String, Array, sum, avg, nums, find };
-                const ctx = new Proxy({}, { has: () => true, get: (target, prop) => { if (prop === Symbol.unscopables) return undefined; if (prop in allowed) return allowed[prop]; if (typeof prop === 'string') return sum(prop.toLowerCase()); return undefined; } });
 
                 try {
-                    const fn = new (Object.getPrototypeOf(async function(){}).constructor)('ctx', `with (ctx) { return eval(${JSON.stringify(this.data.code)}); }`);
-                    const result = await fn(ctx);
+                    // Optimized for Strict Mode (ES Modules). "with(ctx)" throws an error in module scripts.
+                    const keys = Object.keys(allowed);
+                    const values = Object.values(allowed);
+                    
+                    const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+                    const fn = new AsyncFunction(...keys, `return eval(${JSON.stringify(this.data.code)});`);
+                    
+                    const result = await fn(...values);
+                    
                     if (result === undefined || result === null || Number.isNaN(result)) { this.output.innerHTML = ''; this.data.output = ''; } 
                     else if (Array.isArray(result) && result.length >= 2 && result.every(n => typeof n === 'number')) {
                         const min = Math.min(...result); const max = Math.max(...result); const range = (max - min) || 1;
@@ -1247,6 +1304,7 @@
         class RecallTool extends BaseWidgetTool {
             getDefaultData(data) { return data && data.recalled ? data : { recalled: false, sourceDate: null, sourceTime: null, sourceBlock: null, title: data?.title || '' }; }
             getPlaceholder() { return 'RECALL TITLE...'; }
+            constructor(args) { super(args); this.activeQueryId = 0; }
             render() {
                 this.wrapper.innerHTML = '';
                 const iconContainer = createEl('div', '', { innerHTML: `<div style="padding: 4px; color: var(--muted-text); margin-right: 4px;">${ICONS.recall}</div>` });
@@ -1268,6 +1326,8 @@
 
                 input.addEventListener('input', debounce(async (e) => {
                     const query = e.target.value.trim(); 
+                    const currentQueryId = ++this.activeQueryId;
+                    
                     if (!query) { dropdown.classList.remove('active'); return; }
                     
                     dropdown.innerHTML = '<div class="recall-item" style="color: var(--text-color); font-weight: bold;">Querying semantic index...</div>';
@@ -1275,6 +1335,8 @@
 
                     try {
                         const results = await AIEngine.semanticSearch(query, { limit: 10, threshold: 0.4 });
+                        if (this.activeQueryId !== currentQueryId) return; // Prevent race conditions
+                        
                         dropdown.innerHTML = '';
                         
                         if (results.length > 0) {
@@ -1297,6 +1359,7 @@
                             });
                         } else dropdown.appendChild(createEl('div', 'recall-item', {textContent: 'No matches found'}));
                     } catch(err) {
+                        if (this.activeQueryId !== currentQueryId) return;
                         dropdown.innerHTML = `<div class="recall-item" style="color: #ef4444;">Search Failed: ${err.message}</div>`;
                     }
                 }, 500));
@@ -1329,29 +1392,109 @@
         }
 
         class BaseCanvasTool extends BaseWidgetTool {
-            getDefaultData(data) { return { title: data?.title || '', isLocked: data?.isLocked || false, lines: data?.lines || [], isDrawingActive: data?.isDrawingActive || false, ...this.getCanvasDefaultData(data) }; }
+            getDefaultData(data) { 
+                return { 
+                    title: data?.title || '', 
+                    isLocked: data?.isLocked || false, 
+                    drawItems: data?.drawItems || [], 
+                    isDrawingActive: data?.isDrawingActive || false, 
+                    ...this.getCanvasDefaultData(data) 
+                }; 
+            }
             getCanvasDefaultData(data) { return {}; }
             getPlaceholder() { return 'CANVAS TITLE...'; }
             needsSetup() { return false; }
             renderSetup() { return null; }
 
-            constructor(args) { super(args); this.currentColor = '#EF4444'; this.lineLayers = []; this.currentPolyline = null; this.currentPoints = []; }
+            constructor(args) { 
+                super(args); 
+                this.currentColor = '#EF4444'; 
+                this.drawLayers = []; 
+                this.currentShape = null; 
+                this.currentPoints = []; 
+                this.activeToolType = 'pen';
+                this._clearedItems = null; // Cache for undoing accidental clear
+                
+                // Migrate legacy lines to drawItems structure for backwards compatibility
+                if (this.data.lines && this.data.lines.length > 0) {
+                    if (!this.data.drawItems) this.data.drawItems = [];
+                    this.data.lines.forEach(l => this.data.drawItems.push({ type: 'line', color: l.color, weight: l.weight, points: l.points }));
+                    this.data.lines = [];
+                }
+                if (!this.data.drawItems) this.data.drawItems = [];
+            }
 
             render() {
                 this.wrapper.innerHTML = ''; 
                 if (this.needsSetup()) { if (this.readOnly) this.wrapper.innerHTML = '<div style="padding: 24px; text-align: center;">Empty Block</div>'; else this.renderSetup(); return this.wrapper; }
 
                 let controls = [];
+                
+                this.fullScreenBtn = createEl('button', 'tool-icon-btn', { innerHTML: ICONS.maximize, title: 'Toggle Fullscreen' });
+                this.fullScreenBtn.onclick = () => {
+                    this.wrapper.classList.toggle('widget-fullscreen');
+                    this.fullScreenBtn.innerHTML = this.wrapper.classList.contains('widget-fullscreen') ? ICONS.minimize : ICONS.maximize;
+                    setTimeout(() => { if (this.map) this.map.invalidateSize(); }, 300);
+                };
+                controls.push(this.fullScreenBtn);
+
                 if (!this.readOnly) {
                     this.colorPicker = createEl('input', '', { type: 'color', value: this.currentColor, style: 'width: 28px; height: 28px; border: none; padding: 0; background: transparent; cursor: pointer; display: none;' });
                     this.colorPicker.addEventListener('input', (e) => { this.currentColor = e.target.value; });
                     
+                    this.toolPicker = createEl('div', 'tool-controls', { style: 'display: none; background: var(--muted-bg); border-radius: 4px; padding: 2px;' });
+                    
+                    const tools = [
+                        { id: 'pen', icon: ICONS.pen },
+                        { id: 'rect', icon: ICONS.rectTool },
+                        { id: 'circle', icon: ICONS.circleTool }
+                    ];
+                    
+                    this.toolBtns = {};
+                    tools.forEach(t => {
+                        const btn = createEl('button', 'tool-icon-btn', { innerHTML: t.icon, style: 'width: 24px; height: 24px; padding: 2px;' });
+                        btn.onclick = () => { 
+                            this.activeToolType = t.id; 
+                            Object.values(this.toolBtns).forEach(b => b.classList.remove('active'));
+                            btn.classList.add('active');
+                        };
+                        this.toolBtns[t.id] = btn;
+                        this.toolPicker.appendChild(btn);
+                    });
+                    this.toolBtns['pen'].classList.add('active');
+
                     this.drawBtn = createEl('button', 'tool-icon-btn', { innerHTML: ICONS.pen, style: 'display: none;' });
                     this.drawBtn.onclick = () => { this.data.isDrawingActive = !this.data.isDrawingActive; if (this.data.isDrawingActive) this.drawBtn.classList.add('active'); else this.drawBtn.classList.remove('active'); this.updateInteractions(); this.api.onChange(); };
                     
+                    this.undoBtn = createEl('button', 'tool-icon-btn', { innerHTML: ICONS.undo, style: 'display: none;', title: 'Undo Last Action' });
+                    this.undoBtn.onclick = () => { 
+                        if (this.data.drawItems?.length > 0) { 
+                            this.data.drawItems.pop(); 
+                            this.renderExistingItems(); 
+                            this.api.onChange(); 
+                        } else if (this._clearedItems && this._clearedItems.length > 0) {
+                            // Magic un-clear: restores drawings if you hit undo after hitting clear
+                            this.data.drawItems = [...this._clearedItems];
+                            this._clearedItems = null;
+                            this.renderExistingItems();
+                            this.api.onChange();
+                        }
+                    };
+
+                    this.clearBtn = createEl('button', 'tool-icon-btn', { innerHTML: ICONS.trash, style: 'display: none;', title: 'Clear All Drawings' });
+                    this.clearBtn.onclick = () => {
+                        if (this.data.drawItems?.length > 0) {
+                            this._clearedItems = [...this.data.drawItems]; // Cache in case of accidental wipe
+                            this.data.drawItems = [];
+                            this.renderExistingItems();
+                            this.api.onChange();
+                        }
+                    };
+
                     this.lockBtn = createEl('button', 'tool-icon-btn', { innerHTML: this.data.isLocked ? ICONS.lock : ICONS.unlock });
                     this.lockBtn.onclick = () => { this.data.isLocked = !this.data.isLocked; this.updateInteractions(); this.api.onChange(); };
-                    controls.push(this.colorPicker, this.drawBtn, this.lockBtn);
+                    
+                    controls.push(this.colorPicker, this.toolPicker, this.undoBtn, this.clearBtn, this.drawBtn, this.lockBtn);
                 }
                 
                 this.wrapper.appendChild(this.buildHeader(controls)); this.renderUniversalCanvas(); return this.wrapper;
@@ -1359,7 +1502,7 @@
 
             renderUniversalCanvas() {
                 if (this.map) { this.map.remove(); this.map = null; }
-                this.canvasWrapper = createEl('div', '', { style: 'position: relative; width: 100%; height: 400px;' });
+                this.canvasWrapper = createEl('div', 'canvas-wrapper', { style: 'position: relative; width: 100%; height: 400px;' });
                 this.mediaContainer = createEl('div', 'leaflet-container', {style: 'width: 100%; height: 100%; display: block; z-index: 1; border: none;'}); 
                 this.drawOverlay = createEl('div', '', {style: 'position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 1000; display: none; touch-action: none; cursor: crosshair;'});
                 
@@ -1367,44 +1510,88 @@
                 
                 requestAnimationFrame(() => {
                     if (!this.mediaContainer.isConnected) return;
-                    this.setupMap(); this.renderExistingLines(); this.initDrawingTracker(); this.updateInteractions();
+                    this.setupMap(); this.renderExistingItems(); this.initDrawingTracker(); this.updateInteractions();
                     this.map.on('moveend', () => this.api.onChange()); setTimeout(() => { if (this.map) this.map.invalidateSize(); }, 100);
                 });
             }
 
             setupMap() {}
 
-            renderExistingLines() {
-                this.lineLayers.forEach(layer => this.map.removeLayer(layer)); this.lineLayers = [];
-                this.data.lines.forEach(line => { this.lineLayers.push(L.polyline(line.points, { color: line.color, weight: line.weight, lineCap: 'round', lineJoin: 'round', smoothFactor: 1.5 }).addTo(this.map)); });
+            renderExistingItems() {
+                this.drawLayers.forEach(layer => this.map.removeLayer(layer)); 
+                this.drawLayers = [];
+                
+                this.data.lines?.forEach(line => { 
+                    this.drawLayers.push(L.polyline(line.points, { color: line.color, weight: line.weight, lineCap: 'round', lineJoin: 'round', smoothFactor: 1.5 }).addTo(this.map)); 
+                });
+
+                this.data.drawItems?.forEach(item => {
+                    let layer;
+                    if (item.type === 'line') layer = L.polyline(item.points, { color: item.color, weight: item.weight || 4, lineCap: 'round', lineJoin: 'round', smoothFactor: 1.5 });
+                    else if (item.type === 'rect') layer = L.rectangle(item.bounds, { color: item.color, weight: 2, fillOpacity: 0.1 });
+                    else if (item.type === 'circle') layer = L.circle(item.center, { radius: item.radius, color: item.color, weight: 2, fillOpacity: 0.1 });
+                    else if (item.type === 'text') layer = L.marker(item.latlng, { icon: L.divIcon({ className: '', html: `<div style="color:${item.color}; font-size:16px; font-family: monospace; font-weight:bold; white-space:nowrap; text-shadow: 1px 1px 2px var(--bg-color);">${item.text}</div>` }) });
+                    
+                    if (layer) { layer.addTo(this.map); this.drawLayers.push(layer); }
+                });
             }
 
             initDrawingTracker() {
                 if (this.readOnly || !this.map || !this.drawOverlay) return; 
                 let isPointerDown = false;
+                let startLatLng = null;
                 
                 this.drawOverlay.addEventListener('pointerdown', (e) => {
                     if (!this.data.isDrawingActive || !this.data.isLocked) return; 
                     isPointerDown = true; this.drawOverlay.setPointerCapture(e.pointerId);
                     const rect = this.drawOverlay.getBoundingClientRect();
-                    const latlng = this.map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
-                    this.currentPoints = [latlng];
-                    this.currentPolyline = L.polyline(this.currentPoints, { color: this.currentColor, weight: 4, lineCap: 'round', lineJoin: 'round', smoothFactor: 1.5 }).addTo(this.map);
+                    startLatLng = this.map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
+                    
+                    if (this.activeToolType === 'pen') {
+                        this.currentPoints = [startLatLng];
+                        this.currentShape = L.polyline(this.currentPoints, { color: this.currentColor, weight: 4, lineCap: 'round', lineJoin: 'round', smoothFactor: 1.5 }).addTo(this.map);
+                    } else if (this.activeToolType === 'rect') {
+                        this.currentShape = L.rectangle([startLatLng, startLatLng], { color: this.currentColor, weight: 2, fillOpacity: 0.1 }).addTo(this.map);
+                    } else if (this.activeToolType === 'circle') {
+                        this.currentShape = L.circle(startLatLng, { radius: 0, color: this.currentColor, weight: 2, fillOpacity: 0.1 }).addTo(this.map);
+                    }
                 });
                 
                 this.drawOverlay.addEventListener('pointermove', (e) => {
-                    if (!this.data.isDrawingActive || !isPointerDown || !this.currentPolyline) return;
+                    if (!this.data.isDrawingActive || !isPointerDown || !this.currentShape) return;
                     const rect = this.drawOverlay.getBoundingClientRect();
-                    const latlng = this.map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
-                    this.currentPoints.push(latlng); this.currentPolyline.setLatLngs(this.currentPoints);
+                    const currentLatLng = this.map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
+                    
+                    if (this.activeToolType === 'pen') {
+                        this.currentPoints.push(currentLatLng); 
+                        this.currentShape.setLatLngs(this.currentPoints);
+                    } else if (this.activeToolType === 'rect') {
+                        this.currentShape.setBounds([startLatLng, currentLatLng]);
+                    } else if (this.activeToolType === 'circle') {
+                        const radius = this.map.distance(startLatLng, currentLatLng);
+                        this.currentShape.setRadius(radius);
+                    }
                 });
                 
                 const endDraw = (e) => {
                     if (!isPointerDown) return; 
                     isPointerDown = false; this.drawOverlay.releasePointerCapture(e.pointerId);
-                    if (!this.currentPolyline || !this.data.isDrawingActive) return;
-                    this.data.lines.push({ color: this.currentColor, weight: 4, points: this.currentPoints.map(p => [p.lat, p.lng]) });
-                    this.lineLayers.push(this.currentPolyline); this.currentPolyline = null; this.currentPoints = []; this.api.onChange();
+                    if (!this.currentShape || !this.data.isDrawingActive) return;
+                    
+                    if (this.activeToolType === 'pen') {
+                        this.data.drawItems.push({ type: 'line', color: this.currentColor, weight: 4, points: this.currentPoints.map(p => [p.lat, p.lng]) });
+                    } else if (this.activeToolType === 'rect') {
+                        const bounds = this.currentShape.getBounds();
+                        this.data.drawItems.push({ type: 'rect', color: this.currentColor, bounds: [[bounds.getSouthWest().lat, bounds.getSouthWest().lng], [bounds.getNorthEast().lat, bounds.getNorthEast().lng]] });
+                    } else if (this.activeToolType === 'circle') {
+                        this.data.drawItems.push({ type: 'circle', color: this.currentColor, center: [startLatLng.lat, startLatLng.lng], radius: this.currentShape.getRadius() });
+                    }
+                    
+                    this._clearedItems = null; // Clear the undo cache when a new item is drawn
+                    this.drawLayers.push(this.currentShape); 
+                    this.currentShape = null; 
+                    this.currentPoints = []; 
+                    this.api.onChange();
                 };
                 
                 this.drawOverlay.addEventListener('pointerup', endDraw); this.drawOverlay.addEventListener('pointercancel', endDraw);
@@ -1420,14 +1607,34 @@
                     this.data.isDrawingActive = false; enableAll();
                     if (this.drawOverlay) this.drawOverlay.style.display = 'none';
                     if (this.lockBtn) this.lockBtn.innerHTML = ICONS.unlock;
-                    if (this.drawBtn) { this.drawBtn.style.display = 'none'; this.colorPicker.style.display = 'none'; this.drawBtn.classList.remove('active'); }
+                    if (this.drawBtn) { 
+                        this.drawBtn.style.display = 'none'; 
+                        this.colorPicker.style.display = 'none'; 
+                        if (this.toolPicker) this.toolPicker.style.display = 'none';
+                        if (this.undoBtn) this.undoBtn.style.display = 'none';
+                        if (this.clearBtn) this.clearBtn.style.display = 'none';
+                        this.drawBtn.classList.remove('active'); 
+                    }
                 } else {
                     disableAll();
                     if (this.lockBtn) this.lockBtn.innerHTML = ICONS.lock;
                     if (this.drawBtn) { 
-                        this.drawBtn.style.display = 'flex'; this.colorPicker.style.display = 'block'; 
-                        if (this.data.isDrawingActive) { if (this.drawOverlay) this.drawOverlay.style.display = 'block'; this.drawBtn.classList.add('active'); } 
-                        else { if (this.drawOverlay) this.drawOverlay.style.display = 'none'; this.drawBtn.classList.remove('active'); }
+                        this.drawBtn.style.display = 'flex'; 
+                        this.colorPicker.style.display = 'block'; 
+                        if (this.data.isDrawingActive) { 
+                            if (this.drawOverlay) this.drawOverlay.style.display = 'block'; 
+                            if (this.toolPicker) this.toolPicker.style.display = 'flex';
+                            if (this.undoBtn) this.undoBtn.style.display = 'flex';
+                            if (this.clearBtn) this.clearBtn.style.display = 'flex';
+                            this.drawBtn.classList.add('active'); 
+                        } 
+                        else { 
+                            if (this.drawOverlay) this.drawOverlay.style.display = 'none'; 
+                            if (this.toolPicker) this.toolPicker.style.display = 'none';
+                            if (this.undoBtn) this.undoBtn.style.display = 'none';
+                            if (this.clearBtn) this.clearBtn.style.display = 'none';
+                            this.drawBtn.classList.remove('active'); 
+                        }
                     }
                 }
             }
@@ -1437,17 +1644,59 @@
         }
 
         class MapTool extends BaseCanvasTool {
-            getCanvasDefaultData(data) { return { lat: data?.lat || 51.505, lng: data?.lng || -0.09, zoom: data?.zoom || 13 }; }
+            getCanvasDefaultData(data) { return { lat: data?.lat ?? null, lng: data?.lng ?? null, zoom: data?.zoom ?? 16, isLocationSet: data?.isLocationSet || false }; }
             getPlaceholder() { return 'MAP TITLE...'; }
+            
+            setTileLayer() {
+                const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const tileUrl = isDark ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+                if (this.tileLayer) {
+                    this.tileLayer.setUrl(tileUrl);
+                } else {
+                    this.tileLayer = L.tileLayer(tileUrl, { maxZoom: 20 }).addTo(this.map);
+                }
+            }
+
             setupMap() {
-                this.map = L.map(this.mediaContainer, { zoomControl: false, attributionControl: false }).setView([this.data.lat, this.data.lng], this.data.zoom);
-                const tileUrl = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-                L.tileLayer(tileUrl, { maxZoom: 20 }).addTo(this.map);
+                const startLat = this.data.lat !== null ? this.data.lat : 51.505;
+                const startLng = this.data.lng !== null ? this.data.lng : -0.09;
+
+                this.map = L.map(this.mediaContainer, { zoomControl: false, attributionControl: false }).setView([startLat, startLng], this.data.zoom);
+                
+                this.setTileLayer();
+                
+                this.themeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                this.themeListener = () => this.setTileLayer();
+                this.themeQuery.addEventListener('change', this.themeListener);
+
+                if (!this.data.isLocationSet && navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition((pos) => {
+                        this.data.lat = pos.coords.latitude;
+                        this.data.lng = pos.coords.longitude;
+                        this.data.isLocationSet = true;
+                        if (this.map) {
+                            this.map.setView([this.data.lat, this.data.lng], 16);
+                            this.api.onChange();
+                        }
+                    }, () => {
+                        this.data.lat = startLat;
+                        this.data.lng = startLng;
+                        this.data.isLocationSet = true;
+                        this.api.onChange();
+                    });
+                }
+            }
+
+            destroy() {
+                if (this.themeQuery && this.themeListener) {
+                    this.themeQuery.removeEventListener('change', this.themeListener);
+                }
+                super.destroy();
             }
         }
 
         class BlankCanvasTool extends BaseCanvasTool {
-            getCanvasDefaultData(data) { return { lat: data?.lat || 0, lng: data?.lng || 0, zoom: data?.zoom || 0 }; }
+            getCanvasDefaultData(data) { return { lat: data?.lat ?? 0, lng: data?.lng ?? 0, zoom: data?.zoom ?? 0 }; }
             getPlaceholder() { return 'CANVAS TITLE...'; }
             setupMap() {
                 this.map = L.map(this.mediaContainer, { crs: L.CRS.Simple, zoomControl: false, attributionControl: false, minZoom: -4 });
@@ -1456,7 +1705,7 @@
         }
 
         class PhotoTool extends BaseCanvasTool {
-            getCanvasDefaultData(data) { return { lat: data?.lat || 0, lng: data?.lng || 0, zoom: data?.zoom || 0, baseImage: data?.baseImage || null, imgWidth: data?.imgWidth || null, imgHeight: data?.imgHeight || null, hasInitializedView: data?.hasInitializedView || false }; }
+            getCanvasDefaultData(data) { return { lat: data?.lat ?? 0, lng: data?.lng ?? 0, zoom: data?.zoom ?? 0, baseImage: data?.baseImage || null, imgWidth: data?.imgWidth || null, imgHeight: data?.imgHeight || null, hasInitializedView: data?.hasInitializedView || false }; }
             getPlaceholder() { return 'PHOTO TITLE...'; }
             needsSetup() { return !this.data.baseImage; }
             
@@ -1470,13 +1719,20 @@
                 body.innerHTML = '<div style="margin: 0 auto; width: 32px; height: 32px;">' + ICONS.image + '</div><div style="font-weight: bold; margin-top: 8px;">TAP TO UPLOAD</div>';
                 const fileInput = createEl('input', '', { type: 'file', accept: 'image/*', style: 'display: none;' });
                 body.onclick = () => fileInput.click();
-                fileInput.onchange = (e) => {
+                fileInput.onchange = async (e) => {
                     const file = e.target.files[0];
                     if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (re) => { 
-                            const img = new Image(); img.onload = () => { this.data.baseImage = re.target.result; this.data.imgWidth = img.width; this.data.imgHeight = img.height; this.render(); this.api.onChange(); }; img.src = re.target.result;
-                        }; reader.readAsDataURL(file);
+                        body.innerHTML = '<div style="font-weight: bold;">COMPRESSING IMAGE...</div>';
+                        try {
+                            const compressed = await compressImage(file, 1600, 1600, 0.85); // Downscale
+                            this.data.baseImage = compressed.dataUrl;
+                            this.data.imgWidth = compressed.width;
+                            this.data.imgHeight = compressed.height;
+                            this.render(); this.api.onChange();
+                        } catch (err) {
+                            alert("Failed to load image");
+                            this.renderSetup(); // Reset UI
+                        }
                     }
                 };
                 this.wrapper.append(body, fileInput); setTimeout(() => titleInput.focus(), 0);
@@ -1505,20 +1761,45 @@
         function renderPersonasIndex() {
             const container = document.getElementById('editor-container'); container.innerHTML = '';
             
-            const ragWrapper = createEl('div', 'tool-box', { style: 'padding: 16px; margin-bottom: 24px; border-color: var(--text-color);' });
-            ragWrapper.innerHTML = `<div style="font-weight: 900; font-size: 12px; margin-bottom: 8px; color: var(--text-color);">SEMANTIC DIRECTORY SEARCH</div>`;
-            
-            const ragInput = createEl('input', 'flat-input', { placeholder: 'Query semantic knowledge base...', style: 'font-size: 18px; border-bottom: 4px solid var(--text-color); padding-bottom: 8px;' });
+            const searchWrapper = createEl('div', '', { style: 'margin-bottom: 24px;' });
+            const searchInput = createEl('input', 'flat-input', { type: 'text', placeholder: 'SEARCH DIRECTORY...', style: 'font-size: 2em; font-weight: 900; border-bottom: 4px solid var(--text-color); padding-bottom: 8px; text-transform: uppercase; border-radius: 0;' });
             const ragResults = createEl('div', '', { style: 'margin-top: 16px; display: flex; flex-direction: column; gap: 8px;' });
             
-            ragInput.addEventListener('input', debounce(async (e) => {
+            searchWrapper.append(searchInput, ragResults);
+            
+            const grid = createEl('div', '', { style: 'display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px;' });
+            
+            const tags = TagIndex.getTags().filter(t => t.toLowerCase() !== '#personas'); 
+            const rootTagsSet = new Set(); tags.forEach(t => rootTagsSet.add(t.split('.')[0]));
+            const rootTags = Array.from(rootTagsSet).sort();
+            
+            const renderGrid = (query) => {
+                grid.innerHTML = ''; const q = query.toLowerCase();
+                const filtered = rootTags.filter(t => t.toLowerCase().includes(q));
+                
+                if (filtered.length === 0) { grid.appendChild(createEl('div', '', { textContent: 'NO PERSONAS FOUND.', style: 'color: var(--muted-text); font-weight: bold;' })); return; }
+
+                filtered.forEach(t => {
+                    const tagBtn = createEl('button', 'flat-btn', { textContent: t, style: 'justify-content: flex-start; text-transform: uppercase; font-family: monospace; font-size: 16px; padding: 16px;' });
+                    tagBtn.onclick = () => window.loadVirtualPage('tag-' + t.replace('#', '').toLowerCase());
+                    grid.appendChild(tagBtn);
+                });
+            };
+
+            searchInput.addEventListener('input', (e) => renderGrid(e.target.value));
+            
+            let currentSearchId = 0;
+            searchInput.addEventListener('input', debounce(async (e) => {
                 const query = e.target.value.trim();
+                const thisSearchId = ++currentSearchId;
+                
                 if (!query) { ragResults.innerHTML = ''; return; }
                 
                 ragResults.innerHTML = '<div style="color: var(--text-color); font-size: 12px; font-weight: bold;">QUERYING INDEX...</div>';
                 
                 try {
                     const scored = await AIEngine.semanticSearch(query, { limit: 5, threshold: 0.35, requireTag: true });
+                    if (thisSearchId !== currentSearchId) return; // Prevent async race replacement
                     
                     ragResults.innerHTML = '';
                     if (scored.length === 0) {
@@ -1542,37 +1823,13 @@
                         ragResults.appendChild(item);
                     });
                 } catch(err) {
+                    if (thisSearchId !== currentSearchId) return;
                     ragResults.innerHTML = `<div style="color: #ef4444; font-size: 12px; font-weight: bold;">Search Failed: ${err.message}</div>`;
                 }
             }, 500));
-            ragWrapper.append(ragInput, ragResults);
             
-            const searchWrapper = createEl('div', '', { style: 'margin-bottom: 24px;' });
-            const searchBox = createEl('input', 'flat-input', { type: 'text', placeholder: 'SEARCH DIRECTORY...', style: 'font-size: 2em; font-weight: 900; border-bottom: 4px solid var(--text-color); padding-bottom: 8px; text-transform: uppercase; border-radius: 0;' });
-            searchWrapper.appendChild(searchBox);
-            
-            const grid = createEl('div', '', { style: 'display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px;' });
-            
-            const tags = TagIndex.getTags().filter(t => t.toLowerCase() !== '#personas'); 
-            const rootTagsSet = new Set(); tags.forEach(t => rootTagsSet.add(t.split('.')[0]));
-            const rootTags = Array.from(rootTagsSet).sort();
-            
-            const renderGrid = (query) => {
-                grid.innerHTML = ''; const q = query.toLowerCase();
-                const filtered = rootTags.filter(t => t.toLowerCase().includes(q));
-                
-                if (filtered.length === 0) { grid.appendChild(createEl('div', '', { textContent: 'NO PERSONAS FOUND.', style: 'color: var(--muted-text); font-weight: bold;' })); return; }
-
-                filtered.forEach(t => {
-                    const tagBtn = createEl('button', 'flat-btn', { textContent: t, style: 'justify-content: flex-start; text-transform: uppercase; font-family: monospace; font-size: 16px; padding: 16px;' });
-                    tagBtn.onclick = () => window.loadVirtualPage('tag-' + t.replace('#', '').toLowerCase());
-                    grid.appendChild(tagBtn);
-                });
-            };
-            
-            searchBox.addEventListener('input', (e) => renderGrid(e.target.value));
-            container.append(ragWrapper, searchWrapper, grid);
-            renderGrid(''); setTimeout(() => ragInput.focus(), 50);
+            container.append(searchWrapper, grid);
+            renderGrid(''); setTimeout(() => searchInput.focus(), 50);
         }
 
         // ============================================================================
@@ -1585,7 +1842,6 @@
                 
                 this.slashMenuEl = document.getElementById('slash-menu'); this.slashActiveBlock = null; this.slashSelectedIndex = 0;
                 
-                // Excluded 'table' - restricted to text activation via '| '
                 this.slashOptions = [
                     {id: 'map', icon: ICONS.map, name: 'Map Location', keywords: 'map location geography'},
                     {id: 'photo', icon: ICONS.image, name: 'Photo Annotation', keywords: 'photo image picture paint draw'},
@@ -1688,13 +1944,15 @@
                 const instance = new BlockClass({ data, api, readOnly: isBlockReadOnly });
                 const wrapper = createEl('div', `block-wrapper ${isBlockReadOnly ? 'is-readonly' : ''}`); wrapper.dataset.id = blockId;
                 
-                if (isBlockReadOnly && dynamicInfo && dynamicInfo.source) { wrapper.onclick = (e) => { if (!e.target.closest('a') && !e.target.closest('button') && !e.target.closest('input') && !e.target.closest('.tool-controls')) window.loadVirtualPage(dynamicInfo.source); }; }
+                if (isBlockReadOnly && dynamicInfo && dynamicInfo.source) { wrapper.onclick = (e) => { if (!e.target.closest('a') && !e.target.closest('button') && !e.target.closest('input') && !e.target.closest('.tool-controls') && !dynamicInfo.isSection) window.loadVirtualPage(dynamicInfo.source); }; }
 
                 let timeEl = createEl('div', 'block-time');
                 if (dynamicInfo) {
-                    const dateObj = dynamicInfo.timestamp ? new Date(dynamicInfo.timestamp) : new Date(...dynamicInfo.source.split('-').map((v, i) => i === 1 ? v - 1 : v), 12, 0);
-                    timeEl = createEl('a', 'block-time v-link', { textContent: `${dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} @ ${dateObj.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`, 'data-target': dynamicInfo.source });
-                    timeEl.title = 'Jump to Date'; timeEl.onclick = (e) => { e.preventDefault(); window.loadVirtualPage(dynamicInfo.source); };
+                    if (!dynamicInfo.isSection) {
+                        const dateObj = dynamicInfo.timestamp ? new Date(dynamicInfo.timestamp) : new Date(...dynamicInfo.source.split('-').map((v, i) => i === 1 ? v - 1 : v), 12, 0);
+                        timeEl = createEl('a', 'block-time v-link', { textContent: `${dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} @ ${dateObj.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`, 'data-target': dynamicInfo.source });
+                        timeEl.title = 'Jump to Date'; timeEl.onclick = (e) => { e.preventDefault(); window.loadVirtualPage(dynamicInfo.source); };
+                    }
                 } else {
                     if (window.timestamps && window.timestamps[blockId]) timeEl.textContent = new Date(window.timestamps[blockId]).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
                     else if (!this.readOnly && window.timestamps) { window.timestamps[blockId] = Date.now(); timeEl.textContent = new Date(window.timestamps[blockId]).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }); }
@@ -1774,10 +2032,16 @@
         // VIRTUAL ROUTING & EDITOR INITIALIZATION
         // ============================================================================
         window.loadVirtualPage = async function(key) {
-            const oldStorageKey = window.currentDateStr; let storageKey = key; let tagParts = [];
+            const oldStorageKey = window.currentDateStr; 
+            let storageKey = key; 
+            let tagParts = [];
             
-            if (key.startsWith('tag-')) { tagParts = key.substring(4).split('.').filter(Boolean); storageKey = 'tag-' + tagParts[0]; }
-            window.currentDateStr = storageKey; const dateHeader = document.getElementById('date-header');
+            if (key.startsWith('tag-')) { 
+                tagParts = key.substring(4).split('.').filter(Boolean); 
+                storageKey = 'tag-' + tagParts[0]; 
+            }
+            window.currentDateStr = storageKey; 
+            const dateHeader = document.getElementById('date-header');
             
             if (/^\d{4}-\d{2}-\d{2}$/.test(storageKey)) dateHeader.innerHTML = getDisplayDate(storageKey);
             else if (storageKey === 'tag-personas') dateHeader.innerHTML = '#PERSONAS';
@@ -1788,19 +2052,27 @@
                 if (window.editor) { await executeSave(oldStorageKey); window.editor.destroy(); window.editor = null; }
                 renderPersonasIndex();
             } else {
-                await initEditor(storageKey, oldStorageKey, tagParts);
+                await initEditor(storageKey, oldStorageKey);
+                
+                // If specific sub-section was requested (e.g. #persona.section), scroll to it directly
                 if (tagParts.length > 1) {
                     setTimeout(() => {
-                        const targetName = tagParts[tagParts.length - 1].toUpperCase();
-                        const headers = Array.from(document.querySelectorAll('.native-header-' + tagParts.length));
-                        const targetEl = headers.find(h => h.textContent.trim().toUpperCase().startsWith(targetName));
-                        if (targetEl) targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        const targetName = tagParts.slice(1).join(' ').toUpperCase();
+                        const headers = Array.from(document.querySelectorAll('.native-header-2'));
+                        const targetEl = headers.find(h => h.textContent.trim().toUpperCase() === targetName);
+                        
+                        if (targetEl) {
+                            targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            targetEl.style.backgroundColor = 'var(--text-color)';
+                            targetEl.style.color = 'var(--bg-color)';
+                            setTimeout(() => { targetEl.style.backgroundColor = ''; targetEl.style.color = ''; }, 800);
+                        }
                     }, 150);
                 }
             }
         };
 
-        async function initEditor(newStorageKey, oldStorageKey, tagParts = []) {
+        async function initEditor(newStorageKey, oldStorageKey) {
             if (window.editor) { await executeSave(oldStorageKey); window.editor.destroy(); window.editor = null; }
             
             const isEditable = /^\d{4}-\d{2}-\d{2}$/.test(newStorageKey) ? newStorageKey === todayStr : true; 
@@ -1809,51 +2081,60 @@
             window.timestamps = editorData.timestamps || {};
 
             if (newStorageKey.startsWith('tag-')) {
-                const baseTag = tagParts[0] || newStorageKey.substring(4);
-                let mentionsByPath = { '': [] };
+                const baseTag = newStorageKey.substring(4); 
                 
-                TagIndex.getMentionsForRoot(baseTag).forEach(m => {
-                    const cleanTag = m.fullTag.replace('#', '').toLowerCase();
-                    const pathObjStr = cleanTag === baseTag.toLowerCase() ? '' : cleanTag.substring(baseTag.length + 1);
-                    if (!mentionsByPath[pathObjStr]) mentionsByPath[pathObjStr] = [];
-                    mentionsByPath[pathObjStr].push(m);
-                });
-
                 if (editorData.blocks.length === 0) editorData.blocks.push({ type: 'paragraph', data: {}, id: crypto.randomUUID() });
 
-                const scaffoldHeading = (path) => {
-                    if (!path) { const idx = editorData.blocks.findIndex(b => b.type === 'header' && b.data.level === 2); return idx !== -1 ? idx : editorData.blocks.length; }
-                    const parts = path.split('.'); let searchStartIdx = 0; let searchEndIdx = editorData.blocks.length; let currentLevel = 2;
-                    
-                    for(let i=0; i<parts.length; i++) {
-                        const partName = parts[i].toUpperCase(); let existingIdx = -1;
-                        for (let j = searchStartIdx; j < searchEndIdx; j++) {
-                            const b = editorData.blocks[j];
-                            if (b.type === 'header' && b.data.level === currentLevel && !b.dynamicInfo && (b.data.text || '').replace(/<[^>]*>?/gm, '').trim().toUpperCase().startsWith(partName)) { existingIdx = j; break; }
-                        }
-                        
-                        if (existingIdx !== -1) {
-                            searchStartIdx = existingIdx + 1; let nextHeaderIdx = -1;
-                            for (let j = searchStartIdx; j < editorData.blocks.length; j++) { if (editorData.blocks[j].type === 'header' && editorData.blocks[j].data.level <= currentLevel && !editorData.blocks[j].dynamicInfo) { nextHeaderIdx = j; break; } }
-                            searchEndIdx = nextHeaderIdx !== -1 ? nextHeaderIdx : editorData.blocks.length;
-                        } else {
-                            const newId = crypto.randomUUID(); const pId = crypto.randomUUID();
-                            editorData.blocks.splice(searchEndIdx, 0, { type: 'header', data: { text: partName, level: currentLevel }, id: newId }, { type: 'paragraph', data: {}, id: pId });
-                            window.timestamps[newId] = Date.now(); window.timestamps[pId] = Date.now();
-                            searchStartIdx = searchEndIdx + 2; searchEndIdx = searchEndIdx + 2;
-                        }
-                        currentLevel++;
-                    }
-                    return searchEndIdx;
-                };
+                const mentions = TagIndex.getMentionsForRoot(baseTag);
+                const groups = { '': [] };
 
-                Object.keys(mentionsByPath).sort().forEach(path => {
-                    let insertIdx = scaffoldHeading(path);
-                    mentionsByPath[path].sort((a,b) => (b.timestamp || new Date(b.day).getTime()) - (a.timestamp || new Date(a.day).getTime())).forEach(m => {
+                // Radically simplified flat grouping logic by section
+                mentions.forEach(m => {
+                    const parts = m.fullTag.replace('#', '').split('.');
+                    const section = parts.length > 1 ? parts.slice(1).join(' ').toUpperCase() : '';
+                    
+                    if (!groups[section]) groups[section] = [];
+                    // Deduplicate in case a block has two tags in the same section e.g. #bob.ideas and #bob.ideas 
+                    if (!groups[section].some(existing => existing.block.id === m.block.id)) groups[section].push(m);
+                });
+
+                Object.keys(groups).sort().forEach(section => {
+                    if (groups[section].length === 0) return;
+                    
+                    let insertIdx = editorData.blocks.length;
+
+                    if (section !== '') {
+                        // Find existing permanent H2 for this section
+                        let sectionH2Idx = editorData.blocks.findIndex(b => b.type === 'header' && b.data.level === 2 && !b.dynamicInfo && (b.data.text || '').replace(/<[^>]*>?/gm, '').trim().toUpperCase() === section);
+
+                        if (sectionH2Idx === -1) {
+                            // Create permanent H2 and a blank paragraph for user to type
+                            editorData.blocks.push({ type: 'header', data: { text: section, level: 2 }, id: crypto.randomUUID() });
+                            editorData.blocks.push({ type: 'paragraph', data: {}, id: crypto.randomUUID() });
+                            insertIdx = editorData.blocks.length;
+                        } else {
+                            // Find where this section ends (right before the next H1/H2)
+                            insertIdx = sectionH2Idx + 1;
+                            while (insertIdx < editorData.blocks.length) {
+                                const b = editorData.blocks[insertIdx];
+                                if (b.type === 'header' && b.data.level <= 2 && !b.dynamicInfo) break;
+                                insertIdx++;
+                            }
+                        }
+                    } else {
+                        // Base mentions go right before the first H2
+                        const firstH2Idx = editorData.blocks.findIndex(b => b.type === 'header' && b.data.level === 2 && !b.dynamicInfo);
+                        insertIdx = firstH2Idx !== -1 ? firstH2Idx : editorData.blocks.length;
+                    }
+
+                    const dynamicBlocks = groups[section].sort((a,b) => (b.timestamp || new Date(b.day).getTime()) - (a.timestamp || new Date(a.day).getTime())).map(m => {
                         const blockClone = JSON.parse(JSON.stringify(m.block));
-                        blockClone.dynamicInfo = { source: m.day, timestamp: m.timestamp }; blockClone.id = 'dyn-' + crypto.randomUUID();
-                        editorData.blocks.splice(insertIdx, 0, blockClone); insertIdx++;
+                        blockClone.dynamicInfo = { source: m.day, timestamp: m.timestamp }; 
+                        blockClone.id = 'dyn-' + crypto.randomUUID();
+                        return blockClone;
                     });
+
+                    editorData.blocks.splice(insertIdx, 0, ...dynamicBlocks);
                 });
             }
 
