@@ -2,884 +2,485 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Site Analysis & WebODM Viewer</title>
-
-    <!-- Tailwind CSS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebODM Deck.GL Map</title>
+    
+    <!-- Tailwind CSS for UI -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- OpenLayers -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v9.0.0/ol.css">
-    <script src="https://cdn.jsdelivr.net/npm/ol@v9.0.0/dist/ol.js"></script>
-
-    <!-- Turf.js for Geospatial Analysis -->
-    <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
-
-    <!-- jsPDF for Report Generation -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- MapLibre GL JS -->
+    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+    <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+    
+    <!-- Deck.GL (Standalone UMD) -->
+    <script src="https://unpkg.com/deck.gl@8.9.33/dist.min.js"></script>
 
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { margin: 0; padding: 0; overflow: hidden; font-family: system-ui, -apple-system, sans-serif; background: #000; }
         
-        body { font-family: 'Inter', sans-serif; overflow: hidden; overscroll-behavior: none; margin: 0; }
+        /* Fullscreen Map */
+        #map { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 1; }
         
-        #map { width: 100vw; height: 100vh; background-color: #f3f4f6; }
+        /* Floating UI Elements */
+        #layer-panel {
+            position: absolute;
+            bottom: 80px;
+            right: 20px;
+            width: 360px;
+            max-height: calc(100vh - 100px);
+            z-index: 10;
+            transform: translateX(120%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+        }
         
-        /* Minimalist OpenLayers Overrides */
-        .ol-control { background-color: rgba(255,255,255,0.9) !important; padding: 4px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        .ol-control button { background-color: white !important; color: #374151 !important; border-radius: 4px; font-weight: bold; }
-        .ol-control button:hover { background-color: #f3f4f6 !important; }
-        .ol-scale-line { background: rgba(255,255,255,0.9); border-radius: 4px; color: #111; font-weight: 600; }
-        
-        /* Glassmorphism overlays */
-        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        
-        /* Context Menu */
-        #context-menu { position: absolute; z-index: 1000; min-width: 200px; transform: scale(0.95); opacity: 0; pointer-events: none; transition: transform 0.1s ease, opacity 0.1s ease; }
-        #context-menu.active { transform: scale(1); opacity: 1; pointer-events: auto; }
-        
-        /* Sliding Right Panel */
-        #feature-panel { position: absolute; right: -400px; top: 0; width: 380px; height: 100vh; transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 50; overflow-y: auto; }
-        #feature-panel.open { right: 0; }
+        #layer-panel.open {
+            transform: translateX(0);
+        }
 
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        
-        /* Loader */
-        .loader-overlay { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(4px); }
+        #fab-btn {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 20;
+        }
+
+        /* Custom Scrollbar for Panel */
+        .scrollable-content::-webkit-scrollbar { width: 6px; }
+        .scrollable-content::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 4px; }
+        .scrollable-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+        .scrollable-content::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.4); }
     </style>
 </head>
-<body class="text-slate-800 antialiased">
+<body class="text-white">
 
     <!-- Map Container -->
     <div id="map"></div>
 
-    <!-- UI Overlay: Top Left Report Title -->
-    <div class="absolute top-4 left-4 z-10 glass-panel px-5 py-3 rounded-xl pointer-events-auto flex items-center gap-3">
-        <div class="bg-blue-600 text-white p-2 rounded-lg"><i data-lucide="map"></i></div>
-        <div>
-            <h1 id="report-title" class="font-bold text-lg leading-tight text-slate-900 cursor-pointer hover:text-blue-600 transition-colors" onclick="App.UI.editProjectInfo()">Site Analysis Report</h1>
-            <p id="report-client" class="text-xs text-slate-500 font-medium">Right-click map to begin</p>
-        </div>
-    </div>
-
-    <!-- UI Overlay: WebODM / Tile Layers Control (Bottom Left) -->
-    <div id="layers-control" class="absolute bottom-6 left-4 z-10 glass-panel rounded-xl pointer-events-auto flex flex-col gap-2 p-3 hidden">
-        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Active Tile Layers</h3>
-        <div id="layers-list" class="space-y-2"></div>
-    </div>
-
-    <!-- Context Menu -->
-    <div id="context-menu" class="glass-panel rounded-xl py-2 shadow-2xl">
-        <div class="px-3 py-1 mb-1 border-b border-slate-100 text-xs font-semibold text-slate-400 uppercase tracking-wider" id="context-menu-title">Map Actions</div>
+    <!-- Floating Panel for Data & Layers -->
+    <div id="layer-panel" class="bg-gray-900/95 backdrop-blur-lg shadow-2xl rounded-xl border border-gray-700 overflow-hidden">
         
-        <div id="menu-standard">
-            <button onclick="App.Interactions.startDrawing('Polygon')" class="w-full text-left px-4 py-2 hover:bg-blue-50 hover:text-blue-700 flex items-center gap-2 text-sm"><i data-lucide="hexagon" class="w-4 h-4"></i> Draw Area</button>
-            <button onclick="App.Interactions.startDrawing('LineString')" class="w-full text-left px-4 py-2 hover:bg-blue-50 hover:text-blue-700 flex items-center gap-2 text-sm"><i data-lucide="route" class="w-4 h-4"></i> Draw Route</button>
-            <button onclick="App.Interactions.startDrawing('Point')" class="w-full text-left px-4 py-2 hover:bg-blue-50 hover:text-blue-700 flex items-center gap-2 text-sm"><i data-lucide="map-pin" class="w-4 h-4"></i> Add Point</button>
-            <div class="h-px bg-slate-200 my-1"></div>
-            <button onclick="App.UI.showWebODMModal()" class="w-full text-left px-4 py-2 hover:bg-blue-50 hover:text-blue-700 flex items-center gap-2 text-sm"><i data-lucide="layers" class="w-4 h-4"></i> Add WebODM Tile Layer</button>
-            <div class="h-px bg-slate-200 my-1"></div>
-            <button onclick="App.UI.manageCategories()" class="w-full text-left px-4 py-2 hover:bg-blue-50 hover:text-blue-700 flex items-center gap-2 text-sm"><i data-lucide="tags" class="w-4 h-4"></i> Manage Categories</button>
-            <button onclick="App.PDF.generate()" class="w-full text-left px-4 py-2 hover:bg-green-50 hover:text-green-700 flex items-center gap-2 text-sm"><i data-lucide="file-down" class="w-4 h-4"></i> Export PDF Report</button>
+        <!-- Header -->
+        <div class="bg-gray-800 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+            <h2 class="font-bold text-gray-100 flex items-center gap-2">
+                <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+                Data Manager
+            </h2>
+            <button id="btn-close-panel" class="text-gray-400 hover:text-white transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
         </div>
 
-        <div id="menu-feature" class="hidden">
-            <button onclick="App.Interactions.editSelectedShape()" class="w-full text-left px-4 py-2 hover:bg-blue-50 hover:text-blue-700 flex items-center gap-2 text-sm"><i data-lucide="edit-3" class="w-4 h-4"></i> Edit Shape</button>
-            <button onclick="App.Features.deleteSelected()" class="w-full text-left px-4 py-2 hover:bg-red-50 hover:text-red-700 flex items-center gap-2 text-sm text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i> Delete Feature</button>
-        </div>
-    </div>
+        <div class="scrollable-content overflow-y-auto p-4 flex flex-col gap-5 flex-grow">
+            
+            <!-- Connection Form -->
+            <form id="auth-form" class="flex flex-col gap-3">
+                <p class="text-xs text-gray-400 mb-2">Connect to your WebODM instance to load layers.</p>
+                <div>
+                    <label class="text-xs text-gray-400 font-semibold uppercase">Server URL</label>
+                    <input type="text" id="server-url" value="http://localhost:8000" required class="w-full mt-1 bg-black/50 border border-gray-700 rounded p-2 text-sm focus:outline-none focus:border-blue-500 transition">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-400 font-semibold uppercase">Username</label>
+                    <input type="text" id="username" value="admin" required class="w-full mt-1 bg-black/50 border border-gray-700 rounded p-2 text-sm focus:outline-none focus:border-blue-500 transition">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-400 font-semibold uppercase">Password</label>
+                    <input type="password" id="password" required class="w-full mt-1 bg-black/50 border border-gray-700 rounded p-2 text-sm focus:outline-none focus:border-blue-500 transition">
+                </div>
+                <button type="submit" id="btn-connect" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 rounded transition mt-2">
+                    Connect
+                </button>
+                <div id="auth-error" class="text-red-300 text-xs hidden bg-red-900/40 p-2 rounded border border-red-800"></div>
+            </form>
 
-    <!-- Sliding Feature Detail Panel -->
-    <div id="feature-panel" class="glass-panel border-l shadow-2xl flex flex-col">
-        <div class="p-4 border-b flex justify-between items-center bg-white/50">
-            <h2 class="font-bold text-lg flex items-center gap-2"><i data-lucide="info" class="w-5 h-5 text-blue-600"></i> Feature Details</h2>
-            <button onclick="App.UI.closeFeaturePanel()" class="p-1 hover:bg-slate-200 rounded-lg transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
-        </div>
-        
-        <div id="feature-panel-content" class="p-5 flex-1 flex flex-col gap-6">
-            <!-- Populated via JS -->
-        </div>
-    </div>
+            <!-- Data Selection & Layers (Hidden Initially) -->
+            <div id="data-section" class="hidden flex-col gap-5">
+                
+                <!-- Status Bar -->
+                <div class="flex justify-between items-center bg-black/30 p-2 rounded border border-gray-700/50">
+                    <span class="text-xs font-semibold text-green-400 flex items-center gap-1.5">
+                        <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div> Connected
+                    </span>
+                    <button id="btn-logout" class="text-xs text-gray-400 hover:text-white underline">Disconnect</button>
+                </div>
 
-    <!-- Reusable Modal Overlay -->
-    <div id="modal-overlay" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity">
-        <div id="modal-content" class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform scale-95 transition-transform duration-200">
-            <div class="px-6 py-4 border-b flex justify-between items-center">
-                <h3 id="modal-title" class="font-bold text-lg">Title</h3>
-                <button onclick="App.UI.closeModal()" class="text-slate-400 hover:text-slate-700"><i data-lucide="x" class="w-5 h-5"></i></button>
+                <!-- Selectors -->
+                <div class="flex flex-col gap-3">
+                    <div>
+                        <label class="text-xs text-gray-400 font-semibold uppercase">Project</label>
+                        <select id="project-select" class="w-full mt-1 bg-black/50 border border-gray-700 rounded p-2 text-sm focus:outline-none focus:border-blue-500">
+                            <option value="">Loading...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-400 font-semibold uppercase">Task</label>
+                        <select id="task-select" class="w-full mt-1 bg-black/50 border border-gray-700 rounded p-2 text-sm focus:outline-none focus:border-blue-500" disabled>
+                            <option value="">Select project first</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Layer Toggles -->
+                <div id="layer-controls" class="hidden flex-col gap-4 pt-4 border-t border-gray-700">
+                    
+                    <!-- Raster Layers -->
+                    <div>
+                        <h3 class="text-xs text-gray-400 font-semibold uppercase mb-2 flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            2D Raster Layers
+                        </h3>
+                        <div class="grid grid-cols-1 gap-2">
+                            <label class="flex items-center space-x-3 bg-black/30 p-2 rounded border border-gray-700/50 cursor-pointer hover:bg-black/50 transition">
+                                <input type="checkbox" class="layer-toggle w-4 h-4 text-blue-600 rounded border-gray-600 bg-gray-700" value="orthophoto" checked>
+                                <span class="text-sm font-medium">Orthophoto</span>
+                            </label>
+                            <label class="flex items-center space-x-3 bg-black/30 p-2 rounded border border-gray-700/50 cursor-pointer hover:bg-black/50 transition">
+                                <input type="checkbox" class="layer-toggle w-4 h-4 text-blue-600 rounded border-gray-600 bg-gray-700" value="dsm">
+                                <span class="text-sm font-medium">DSM (Surface Model)</span>
+                            </label>
+                            <label class="flex items-center space-x-3 bg-black/30 p-2 rounded border border-gray-700/50 cursor-pointer hover:bg-black/50 transition">
+                                <input type="checkbox" class="layer-toggle w-4 h-4 text-blue-600 rounded border-gray-600 bg-gray-700" value="dtm">
+                                <span class="text-sm font-medium">DTM (Terrain Model)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 3D / Vector Extensibility Stubs -->
+                    <div class="opacity-50">
+                        <h3 class="text-xs text-gray-400 font-semibold uppercase mb-2 flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path></svg>
+                            3D / Vector (Coming Soon)
+                        </h3>
+                        <div class="grid grid-cols-1 gap-2">
+                            <label class="flex items-center space-x-3 bg-black/30 p-2 rounded border border-gray-700/50 cursor-not-allowed">
+                                <input type="checkbox" disabled class="w-4 h-4 rounded border-gray-600 bg-gray-800">
+                                <span class="text-sm font-medium text-gray-500">Point Cloud (LAZ/Potree)</span>
+                            </label>
+                            <label class="flex items-center space-x-3 bg-black/30 p-2 rounded border border-gray-700/50 cursor-not-allowed">
+                                <input type="checkbox" disabled class="w-4 h-4 rounded border-gray-600 bg-gray-800">
+                                <span class="text-sm font-medium text-gray-500">3D Model (OBJ)</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
             </div>
-            <div id="modal-body" class="p-6 max-h-[70vh] overflow-y-auto"></div>
-            <div id="modal-footer" class="px-6 py-4 border-t bg-slate-50 flex justify-end gap-3">
-                <button onclick="App.UI.closeModal()" class="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 rounded-lg">Cancel</button>
-                <button id="modal-confirm" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm">Save</button>
-            </div>
         </div>
     </div>
 
-    <!-- Loader -->
-    <div id="loader" class="fixed inset-0 loader-overlay z-[9999] flex flex-col items-center justify-center hidden">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white mb-4"></div>
-        <div id="loader-text" class="text-white font-medium tracking-wide">Processing...</div>
-    </div>
+    <!-- Floating Action Button (FAB) -->
+    <button id="fab-btn" class="w-14 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-[0_0_20px_rgba(37,99,235,0.4)] flex items-center justify-center transition-transform hover:scale-105 active:scale-95">
+        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+    </button>
 
     <script>
-    // --- Application State & Logic ---
-    const App = {
-        map: null,
-        vectorSource: null,
-        vectorLayer: null,
-        baseLayer: null,
-        tileLayers: [], // Holds WebODM XYZ layers
+        // --- 1. State Management & DOM Elements ---
+        const state = {
+            url: '',
+            token: null,
+            projects: [],
+            tasks: [],
+            activeProject: null,
+            activeTask: null,
+            activeLayers: new Set(['orthophoto'])
+        };
+
+        const panel = document.getElementById('layer-panel');
+        const fabBtn = document.getElementById('fab-btn');
+        const btnClosePanel = document.getElementById('btn-close-panel');
+        const uiAuthForm = document.getElementById('auth-form');
+        const uiData = document.getElementById('data-section');
+        const uiError = document.getElementById('auth-error');
+        const btnConnect = document.getElementById('btn-connect');
+        const btnLogout = document.getElementById('btn-logout');
+        const selectProject = document.getElementById('project-select');
+        const selectTask = document.getElementById('task-select');
+        const layerControls = document.getElementById('layer-controls');
+        const layerToggles = document.querySelectorAll('.layer-toggle');
+
+        // --- 2. Register UI Interactions FIRST (Ensures UI works even if map crashes) ---
+        fabBtn.addEventListener('click', () => panel.classList.add('open'));
+        btnClosePanel.addEventListener('click', () => panel.classList.remove('open'));
+
+        layerToggles.forEach(toggle => {
+            toggle.addEventListener('change', (e) => {
+                if(e.target.checked) state.activeLayers.add(e.target.value);
+                else state.activeLayers.delete(e.target.value);
+                updateDeckLayers();
+            });
+        });
+
+        // --- 3. Map Initialization (Sandboxed to prevent crashes) ---
+        let map, deckOverlay;
         
-        state: {
-            project: {
-                title: 'Site Analysis Report',
-                client: 'Client Name',
-                date: new Date().toISOString().split('T')[0]
-            },
-            categories: {
-                'Default': { color: '#3b82f6', width: 3, fillOpacity: 0.4 }
-            },
-            features: [], // Array of GeoJSON features
-            selectedFeatureId: null,
-            contextMenuCoords: null
-        },
-
-        init() {
-            lucide.createIcons();
-            this.initMap();
-            this.initEvents();
-            this.UI.updateProjectHeader();
-        },
-
-        initMap() {
-            // Google Hybrid Base
-            this.baseLayer = new ol.layer.Tile({
-                source: new ol.source.XYZ({
-                    url: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
-                    crossOrigin: 'anonymous',
-                    maxZoom: 22
-                })
-            });
-
-            // Vector Source for drawn features
-            this.vectorSource = new ol.source.Vector({ wrapX: false });
-            this.vectorLayer = new ol.layer.Vector({
-                source: this.vectorSource,
-                style: this.Styling.getStyleFn()
-            });
-
-            this.map = new ol.Map({
-                target: 'map',
-                layers: [this.baseLayer, this.vectorLayer],
-                view: new ol.View({
-                    center: ol.proj.fromLonLat([-95.3698, 29.7604]), // Default: Houston
-                    zoom: 15,
-                    maxZoom: 22
-                }),
-                controls: ol.control.defaults.defaults({ zoom: true, rotate: true }).extend([
-                    new ol.control.ScaleLine({ units: 'us' })
-                ])
-            });
-
-            // Add Snap interaction by default for precise drawing
-            this.snapInteraction = new ol.interaction.Snap({ source: this.vectorSource });
-            this.map.addInteraction(this.snapInteraction);
-        },
-
-        initEvents() {
-            const mapContainer = document.getElementById('map');
-            const contextMenu = document.getElementById('context-menu');
-
-            // Custom Context Menu (Right Click)
-            mapContainer.addEventListener('contextmenu', (e) => {
-                e.preventDefault();
-                const pixel = [e.clientX, e.clientY];
-                const coords = this.map.getEventCoordinate(e);
-                
-                // Detect if clicked on a feature
-                let clickedFeature = null;
-                this.map.forEachFeatureAtPixel(pixel, (feature) => {
-                    clickedFeature = feature;
-                    return true;
-                });
-
-                App.state.contextMenuCoords = coords;
-                App.UI.showContextMenu(e.clientX, e.clientY, clickedFeature);
-            });
-
-            // Left Click (Select Feature or Close Menu)
-            this.map.on('singleclick', (e) => {
-                App.UI.hideContextMenu();
-                
-                if (this.currentDrawInteraction || this.currentModifyInteraction) return; // Don't select while drawing/editing
-
-                let clickedFeature = null;
-                this.map.forEachFeatureAtPixel(e.pixel, (feature) => {
-                    clickedFeature = feature;
-                    return true;
-                });
-
-                if (clickedFeature) {
-                    App.state.selectedFeatureId = clickedFeature.getId();
-                    App.UI.openFeaturePanel(clickedFeature);
-                } else {
-                    App.state.selectedFeatureId = null;
-                    App.UI.closeFeaturePanel();
-                }
-                this.vectorLayer.changed(); // Trigger style update for selection highlighting
-            });
-
-            // Close context menu on map drag/move
-            this.map.on('pointerdrag', () => App.UI.hideContextMenu());
-            
-            // Close context menu on outside click
-            document.addEventListener('click', (e) => {
-                if (!e.target.closest('#context-menu') && !e.target.closest('#map')) {
-                    App.UI.hideContextMenu();
-                }
-            });
-        },
-
-        // --- Interactions (Drawing & Modifying) ---
-        Interactions: {
-            startDrawing(type) {
-                App.UI.hideContextMenu();
-                if (App.currentDrawInteraction) App.map.removeInteraction(App.currentDrawInteraction);
-                
-                App.currentDrawInteraction = new ol.interaction.Draw({
-                    source: App.vectorSource,
-                    type: type,
-                    style: new ol.style.Style({
-                        fill: new ol.style.Fill({ color: 'rgba(59, 130, 246, 0.2)' }),
-                        stroke: new ol.style.Stroke({ color: 'rgba(59, 130, 246, 0.8)', width: 2, lineDash: [5, 5] }),
-                        image: new ol.style.Circle({ radius: 5, fill: new ol.style.Fill({ color: '#3b82f6' }) })
-                    })
-                });
-
-                App.map.addInteraction(App.currentDrawInteraction);
-
-                App.currentDrawInteraction.on('drawend', (e) => {
-                    // Slight delay to prevent firing map click
-                    setTimeout(() => {
-                        App.map.removeInteraction(App.currentDrawInteraction);
-                        App.currentDrawInteraction = null;
-                        
-                        const feature = e.feature;
-                        const id = crypto.randomUUID();
-                        feature.setId(id);
-                        
-                        // Default properties
-                        feature.setProperties({
-                            name: 'New Feature',
-                            category: Object.keys(App.state.categories)[0] || 'Default',
-                            desc: '',
-                            observations: []
-                        });
-                        
-                        App.state.selectedFeatureId = id;
-                        App.UI.openFeaturePanel(feature, true); // true = edit mode instantly
-                    }, 100);
-                });
-            },
-
-            editSelectedShape() {
-                App.UI.hideContextMenu();
-                const feature = App.vectorSource.getFeatureById(App.state.selectedFeatureId);
-                if (!feature) return;
-
-                if (App.currentModifyInteraction) App.map.removeInteraction(App.currentModifyInteraction);
-
-                App.currentModifyInteraction = new ol.interaction.Modify({
-                    features: new ol.Collection([feature])
-                });
-                
-                App.map.addInteraction(App.currentModifyInteraction);
-                
-                // Show a banner to stop editing
-                App.UI.showToast("Shape editing active. Click outside to finish.", "info");
-                
-                // Finish editing on next empty map click
-                const finishEdit = (e) => {
-                    let clickedFeature = null;
-                    App.map.forEachFeatureAtPixel(e.pixel, f => clickedFeature = f);
-                    if (!clickedFeature) {
-                        App.map.removeInteraction(App.currentModifyInteraction);
-                        App.currentModifyInteraction = null;
-                        App.map.un('singleclick', finishEdit);
-                        App.UI.showToast("Shape saved.", "success");
-                    }
-                };
-                setTimeout(() => App.map.on('singleclick', finishEdit), 200);
-            }
-        },
-
-        // --- Feature Data Management ---
-        Features: {
-            updateFeatureProps(id, props) {
-                const feature = App.vectorSource.getFeatureById(id);
-                if (feature) {
-                    feature.setProperties(props);
-                    App.vectorLayer.changed(); // Force redraw for styles/labels
-                    App.UI.openFeaturePanel(feature); // Refresh panel
-                }
-            },
-            
-            addObservation(featureId, obs) {
-                const feature = App.vectorSource.getFeatureById(featureId);
-                if (feature) {
-                    const current = feature.get('observations') || [];
-                    current.push({ id: crypto.randomUUID(), ...obs });
-                    feature.set('observations', current);
-                    App.UI.openFeaturePanel(feature);
-                }
-            },
-
-            deleteObservation(featureId, obsId) {
-                const feature = App.vectorSource.getFeatureById(featureId);
-                if (feature) {
-                    let current = feature.get('observations') || [];
-                    current = current.filter(o => o.id !== obsId);
-                    feature.set('observations', current);
-                    App.UI.openFeaturePanel(feature);
-                }
-            },
-
-            deleteSelected() {
-                App.UI.hideContextMenu();
-                if (!App.state.selectedFeatureId) return;
-                const feature = App.vectorSource.getFeatureById(App.state.selectedFeatureId);
-                if (feature) {
-                    App.vectorSource.removeFeature(feature);
-                    App.state.selectedFeatureId = null;
-                    App.UI.closeFeaturePanel();
-                    App.UI.showToast("Feature deleted", "success");
-                }
-            }
-        },
-
-        // --- Styling Engine (Translating Data to OL Styles) ---
-        Styling: {
-            hexToRgbA(hex, alpha) {
-                let r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
-                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-            },
-            
-            getStyleFn() {
-                return (feature) => {
-                    const isSelected = feature.getId() === App.state.selectedFeatureId;
-                    const catName = feature.get('category') || 'Default';
-                    const catDef = App.state.categories[catName] || { color: '#64748b', width: 2, fillOpacity: 0.4 };
-                    
-                    const colorHex = catDef.color;
-                    const strokeColor = isSelected ? '#ef4444' : colorHex; // Red outline if selected
-                    const strokeWidth = isSelected ? catDef.width + 2 : catDef.width;
-                    
-                    const style = new ol.style.Style({
-                        fill: new ol.style.Fill({
-                            color: this.hexToRgbA(colorHex, catDef.fillOpacity)
-                        }),
-                        stroke: new ol.style.Stroke({
-                            color: strokeColor,
-                            width: strokeWidth
-                        }),
-                        image: new ol.style.Circle({
-                            radius: isSelected ? 8 : 6,
-                            fill: new ol.style.Fill({ color: colorHex }),
-                            stroke: new ol.style.Stroke({ color: '#ffffff', width: 2 })
-                        }),
-                        text: new ol.style.Text({
-                            text: feature.get('name') || '',
-                            font: 'bold 12px Inter, sans-serif',
-                            fill: new ol.style.Fill({ color: '#1e293b' }),
-                            stroke: new ol.style.Stroke({ color: '#ffffff', width: 3 }),
-                            offsetY: -15
-                        })
-                    });
-                    
-                    return style;
-                };
-            }
-        },
-
-        // --- WebODM Integration ---
-        WebODM: {
-            addLayer(name, url, isBase = false) {
-                const layer = new ol.layer.Tile({
-                    source: new ol.source.XYZ({
-                        url: url,
-                        crossOrigin: 'anonymous',
-                        maxZoom: 22
-                    }),
-                    zIndex: isBase ? 1 : 10 // Put above base map, below vectors
-                });
-                
-                layer.set('name', name);
-                layer.set('isWebODM', true);
-                
-                App.map.addLayer(layer);
-                App.tileLayers.push(layer);
-                
-                App.UI.updateLayersControl();
-                App.UI.showToast(`Added Layer: ${name}`, "success");
-            },
-            
-            removeLayer(name) {
-                const layer = App.tileLayers.find(l => l.get('name') === name);
-                if (layer) {
-                    App.map.removeLayer(layer);
-                    App.tileLayers = App.tileLayers.filter(l => l.get('name') !== name);
-                    App.UI.updateLayersControl();
-                }
-            }
-        },
-
-        // --- UI Rendering ---
-        UI: {
-            showContextMenu(x, y, feature) {
-                const menu = document.getElementById('context-menu');
-                const standard = document.getElementById('menu-standard');
-                const featMenu = document.getElementById('menu-feature');
-                const title = document.getElementById('context-menu-title');
-
-                if (feature) {
-                    App.state.selectedFeatureId = feature.getId();
-                    standard.classList.add('hidden');
-                    featMenu.classList.remove('hidden');
-                    title.innerText = feature.get('name') || 'Feature Actions';
-                } else {
-                    App.state.selectedFeatureId = null;
-                    standard.classList.remove('hidden');
-                    featMenu.classList.add('hidden');
-                    title.innerText = 'Map Actions';
-                }
-
-                // Keep menu in bounds
-                menu.style.left = `${Math.min(x, window.innerWidth - 220)}px`;
-                menu.style.top = `${Math.min(y, window.innerHeight - 300)}px`;
-                menu.classList.add('active');
-            },
-
-            hideContextMenu() {
-                document.getElementById('context-menu').classList.remove('active');
-            },
-
-            updateProjectHeader() {
-                document.getElementById('report-title').innerText = App.state.project.title;
-                document.getElementById('report-client').innerText = `${App.state.project.client} • ${App.state.project.date}`;
-            },
-
-            editProjectInfo() {
-                const p = App.state.project;
-                this.showModal('Edit Project Info', `
-                    <div class="space-y-4">
-                        <div><label class="block text-sm font-medium mb-1">Project Title</label><input id="p-title" type="text" class="w-full border rounded p-2" value="${p.title}"></div>
-                        <div><label class="block text-sm font-medium mb-1">Client/Location</label><input id="p-client" type="text" class="w-full border rounded p-2" value="${p.client}"></div>
-                        <div><label class="block text-sm font-medium mb-1">Date</label><input id="p-date" type="date" class="w-full border rounded p-2" value="${p.date}"></div>
-                    </div>
-                `, () => {
-                    App.state.project.title = document.getElementById('p-title').value;
-                    App.state.project.client = document.getElementById('p-client').value;
-                    App.state.project.date = document.getElementById('p-date').value;
-                    this.updateProjectHeader();
-                    this.closeModal();
-                });
-            },
-
-            showWebODMModal() {
-                this.hideContextMenu();
-                this.showModal('Add WebODM Tile Layer', `
-                    <p class="text-sm text-slate-500 mb-4">Provide an XYZ tile URL (e.g. from WebODM).<br>Format: <code>http://ip/api/.../tiles/{z}/{x}/{y}.png</code></p>
-                    <div class="space-y-4">
-                        <div><label class="block text-sm font-medium mb-1">Layer Name</label><input id="wm-name" type="text" class="w-full border rounded p-2" placeholder="e.g. Flight 1 Orthophoto"></div>
-                        <div><label class="block text-sm font-medium mb-1">XYZ URL</label><input id="wm-url" type="text" class="w-full border rounded p-2" placeholder="http://..."></div>
-                    </div>
-                `, () => {
-                    const name = document.getElementById('wm-name').value;
-                    const url = document.getElementById('wm-url').value;
-                    if(name && url) {
-                        App.WebODM.addLayer(name, url);
-                        this.closeModal();
-                    }
-                });
-            },
-
-            updateLayersControl() {
-                const container = document.getElementById('layers-control');
-                const list = document.getElementById('layers-list');
-                list.innerHTML = '';
-                
-                if(App.tileLayers.length === 0) {
-                    container.classList.add('hidden');
-                    return;
-                }
-                
-                container.classList.remove('hidden');
-                App.tileLayers.forEach(layer => {
-                    const name = layer.get('name');
-                    list.innerHTML += `
-                        <div class="flex items-center justify-between gap-4 text-sm bg-white/60 px-2 py-1 rounded">
-                            <span class="font-medium truncate max-w-[150px]">${name}</span>
-                            <div class="flex items-center gap-2">
-                                <input type="range" min="0" max="1" step="0.1" value="${layer.getOpacity()}" 
-                                    onchange="App.tileLayers.find(l=>l.get('name')==='${name}').setOpacity(this.value)" class="w-16">
-                                <button onclick="App.WebODM.removeLayer('${name}')" class="text-red-500 hover:bg-red-50 p-1 rounded"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
-                            </div>
-                        </div>
-                    `;
-                });
-                lucide.createIcons();
-            },
-
-            manageCategories() {
-                this.hideContextMenu();
-                const renderCats = () => {
-                    return Object.entries(App.state.categories).map(([name, config]) => `
-                        <div class="flex items-center justify-between border-b pb-2">
-                            <span class="font-medium">${name}</span>
-                            <div class="flex items-center gap-2">
-                                <input type="color" value="${config.color}" onchange="App.state.categories['${name}'].color=this.value; App.vectorLayer.changed();">
-                                ${name !== 'Default' ? `<button onclick="delete App.state.categories['${name}']; document.getElementById('cat-modal-body').innerHTML=renderCats(); App.vectorLayer.changed();" class="text-red-500"><i data-lucide="x" class="w-4 h-4"></i></button>` : ''}
-                            </div>
-                        </div>
-                    `).join('');
-                };
-
-                this.showModal('Manage Categories', `
-                    <div class="mb-4 flex gap-2">
-                        <input id="new-cat-name" type="text" class="flex-1 border rounded p-2 text-sm" placeholder="New Category Name">
-                        <button id="add-cat-btn" class="bg-blue-600 text-white px-3 rounded text-sm font-medium">Add</button>
-                    </div>
-                    <div id="cat-modal-body" class="space-y-3">${renderCats()}</div>
-                `, () => this.closeModal());
-                
-                lucide.createIcons();
-                // We inject a local script just for the button inside modal to avoid global pollution
-                document.getElementById('add-cat-btn').onclick = () => {
-                    const name = document.getElementById('new-cat-name').value;
-                    if(name && !App.state.categories[name]) {
-                        App.state.categories[name] = { color: '#10b981', width: 2, fillOpacity: 0.4 };
-                        App.UI.manageCategories(); // re-render modal
-                    }
-                };
-            },
-
-            openFeaturePanel(feature, editMode = false) {
-                const panel = document.getElementById('feature-panel');
-                const content = document.getElementById('feature-panel-content');
-                
-                const props = feature.getProperties();
-                const id = feature.getId();
-                const observations = props.observations || [];
-                
-                // Calculate GeoData (Turf.js expects standard GeoJSON)
-                const geojson = new ol.format.GeoJSON().writeFeatureObject(feature, {
-                    featureProjection: 'EPSG:3857', dataProjection: 'EPSG:4326'
-                });
-                let measureStr = '';
-                try {
-                    if (geojson.geometry.type.includes('Polygon')) {
-                        const area = turf.area(geojson);
-                        measureStr = `Area: ${(area * 10.7639).toLocaleString(undefined, {maximumFractionDigits:0})} sq ft / ${(area/4046.86).toFixed(2)} acres`;
-                    } else if (geojson.geometry.type.includes('Line')) {
-                        const len = turf.length(geojson, {units: 'meters'});
-                        measureStr = `Length: ${(len * 3.28084).toLocaleString(undefined, {maximumFractionDigits:1})} ft`;
-                    }
-                } catch(e) {}
-
-                if (editMode) {
-                    const catOptions = Object.keys(App.state.categories).map(c => `<option value="${c}" ${c===props.category?'selected':''}>${c}</option>`).join('');
-                    content.innerHTML = `
-                        <div class="space-y-4">
-                            <div><label class="text-xs font-bold text-slate-500 uppercase">Name</label>
-                            <input id="f-name" class="w-full border p-2 rounded mt-1" value="${props.name || ''}"></div>
-                            
-                            <div><label class="text-xs font-bold text-slate-500 uppercase">Category</label>
-                            <select id="f-cat" class="w-full border p-2 rounded mt-1">${catOptions}</select></div>
-                            
-                            <div><label class="text-xs font-bold text-slate-500 uppercase">Description</label>
-                            <textarea id="f-desc" class="w-full border p-2 rounded mt-1 h-24">${props.desc || ''}</textarea></div>
-                            
-                            <button onclick="App.Features.updateFeatureProps('${id}', {name: document.getElementById('f-name').value, category: document.getElementById('f-cat').value, desc: document.getElementById('f-desc').value}); App.UI.openFeaturePanel(App.vectorSource.getFeatureById('${id}'));" class="w-full bg-blue-600 text-white font-bold py-2 rounded-lg">Save Details</button>
-                        </div>
-                    `;
-                } else {
-                    const obsHTML = observations.length === 0 ? 
-                        `<p class="text-sm text-slate-400 italic">No observations logged.</p>` :
-                        observations.map(o => `
-                            <div class="border rounded-lg p-3 bg-slate-50 relative group">
-                                <button onclick="App.Features.deleteObservation('${id}','${o.id}')" class="absolute top-2 right-2 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                                <div class="flex items-center gap-2 mb-1">
-                                    <span class="font-bold text-sm">${o.type}</span>
-                                    <span class="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${o.severity==='High'?'bg-red-100 text-red-700': o.severity==='Medium'?'bg-yellow-100 text-yellow-700': 'bg-blue-100 text-blue-700'}">${o.severity}</span>
-                                </div>
-                                <p class="text-sm text-slate-600">${o.text}</p>
-                            </div>
-                        `).join('');
-
-                    content.innerHTML = `
-                        <div>
-                            <div class="flex justify-between items-start mb-2">
-                                <h3 class="font-bold text-xl">${props.name || 'Unnamed Feature'}</h3>
-                                <button onclick="App.UI.openFeaturePanel(App.vectorSource.getFeatureById('${id}'), true)" class="text-blue-600 hover:bg-blue-50 p-1 rounded text-sm font-medium"><i data-lucide="edit" class="w-4 h-4"></i></button>
-                            </div>
-                            <span class="inline-block px-2 py-1 rounded bg-slate-100 text-xs font-semibold text-slate-600 border border-slate-200 mb-4">${props.category || 'Default'}</span>
-                            <p class="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">${props.desc || '<i class="text-slate-400">No description provided.</i>'}</p>
-                        </div>
-                        
-                        ${measureStr ? `<div class="bg-blue-50 border border-blue-100 text-blue-800 text-xs p-3 rounded-lg flex items-center gap-2"><i data-lucide="ruler" class="w-4 h-4"></i> ${measureStr}</div>` : ''}
-
-                        <div class="mt-4 border-t pt-6">
-                            <div class="flex justify-between items-center mb-4">
-                                <h4 class="font-bold text-slate-800">Observations</h4>
-                                <button onclick="App.UI.promptObservation('${id}')" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-1 px-2 rounded flex items-center gap-1"><i data-lucide="plus" class="w-3 h-3"></i> Add</button>
-                            </div>
-                            <div class="space-y-3">
-                                ${obsHTML}
-                            </div>
-                        </div>
-                    `;
-                }
-                
-                lucide.createIcons();
-                panel.classList.add('open');
-            },
-
-            closeFeaturePanel() {
-                document.getElementById('feature-panel').classList.remove('open');
-            },
-
-            promptObservation(featureId) {
-                this.showModal('Add Observation', `
-                    <div class="space-y-4">
-                        <div><label class="block text-sm font-medium mb-1">Issue/Type</label><input id="o-type" type="text" class="w-full border rounded p-2" placeholder="e.g. Drainage Issue"></div>
-                        <div><label class="block text-sm font-medium mb-1">Severity</label>
-                        <select id="o-sev" class="w-full border rounded p-2"><option>Low</option><option>Medium</option><option>High</option></select></div>
-                        <div><label class="block text-sm font-medium mb-1">Notes / Recommendation</label><textarea id="o-text" class="w-full border rounded p-2 h-20"></textarea></div>
-                    </div>
-                `, () => {
-                    const type = document.getElementById('o-type').value;
-                    const sev = document.getElementById('o-sev').value;
-                    const txt = document.getElementById('o-text').value;
-                    if (type && txt) {
-                        App.Features.addObservation(featureId, { type, severity: sev, text: txt });
-                        this.closeModal();
-                    }
-                });
-            },
-
-            // --- Generic UI Utils ---
-            showModal(title, htmlContent, onConfirm) {
-                const overlay = document.getElementById('modal-overlay');
-                const content = document.getElementById('modal-content');
-                document.getElementById('modal-title').innerText = title;
-                document.getElementById('modal-body').innerHTML = htmlContent;
-                
-                const confirmBtn = document.getElementById('modal-confirm');
-                // Remove old event listeners
-                const newBtn = confirmBtn.cloneNode(true);
-                confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
-                newBtn.onclick = onConfirm;
-
-                overlay.classList.remove('hidden');
-                // Slight delay for animation classes
-                setTimeout(() => {
-                    overlay.classList.remove('opacity-0');
-                    content.classList.remove('scale-95');
-                }, 10);
-            },
-
-            closeModal() {
-                const overlay = document.getElementById('modal-overlay');
-                const content = document.getElementById('modal-content');
-                overlay.classList.add('opacity-0');
-                content.classList.add('scale-95');
-                setTimeout(() => overlay.classList.add('hidden'), 200);
-            },
-
-            showLoader(text) {
-                document.getElementById('loader-text').innerText = text;
-                document.getElementById('loader').classList.remove('hidden');
-            },
-            hideLoader() {
-                document.getElementById('loader').classList.add('hidden');
-            },
-
-            showToast(msg, type = "info") {
-                const toast = document.createElement('div');
-                toast.className = `fixed bottom-6 right-6 px-6 py-3 rounded-lg shadow-xl text-white font-medium text-sm z-[9999] transition-opacity duration-300 transform translate-y-4 opacity-0 flex items-center gap-2 ${type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-slate-800'}`;
-                toast.innerHTML = `<i data-lucide="${type==='success'?'check-circle':'info'}" class="w-5 h-5"></i> ${msg}`;
-                document.body.appendChild(toast);
-                lucide.createIcons();
-                
-                setTimeout(() => { toast.classList.remove('translate-y-4', 'opacity-0'); }, 10);
-                setTimeout(() => { 
-                    toast.classList.add('opacity-0'); 
-                    setTimeout(() => toast.remove(), 300);
-                }, 3000);
-            }
-        },
-
-        // --- Native OpenLayers PDF Generation ---
-        PDF: {
-            async generate() {
-                App.UI.hideContextMenu();
-                App.UI.showLoader("Capturing Map & Rendering PDF...");
-
-                try {
-                    // 1. Force OpenLayers to render completely and synchronously grab the canvas
-                    await new Promise(resolve => {
-                        App.map.once('rendercomplete', resolve);
-                        App.map.renderSync();
-                    });
-
-                    // Construct a master canvas from all OL layers (handles rotation inherently!)
-                    const mapSize = App.map.getSize();
-                    const exportCanvas = document.createElement('canvas');
-                    exportCanvas.width = mapSize[0];
-                    exportCanvas.height = mapSize[1];
-                    const ctx = exportCanvas.getContext('2d');
-
-                    // Set white background
-                    ctx.fillStyle = 'white';
-                    ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
-
-                    // Overlay each layer's canvas exactly as it appears
-                    document.querySelectorAll('.ol-layer canvas').forEach(canvas => {
-                        if (canvas.width > 0) {
-                            const opacity = canvas.parentNode.style.opacity;
-                            ctx.globalAlpha = opacity === '' ? 1 : Number(opacity);
-                            
-                            // OL handles CSS transforms on the canvas sometimes for animation, 
-                            // but 'rendercomplete' usually ensures the actual canvas pixels match the view.
-                            // If transform exists, apply it (usually identity during stable render).
-                            const transform = canvas.style.transform;
-                            if (transform) {
-                                const matrix = transform.match(/^matrix\(([^\(]*)\)$/)[1].split(',').map(Number);
-                                ctx.setTransform(matrix[0], matrix[1], matrix[2], matrix[3], matrix[4], matrix[5]);
-                            }
-                            ctx.drawImage(canvas, 0, 0);
-                            ctx.setTransform(1, 0, 0, 1, 0, 0); // reset
+        try {
+            map = new maplibregl.Map({
+                container: 'map',
+                style: {
+                    version: 8,
+                    sources: {
+                        // Google tiles lack CORS headers and will crash MapLibre WebGL contexts. 
+                        // Esri World Imagery is the industry standard CORS-friendly alternative.
+                        'esri-satellite': {
+                            type: 'raster',
+                            tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], 
+                            tileSize: 256,
+                            attribution: 'Map data © Esri'
+                        },
+                        'esri-reference': {
+                            type: 'raster',
+                            tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'], 
+                            tileSize: 256
                         }
-                    });
+                    },
+                    layers: [
+                        {
+                            id: 'esri-satellite-layer',
+                            type: 'raster',
+                            source: 'esri-satellite',
+                            minzoom: 0,
+                            maxzoom: 22
+                        },
+                        {
+                            id: 'esri-reference-layer',
+                            type: 'raster',
+                            source: 'esri-reference',
+                            minzoom: 0,
+                            maxzoom: 22
+                        }
+                    ]
+                },
+                center: [-98.5795, 39.8283], // Center US initially
+                zoom: 3,
+                pitch: 0
+            });
 
-                    const mapDataUrl = exportCanvas.toDataURL('image/jpeg', 0.9);
+            // Add Deck.GL Overlay Control to MapLibre
+            deckOverlay = new deck.MapboxOverlay({
+                interleaved: false,
+                layers: []
+            });
+            map.addControl(deckOverlay);
 
-                    // 2. Build PDF Document
-                    const { jsPDF } = window.jspdf;
-                    const doc = new jsPDF({ orientation: 'landscape', format: 'a4' });
-                    const pageWidth = doc.internal.pageSize.getWidth();
-                    const pageHeight = doc.internal.pageSize.getHeight();
+            // Add Navigation UI
+            map.addControl(new maplibregl.NavigationControl(), 'top-left');
+            
+        } catch (error) {
+            console.error("CRITICAL ERROR: Failed to initialize map engine.", error);
+            uiError.innerText = "The map engine failed to load. Check your browser console.";
+            uiError.classList.remove('hidden');
+        }
 
-                    // --- Cover / Header ---
-                    doc.setFillColor(30, 41, 59); // Slate-800
-                    doc.rect(0, 0, pageWidth, 25, 'F');
-                    
-                    doc.setTextColor(255, 255, 255);
-                    doc.setFont("helvetica", "bold");
-                    doc.setFontSize(18);
-                    doc.text(App.state.project.title, 15, 16);
-                    
-                    doc.setFont("helvetica", "normal");
-                    doc.setFontSize(10);
-                    doc.text(`${App.state.project.client} | ${App.state.project.date}`, pageWidth - 15, 15, { align: 'right' });
+        // --- 4. API & Auth Logic ---
+        async function apiCall(endpoint, method = 'GET', body = null) {
+            const headers = { 'Content-Type': 'application/json' };
+            if (state.token) headers['Authorization'] = `JWT ${state.token}`;
+            
+            const config = { method, headers };
+            if (body) config.body = JSON.stringify(body);
 
-                    // --- Map Image ---
-                    // Calculate optimal fit
-                    const imgRatio = mapSize[0] / mapSize[1];
-                    const targetW = pageWidth - 30; // 15mm margins
-                    const targetH = targetW / imgRatio;
-                    
-                    doc.setDrawColor(200, 200, 200);
-                    doc.rect(15, 30, targetW, targetH > (pageHeight - 40) ? pageHeight - 40 : targetH);
-                    doc.addImage(mapDataUrl, 'JPEG', 15, 30, targetW, targetH > (pageHeight - 40) ? pageHeight - 40 : targetH);
-
-                    // --- Second Page: Features & Observations Log ---
-                    doc.addPage('a4', 'portrait');
-                    const pw = doc.internal.pageSize.getWidth();
-                    
-                    doc.setFillColor(30, 41, 59);
-                    doc.rect(0, 0, pw, 25, 'F');
-                    doc.setTextColor(255, 255, 255);
-                    doc.setFont("helvetica", "bold");
-                    doc.setFontSize(16);
-                    doc.text("Site Analysis Data Log", 15, 16);
-                    
-                    doc.setTextColor(30, 41, 59);
-                    let cursorY = 35;
-
-                    const features = App.vectorSource.getFeatures();
-                    if (features.length === 0) {
-                        doc.setFont("helvetica", "italic");
-                        doc.setFontSize(12);
-                        doc.text("No features marked on map.", 15, cursorY);
-                    } else {
-                        features.forEach(f => {
-                            const p = f.getProperties();
-                            
-                            // Feature Header
-                            if(cursorY > 260) { doc.addPage(); cursorY = 35; }
-                            
-                            doc.setFont("helvetica", "bold");
-                            doc.setFontSize(12);
-                            doc.text(`${p.name} (${p.category})`, 15, cursorY);
-                            cursorY += 6;
-                            
-                            doc.setFont("helvetica", "normal");
-                            doc.setFontSize(10);
-                            const splitDesc = doc.splitTextToSize(p.desc || 'No description', pw - 30);
-                            doc.text(splitDesc, 15, cursorY);
-                            cursorY += (splitDesc.length * 5) + 5;
-
-                            // Observations
-                            const obs = p.observations || [];
-                            if (obs.length > 0) {
-                                obs.forEach(o => {
-                                    if(cursorY > 260) { doc.addPage(); cursorY = 35; }
-                                    
-                                    doc.setDrawColor(226, 232, 240);
-                                    doc.setFillColor(248, 250, 252);
-                                    doc.rect(20, cursorY, pw - 40, 20, 'FD');
-                                    
-                                    doc.setFont("helvetica", "bold");
-                                    doc.text(`[${o.severity.toUpperCase()}] ${o.type}`, 25, cursorY + 7);
-                                    
-                                    doc.setFont("helvetica", "normal");
-                                    const splitObs = doc.splitTextToSize(o.text, pw - 50);
-                                    doc.text(splitObs, 25, cursorY + 13);
-                                    
-                                    cursorY += Math.max(25, (splitObs.length * 5) + 15);
-                                });
-                            }
-                            cursorY += 10;
-                            doc.setDrawColor(200, 200, 200);
-                            doc.line(15, cursorY - 5, pw - 15, cursorY - 5);
-                        });
-                    }
-
-                    // Save PDF
-                    const filename = `${App.state.project.title.replace(/\s+/g,'_')}.pdf`;
-                    doc.save(filename);
-                    App.UI.showToast("Report Generated Successfully", "success");
-
-                } catch (err) {
-                    console.error(err);
-                    App.UI.showToast("Error generating PDF", "error");
-                } finally {
-                    App.UI.hideLoader();
+            try {
+                const res = await fetch(`${state.url}${endpoint}`, config);
+                if (!res.ok) {
+                    const errText = await res.text();
+                    throw new Error(`[${res.status}] API Error`);
                 }
+                return await res.json();
+            } catch (err) {
+                console.error("[API Failure]", err);
+                throw err;
             }
         }
-    };
 
-    window.onload = () => App.init();
+        uiAuthForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            let rawUrl = document.getElementById('server-url').value.trim();
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (rawUrl && !/^https?:\/\//i.test(rawUrl)) rawUrl = 'http://' + rawUrl;
+            rawUrl = rawUrl.replace(/\/$/, '');
+
+            btnConnect.innerText = "Connecting...";
+            uiError.classList.add('hidden');
+
+            try {
+                state.url = rawUrl;
+                const data = await apiCall('/api/token-auth/', 'POST', { username, password });
+                
+                if (data.token) {
+                    state.token = data.token;
+                    uiAuthForm.classList.add('hidden');
+                    uiData.classList.remove('hidden');
+                    uiData.classList.add('flex');
+                    await loadProjects();
+                } else {
+                    throw new Error("No authorization token received.");
+                }
+            } catch (err) {
+                uiError.innerText = `Connection Failed. Ensure CORS is enabled on WebODM.`;
+                uiError.classList.remove('hidden');
+            } finally {
+                btnConnect.innerText = "Connect";
+            }
+        });
+
+        btnLogout.addEventListener('click', () => {
+            state.token = null;
+            state.activeTask = null;
+            uiAuthForm.classList.remove('hidden');
+            uiData.classList.add('hidden');
+            uiData.classList.remove('flex');
+            updateDeckLayers();
+        });
+
+        async function loadProjects() {
+            selectProject.innerHTML = '<option value="">Loading...</option>';
+            try {
+                const res = await apiCall('/api/projects/');
+                state.projects = res.results || res; 
+                selectProject.innerHTML = '<option value="">-- Choose a Project --</option>';
+                state.projects.forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = p.id;
+                    opt.textContent = p.name;
+                    selectProject.appendChild(opt);
+                });
+            } catch(e) {
+                selectProject.innerHTML = '<option value="">Error loading projects</option>';
+            }
+        }
+
+        selectProject.addEventListener('change', async (e) => {
+            const projectId = e.target.value;
+            if (!projectId) {
+                selectTask.disabled = true;
+                return;
+            }
+            state.activeProject = projectId;
+            selectTask.innerHTML = '<option value="">Loading...</option>';
+            selectTask.disabled = true;
+            try {
+                const res = await apiCall(`/api/projects/${projectId}/tasks/`);
+                state.tasks = res.results || res;
+                selectTask.innerHTML = '<option value="">-- Choose a Task --</option>';
+                state.tasks.forEach(t => {
+                    if(t.status === 40 || t.status === 50) { // Completed or Partial
+                        const opt = document.createElement('option');
+                        opt.value = t.id;
+                        opt.textContent = t.name;
+                        selectTask.appendChild(opt);
+                    }
+                });
+                selectTask.disabled = false;
+            } catch(e) {
+                selectTask.innerHTML = '<option value="">Error loading tasks</option>';
+            }
+        });
+
+        selectTask.addEventListener('change', async (e) => {
+            const taskId = e.target.value;
+            if (!taskId) {
+                layerControls.classList.add('hidden');
+                state.activeTask = null;
+                updateDeckLayers();
+                return;
+            }
+            
+            state.activeTask = state.tasks.find(t => t.id == taskId);
+            layerControls.classList.remove('hidden');
+            layerControls.classList.add('flex');
+            
+            await flyToTaskExtent(state.activeProject, state.activeTask);
+            updateDeckLayers();
+            
+            if(window.innerWidth < 768) {
+                panel.classList.remove('open');
+            }
+        });
+
+        // --- 5. Core Logic: Bounds & Rendering ---
+        async function flyToTaskExtent(pid, task) {
+            if (!map) return;
+            try {
+                const extentData = task.orthophoto_extent || task.dsm_extent || task.dtm_extent;
+                if (extentData) {
+                    const geojson = typeof extentData === 'string' ? JSON.parse(extentData) : extentData;
+                    if (geojson && geojson.coordinates && geojson.coordinates[0]) {
+                        
+                        let minLng = 180, maxLng = -180, minLat = 90, maxLat = -90;
+                        const coords = geojson.coordinates[0];
+                        
+                        coords.forEach(([lng, lat]) => {
+                            if(lng < minLng) minLng = lng;
+                            if(lng > maxLng) maxLng = lng;
+                            if(lat < minLat) minLat = lat;
+                            if(lat > maxLat) maxLat = lat;
+                        });
+
+                        map.fitBounds([[minLng, minLat], [maxLng, maxLat]], { padding: 80, duration: 2000 });
+                        return;
+                    }
+                }
+                console.warn("No extent found on task. Cannot automatically zoom.");
+            } catch (e) {
+                console.error("Failed to parse task extent or fly to bounds", e);
+            }
+        }
+
+        function updateDeckLayers() {
+            if (!deckOverlay) return;
+
+            if (!state.activeTask || state.activeLayers.size === 0) {
+                deckOverlay.setProps({ layers: [] });
+                return;
+            }
+
+            const pid = state.activeProject;
+            const tid = state.activeTask.id;
+            const generatedLayers = [];
+            const TILE_EXT = 'png';
+
+            state.activeLayers.forEach(type => {
+                const tileUrl = `${state.url}/api/projects/${pid}/tasks/${tid}/${type}/tiles/{z}/{x}/{y}.${TILE_EXT}`;
+                
+                const webodmLayer = new deck.TileLayer({
+                    id: `webodm-${type}-${tid}`,
+                    data: tileUrl,
+                    minZoom: 0,
+                    maxZoom: 22,
+                    tileSize: 256,
+                    
+                    getTileData: async (tile) => {
+                        try {
+                            const response = await fetch(tile.url, {
+                                headers: { 'Authorization': `JWT ${state.token}` }
+                            });
+                            if (!response.ok) return null; 
+                            const blob = await response.blob();
+                            return createImageBitmap(blob);
+                        } catch (e) {
+                            return null; 
+                        }
+                    },
+                    
+                    renderSubLayers: props => {
+                        const { bbox: {west, south, east, north} } = props.tile;
+                        return new deck.BitmapLayer(props, {
+                            data: null,
+                            image: props.data,
+                            bounds: [west, south, east, north]
+                        });
+                    }
+                });
+                
+                generatedLayers.push(webodmLayer);
+            });
+
+            deckOverlay.setProps({ layers: generatedLayers });
+        }
     </script>
 </body>
 </html>
