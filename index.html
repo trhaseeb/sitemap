@@ -2379,6 +2379,23 @@
 
             const stopDrawing = () => isDrawing = false;
 
+            // #annotation-canvas is a single persistent element reused for every image the
+            // user annotates. Without removing the previous set of listeners first, each
+            // call to init() would stack another full set of handlers (and hold references
+            // to the previous image/canvas closures), so drawing would fire multiple times
+            // and get slower with every image annotated in a session.
+            if (canvas._annotatorHandlers) {
+                const old = canvas._annotatorHandlers;
+                canvas.removeEventListener('mousedown', old.startDrawing);
+                canvas.removeEventListener('mousemove', old.draw);
+                canvas.removeEventListener('mouseup', old.stopDrawing);
+                canvas.removeEventListener('mouseout', old.stopDrawing);
+                canvas.removeEventListener('touchstart', old.startDrawing);
+                canvas.removeEventListener('touchmove', old.draw);
+                canvas.removeEventListener('touchend', old.stopDrawing);
+            }
+            canvas._annotatorHandlers = { startDrawing, draw, stopDrawing };
+
             canvas.addEventListener('mousedown', startDrawing);
             canvas.addEventListener('mousemove', draw);
             canvas.addEventListener('mouseup', stopDrawing);
@@ -2640,7 +2657,6 @@
                 leafletTooltips.forEach((tooltip, idx) => {
                     // Only remove classes that prevent visibility, preserve Leaflet's natural styling
                     tooltip.classList.remove('leaflet-zoom-hide', 'leaflet-zoom-animated');
-                    console.log(`Preflight: Ensured tooltip ${idx + 1} can be captured: "${tooltip.textContent}"`);
                 });
             };
 
@@ -2668,7 +2684,6 @@
                         node.classList.contains('dsm-legend') ||
                         node.parentElement?.classList?.contains('leaflet-tooltip')
                     )) {
-                        console.log('Including Leaflet UI element:', node.className, node.textContent?.substring(0, 30));
                         return true;
                     }
                     
@@ -2864,7 +2879,6 @@
                 const min = mins[0];
                 const max = maxs[0];
                 
-                console.log(`Creating DSM legend for range: ${min} to ${max}`);
                 
                 try {
                     const colorScale = chroma.scale(['#3b82f6', '#6ee7b7', '#fde047', '#f97316', '#ef4444']).domain([min, max]);
@@ -2882,7 +2896,6 @@
                         const value = min + (i / (steps - 1)) * (max - min);
                         const color = colorScale(value).hex();
                         gradient.addColorStop(i / (steps - 1), color);
-                        console.log(`DSM gradient step ${i}: value=${value.toFixed(2)}, color=${color}`);
                     }
                     
                     ctx.fillStyle = gradient;
@@ -2890,8 +2903,6 @@
                     
                     // Convert canvas to data URL
                     const canvasDataUrl = canvas.toDataURL('image/png');
-                    console.log('Canvas gradient created successfully, data URL length:', canvasDataUrl.length);
-                    console.log('Canvas data URL preview:', canvasDataUrl.substring(0, 100) + '...');
                     
                     // Also create a fallback solid color div in case the image fails
                     const fallbackDiv = `<div style="height: 150px; width: 20px; border: 1px solid #ccc; background: linear-gradient(to top, #3b82f6, #6ee7b7, #fde047, #f97316, #ef4444); display: none;" class="dsm-fallback"></div>`;
@@ -2911,7 +2922,6 @@
                             </div>
                         </div>
                     `;
-                    console.log('DSM legend HTML generated successfully with canvas gradient');
                 } catch (error) {
                     console.error('Error generating DSM legend:', error);
                     // SVG-based fallback legend which should work better with dom-to-image
@@ -2945,7 +2955,6 @@
                             </div>
                         </div>
                     `;
-                    console.log('DSM legend HTML generated with SVG fallback');
                 }
             }
             
@@ -2998,9 +3007,10 @@
             </div>`, w, h, { paddingPx: 0, svgDefs: this.getSvgDefs() });
 
             const mapDiv = pageEl.querySelector('#pdf-map');
-            
+            let map = null;
+            try {
             // Create map WITHOUT rotation plugin to avoid conflicts (working approach)
-            const map = L.map(mapDiv, {
+            map = L.map(mapDiv, {
                 zoomControl: false,
                 attributionControl: false,
                 zoomAnimation: false,
@@ -3024,7 +3034,6 @@
             const svg = map.getRenderer(map)._container;
             if (svg && App.state.svgPatternDefs) {
                 svg.appendChild(App.state.svgPatternDefs.cloneNode(true));
-                console.log('Added SVG pattern definitions to PDF map');
             }
 
             // Wait for base layer to load
@@ -3032,7 +3041,6 @@
             const onBaseLoad = () => {
                 if (isBaseLayerLoaded) return;
                 isBaseLayerLoaded = true;
-                console.log('Base layer loaded for PDF map');
             };
 
             if (mode === 'default') {
@@ -3065,7 +3073,6 @@
                 }).on('load', onBaseLoad).addTo(map);
             }
 
-            console.log(`PDF map using CSS rotation: ${targetBearing}°`);
 
             const allGeo = App.state.data.geojson?.data;
             if (allGeo && allGeo.features.length > 0) {
@@ -3077,7 +3084,6 @@
                         const hasObservations = f.properties.observations && f.properties.observations.length > 0;
                         // Respect user's showLabel setting - this is a key user feature
                         const showLabel = f.properties.showLabel || (hasObservations && f.properties.Name);
-                        console.log(`Processing feature: ${f.properties.Name}, showLabel: ${f.properties.showLabel}, hasObservations: ${hasObservations}, finalShowLabel: ${showLabel}`);
                         
                         if (f.properties.Name && showLabel) {
                             let labelContent = '';
@@ -3092,20 +3098,16 @@
                                 const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="${color}" style="filter: drop-shadow(0 1px 1px rgba(0,0,0,0.5));"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2V7h2v7z"/></svg>`;
                                 labelContent += iconSvg;
                             }
-                            console.log(`Binding tooltip for ${f.properties.Name} with content: ${labelContent.substring(0, 50)}...`);
                             l.bindTooltip(labelContent, { permanent: true, direction: 'top', offset: [0, -10], className: tooltipClass });
                             
                             // Critical: Force tooltip to open immediately for PDF capture
                             setTimeout(() => {
                                 try {
                                     l.openTooltip();
-                                    console.log(`Opened tooltip for ${f.properties.Name}`);
                                 } catch (e) {
                                     console.warn(`Failed to open tooltip for ${f.properties.Name}:`, e);
                                 }
                             }, 100);
-                        } else {
-                            console.log(`Skipping tooltip for ${f.properties.Name || 'unnamed'}: no name or showLabel=false`);
                         }
                         
                         const style = App.CategoryManager.getCategoryStyleForFeature(f);
@@ -3138,11 +3140,9 @@
             }
             
             // Wait longer for map elements to fully render and stabilize
-            console.log('Waiting for map to stabilize...');
             await new Promise(r => setTimeout(r, 3000));
 
             // Force map to invalidate size and re-render everything
-            console.log('Invalidating map size and forcing re-render...');
             map.invalidateSize();
             await new Promise(r => setTimeout(r, 1000));
             
@@ -3154,9 +3154,7 @@
             await new Promise(r => setTimeout(r, 500));
 
             // Ensure tooltips are in their natural Leaflet state (don't force custom modifications)
-            console.log('Ensuring tooltips are in natural Leaflet state...');
             const leafletTooltips = pageEl.querySelectorAll('.leaflet-tooltip');
-            console.log(`Found ${leafletTooltips.length} Leaflet tooltips`);
             
             // Only make minimal necessary changes to ensure visibility
             leafletTooltips.forEach((tooltip, index) => {
@@ -3189,27 +3187,21 @@
                     // The SVG icons inside will naturally appear upright when the tooltip is counter-rotated
                 }
                 
-                console.log(`Tooltip ${index + 1}: "${tooltip.textContent}" - ensured natural visibility with counter-rotation`);
             });
 
             // Counter-rotate SVG icons in map markers (not just in tooltips)
             if (targetBearing !== 0) {
-                console.log('Applying counter-rotation to SVG icons in map markers...');
                 const svgMarkerIcons = pageEl.querySelectorAll('.custom-svg-icon, .leaflet-square-icon');
-                console.log(`Found ${svgMarkerIcons.length} SVG marker icons`);
                 svgMarkerIcons.forEach((iconDiv, index) => {
                     const svgElements = iconDiv.querySelectorAll('svg');
                     svgElements.forEach(svg => {
                         svg.style.transform = `rotate(${-targetBearing}deg)`;
                         svg.style.transformOrigin = 'center center';
                     });
-                    console.log(`Counter-rotated SVG marker icon ${index + 1}`);
                 });
             }
 
             // Ensure DSM legend is properly rendered
-            console.log('Searching for DSM legend...');
-            console.log('DSM legend HTML was:', dsmLegendHTML ? 'generated' : 'not generated');
             
             const dsmLegendSelectors = [
                 '.dsm-legend',
@@ -3221,7 +3213,6 @@
             let dsmLegendFound = false;
             for (const selector of dsmLegendSelectors) {
                 const dsmLegends = pageEl.querySelectorAll(selector);
-                console.log(`Selector "${selector}" found ${dsmLegends.length} elements`);
                 
                 dsmLegends.forEach((dsmLegend, index) => {
                     dsmLegend.style.display = 'block !important';
@@ -3229,7 +3220,6 @@
                     dsmLegend.style.opacity = '1 !important';
                     dsmLegend.style.zIndex = '10000';
                     dsmLegend.style.position = 'absolute !important';
-                    console.log(`DSM legend ${index + 1} visibility ensured using selector: ${selector}`);
                     dsmLegendFound = true;
                 });
                 
@@ -3239,18 +3229,12 @@
             if (!dsmLegendFound && mode === 'dsm') {
                 console.warn('DSM legend not found in page despite being in DSM mode');
                 // Debug: log the actual page content to see what's there
-                console.log('Page HTML contains DSM text:', pageEl.innerHTML.includes('DSM'));
-                console.log('Page HTML contains gradient:', pageEl.innerHTML.includes('gradient'));
-                console.log('DSM legend HTML that was supposed to be inserted:', dsmLegendHTML);
-                console.log('Full page structure:', pageEl.innerHTML.substring(0, 1000) + '...');
                 
                 // Emergency fallback: try to manually insert the DSM legend if it's missing
                 if (dsmLegendHTML && !pageEl.innerHTML.includes('DSM Elevation')) {
-                    console.log('Attempting emergency DSM legend insertion...');
                     const mapWrapper = pageEl.querySelector('#map-wrapper');
                     if (mapWrapper) {
                         mapWrapper.insertAdjacentHTML('beforeend', dsmLegendHTML);
-                        console.log('Emergency DSM legend inserted');
                         
                         // Try to find it again
                         const emergencyLegend = pageEl.querySelector('.dsm-legend');
@@ -3259,19 +3243,16 @@
                             emergencyLegend.style.visibility = 'visible !important';
                             emergencyLegend.style.opacity = '1 !important';
                             emergencyLegend.style.zIndex = '10000';
-                            console.log('Emergency DSM legend found and styled');
                         }
                     }
                 }
             }
 
-            console.log(`Capturing PDF map with ${targetBearing}° CSS rotation`);
             
             // Additional wait and force reflow before final capture
             await new Promise(r => setTimeout(r, 1500));
             
             // Force final layout calculations and ensure map is in final state
-            console.log('Final map state preparation...');
             pageEl.offsetHeight;
             map.getContainer().offsetHeight;
             
@@ -3280,16 +3261,20 @@
             
             // Final verification that tooltips are ready for capture
             const finalTooltips = pageEl.querySelectorAll('.leaflet-tooltip');
-            console.log(`Final verification: ${finalTooltips.length} tooltips ready for capture`);
             finalTooltips.forEach((tooltip, index) => {
                 // Only ensure basic visibility, don't override Leaflet's natural behavior
                 tooltip.classList.remove('leaflet-zoom-hide', 'leaflet-zoom-animated');
-                console.log(`Final check ${index + 1}: "${tooltip.textContent}" - ready for capture`);
             });
             
             const img = await this.captureElement(pageEl, w, h, this.cfg.mapScale);
             doc.addPage([w, h], 'landscape');
             doc.addImage(img, 'PNG', 0, 0, w, h, undefined, 'FAST');
+            } finally {
+                // Always tear down the Leaflet map instance used for this page capture.
+                // Without this, every PDF export (and every ortho/dsm variant) permanently
+                // leaks a full Leaflet map (tile layers, renderer, window resize listeners).
+                if (map) { try { map.remove(); } catch (e) { console.warn('Error removing PDF map instance', e); } }
+            }
         },
         
         // MODIFICATION: Rewriting this function to combine all images into a single grid at the bottom.
@@ -3387,30 +3372,35 @@
 
         renderMiniMap(container, feature) {
             return new Promise((resolve) => {
+                // Tracks the Leaflet map instance (if any) so the caller can dispose of it
+                // after the page has been captured. Every feature in a PDF report gets its
+                // own mini-map here, so leaving these alive is the single biggest source of
+                // memory growth during export.
+                let map = null;
                 try {
                     if (!container || !feature || !feature.geometry) {
                         this.fallbackMapDisplay(container, "Missing required elements");
-                        return resolve();
+                        return resolve(null);
                     }
                     if (!feature.geometry.type || !Array.isArray(feature.geometry.coordinates)) {
                         console.error("Malformed geometry for feature:", feature.properties.Name, feature.geometry);
                         this.fallbackMapDisplay(container, "Malformed geometry");
-                        return resolve();
+                        return resolve(null);
                     }
                     if (feature.geometry.type === 'Point') {
                         const coords = feature.geometry.coordinates;
                         if (!Array.isArray(coords) || coords.length < 2 || !isFinite(coords[0]) || !isFinite(coords[1])) {
                              console.error("Invalid coordinates for point feature:", feature.properties.Name, coords);
                              this.fallbackMapDisplay(container, "Invalid feature coordinates");
-                             return resolve();
+                             return resolve(null);
                         }
                     } else if (feature.geometry.coordinates.length === 0) {
                         console.error("Empty coordinates for feature:", feature.properties.Name);
                         this.fallbackMapDisplay(container, "Empty feature coordinates");
-                        return resolve();
+                        return resolve(null);
                     }
         
-                    const map = L.map(container, {
+                    map = L.map(container, {
                         zoomControl: false, attributionControl: false, dragging: false,
                         scrollWheelZoom: false, renderer: L.svg(), keyboard: false,
                         touchZoom: false, doubleClickZoom: false
@@ -3436,7 +3426,7 @@
                             } catch(e) {
                                 console.warn("Error during invalidateSize on mini-map", e);
                             }
-                            resolve(); 
+                            resolve(map); 
                         }, 300);
                     };
                     setTimeout(() => { if (!isBaseLayerLoaded) { onBaseLoad(); } }, 4000);
@@ -3480,8 +3470,9 @@
         
                 } catch (e) {
                     console.error("Error rendering mini map:", e, feature?.properties?.Name);
+                    if (map) { try { map.remove(); } catch (_) {} }
                     this.fallbackMapDisplay(container, "Map rendering error");
-                    resolve();
+                    resolve(null);
                 }
             });
         },
@@ -3590,15 +3581,22 @@
                         const featureId = f.properties._internalId || (typeof f.id !== 'undefined' ? f.id : Math.random().toString(36).substring(2, 9));
                         const snapshotId = `feature-snapshot-${String(featureId).replace(/[^a-zA-Z0-9-_]/g, '')}`;
                         const mapContainer = page.querySelector(`#${snapshotId}`);
-                        return mapContainer ? this.renderMiniMap(mapContainer, f) : Promise.resolve();
+                        return mapContainer ? this.renderMiniMap(mapContainer, f) : Promise.resolve(null);
                     });
                     
-                    await Promise.all(mapPromises);
-                    this.updateProgress(`Capturing page image...`);
+                    // Each entry is either a Leaflet map instance or null (fallback/error).
+                    const miniMaps = await Promise.all(mapPromises);
+                    try {
+                        this.updateProgress(`Capturing page image...`);
 
-                    const img = await this.captureElement(page, this.cfg.a4.w, this.cfg.a4.h, this.cfg.captureScale);
-                    doc.addPage('a4', 'portrait');
-                    doc.addImage(img, 'PNG', 0, 0, this.cfg.a4.w, this.cfg.a4.h);
+                        const img = await this.captureElement(page, this.cfg.a4.w, this.cfg.a4.h, this.cfg.captureScale);
+                        doc.addPage('a4', 'portrait');
+                        doc.addImage(img, 'PNG', 0, 0, this.cfg.a4.w, this.cfg.a4.h);
+                    } finally {
+                        // Dispose every mini-map created for this page. Without this, a report
+                        // with N features leaks N Leaflet map instances on every export.
+                        miniMaps.forEach(m => { if (m) { try { m.remove(); } catch (e) { console.warn('Error removing mini-map instance', e); } } });
+                    }
                 };
 
                 const maxContentHeight = this.mmToPx(this.cfg.a4.h - (this.cfg.paddingMM * 2.5));
